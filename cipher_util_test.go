@@ -1,23 +1,26 @@
 package s3crypto
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"github.com/awslabs/aws-sdk-go-s3-crypto/internal/awstesting"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/awstesting/unit"
-	"github.com/aws/aws-sdk-go/service/kms"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
 )
 
 func TestWrapFactory(t *testing.T) {
+	tConfig := awstesting.Config()
+	kmsClient := kms.NewFromConfig(tConfig)
+
 	o := DecryptionClientOptions{
 		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
 			KMSWrap: (kmsKeyHandler{
-				kms: kms.New(unit.Session),
+				apiClient: kmsClient,
 			}).decryptHandler,
 		}, map[string]CEKEntry{
 			AESGCMNoPadding: newAESGCMContentCipher,
@@ -41,10 +44,12 @@ func TestWrapFactory(t *testing.T) {
 	}
 }
 func TestWrapFactoryErrorNoWrap(t *testing.T) {
+	tConfig := awstesting.Config()
+	kmsClient := kms.NewFromConfig(tConfig)
 	o := DecryptionClientOptions{
 		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
 			KMSWrap: (kmsKeyHandler{
-				kms: kms.New(unit.Session),
+				apiClient: kmsClient,
 			}).decryptHandler,
 		}, map[string]CEKEntry{
 			AESGCMNoPadding: newAESGCMContentCipher,
@@ -65,10 +70,12 @@ func TestWrapFactoryErrorNoWrap(t *testing.T) {
 }
 
 func TestWrapFactoryCustomEntry(t *testing.T) {
+	tConfig := awstesting.Config()
+	kmsClient := kms.NewFromConfig(tConfig)
 	o := DecryptionClientOptions{
 		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
 			"custom": (kmsKeyHandler{
-				kms: kms.New(unit.Session),
+				apiClient: kmsClient,
 			}).decryptHandler,
 		}, map[string]CEKEntry{
 			AESGCMNoPadding: newAESGCMContentCipher,
@@ -96,18 +103,16 @@ func TestCEKFactory(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	sess := unit.Session.Copy(&aws.Config{
-		MaxRetries:       aws.Int(0),
-		Endpoint:         aws.String(ts.URL),
-		DisableSSL:       aws.Bool(true),
-		S3ForcePathStyle: aws.Bool(true),
-		Region:           aws.String("us-west-2"),
-	})
+	tConfig := awstesting.Config()
+	tConfig.Region = "us-west-2"
+	tConfig.RetryMaxAttempts = 0
+	tConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
+	svc := kms.NewFromConfig(tConfig)
 
 	o := DecryptionClientOptions{
 		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
 			KMSWrap: (kmsKeyHandler{
-				kms: kms.New(sess),
+				apiClient: svc,
 			}).decryptHandler,
 		}, map[string]CEKEntry{
 			AESGCMNoPadding: newAESGCMContentCipher,
@@ -139,7 +144,7 @@ func TestCEKFactory(t *testing.T) {
 		t.Errorf("expected no error, but received %v", err)
 	}
 
-	cek, err := cekFromEnvelope(o, aws.BackgroundContext(), env, wrap)
+	cek, err := cekFromEnvelope(context.Background(), o, env, wrap)
 
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
@@ -157,19 +162,17 @@ func TestCEKFactoryNoCEK(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	sess := unit.Session.Copy(&aws.Config{
-		MaxRetries:       aws.Int(0),
-		Endpoint:         aws.String(ts.URL),
-		DisableSSL:       aws.Bool(true),
-		S3ForcePathStyle: aws.Bool(true),
-		Region:           aws.String("us-west-2"),
-	})
+	tConfig := awstesting.Config()
+	tConfig.Region = "us-west-2"
+	tConfig.RetryMaxAttempts = 0
+	tConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
+	svc := kms.NewFromConfig(tConfig)
 
 	o := DecryptionClientOptions{
 		CryptoRegistry: initCryptoRegistryFrom(
 			map[string]WrapEntry{
 				KMSWrap: (kmsKeyHandler{
-					kms: kms.New(sess),
+					apiClient: svc,
 				}).decryptHandler,
 			},
 			map[string]CEKEntry{
@@ -203,7 +206,7 @@ func TestCEKFactoryNoCEK(t *testing.T) {
 		t.Errorf("expected no error, but received %v", err)
 	}
 
-	cek, err := cekFromEnvelope(o, aws.BackgroundContext(), env, wrap)
+	cek, err := cekFromEnvelope(context.Background(), o, env, wrap)
 
 	if err == nil {
 		t.Error("expected error, but received none")
@@ -221,19 +224,17 @@ func TestCEKFactoryCustomEntry(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	sess := unit.Session.Copy(&aws.Config{
-		MaxRetries:       aws.Int(0),
-		Endpoint:         aws.String(ts.URL),
-		DisableSSL:       aws.Bool(true),
-		S3ForcePathStyle: aws.Bool(true),
-		Region:           aws.String("us-west-2"),
-	})
+	tConfig := awstesting.Config()
+	tConfig.Region = "us-west-2"
+	tConfig.RetryMaxAttempts = 0
+	tConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
+	svc := kms.NewFromConfig(tConfig)
 
 	o := DecryptionClientOptions{
 		CryptoRegistry: initCryptoRegistryFrom(
 			map[string]WrapEntry{
 				KMSWrap: (kmsKeyHandler{
-					kms: kms.New(sess),
+					apiClient: svc,
 				}).decryptHandler,
 			}, map[string]CEKEntry{
 				"custom": newAESGCMContentCipher,
@@ -263,7 +264,7 @@ func TestCEKFactoryCustomEntry(t *testing.T) {
 		t.Errorf("expected no error, but received %v", err)
 	}
 
-	cek, err := cekFromEnvelope(o, aws.BackgroundContext(), env, wrap)
+	cek, err := cekFromEnvelope(context.Background(), o, env, wrap)
 
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)

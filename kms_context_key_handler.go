@@ -1,11 +1,10 @@
 package s3crypto
 
 import (
+	"context"
 	"fmt"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/kms"
-	"github.com/aws/aws-sdk-go/service/kms/kmsiface"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
+	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 )
 
 const (
@@ -17,17 +16,28 @@ const (
 	kmsMismatchCEKAlg            = "the content encryption algorithm used at encryption time does not match the algorithm stored for decryption time. The object may be altered or corrupted"
 )
 
+// KmsAPIClient is a client that implements the GenerateDataKey and Decrypt operations
+type KmsAPIClient interface {
+	GenerateDataKey(context.Context, *kms.GenerateDataKeyInput, ...func(*kms.Options)) (*kms.GenerateDataKeyOutput, error)
+	Decrypt(context.Context, *kms.DecryptInput, ...func(*kms.Options)) (*kms.DecryptOutput, error)
+}
+
 // NewKMSContextKeyGenerator builds a new kms+context key provider using the customer key ID and material
 // description.
 //
 // Example:
 //
-//	sess := session.Must(session.NewSession())
+//	ctx := context.Background()
+//	cfg, err := config.LoadDefaultConfig(ctx)
+//	if err != nil {
+//		panic(err) // handle err
+//	}
+//
 //	cmkID := "KMS Key ARN"
 //	var matdesc s3crypto.MaterialDescription
-//	handler := s3crypto.NewKMSContextKeyGenerator(kms.New(sess), cmkID, matdesc)
-func NewKMSContextKeyGenerator(client kmsiface.KMSAPI, cmkID string, matdesc MaterialDescription) CipherDataGeneratorWithCEKAlg {
-	return newKMSContextKeyHandler(client, cmkID, matdesc)
+//	handler := s3crypto.NewKMSContextKeyGenerator(kms.NewFromConfig(cfg), cmkID, matdesc)
+func NewKMSContextKeyGenerator(apiClient KmsAPIClient, cmkID string, matdesc MaterialDescription) CipherDataGeneratorWithCEKAlg {
+	return newKMSContextKeyHandler(apiClient, cmkID, matdesc)
 }
 
 // RegisterKMSContextWrapWithCMK registers the kms+context wrapping algorithm to the given WrapRegistry. The wrapper
@@ -39,11 +49,11 @@ func NewKMSContextKeyGenerator(client kmsiface.KMSAPI, cmkID string, matdesc Mat
 //	if err := RegisterKMSContextWrapWithCMK(); err != nil {
 //		panic(err) // handle error
 //	}
-func RegisterKMSContextWrapWithCMK(registry *CryptoRegistry, client kmsiface.KMSAPI, cmkID string) error {
+func RegisterKMSContextWrapWithCMK(registry *CryptoRegistry, apiClient KmsAPIClient, cmkID string) error {
 	if registry == nil {
 		return errNilCryptoRegistry
 	}
-	return registry.AddWrap(KMSContextWrap, newKMSContextWrapEntryWithCMK(client, cmkID))
+	return registry.AddWrap(KMSContextWrap, newKMSContextWrapEntryWithCMK(apiClient, cmkID))
 }
 
 // RegisterKMSContextWrapWithAnyCMK registers the kms+context wrapping algorithm to the given WrapRegistry. The wrapper
@@ -51,25 +61,30 @@ func RegisterKMSContextWrapWithCMK(registry *CryptoRegistry, client kmsiface.KMS
 //
 // Example:
 //
-//	sess := session.Must(session.NewSession())
+//	ctx := context.Background()
+//	cfg, err := config.LoadDefaultConfig(ctx)
+//	if err != nil {
+//		panic(err) // handle err
+//	}
+//
 //	cr := s3crypto.NewCryptoRegistry()
-//	if err := s3crypto.RegisterKMSContextWrapWithAnyCMK(cr, kms.New(sess)); err != nil {
+//	if err := s3crypto.RegisterKMSContextWrapWithAnyCMK(cr, kms.NewFromConfig(cfg)); err != nil {
 //		panic(err) // handle error
 //	}
-func RegisterKMSContextWrapWithAnyCMK(registry *CryptoRegistry, client kmsiface.KMSAPI) error {
+func RegisterKMSContextWrapWithAnyCMK(registry *CryptoRegistry, apiClient KmsAPIClient) error {
 	if registry == nil {
 		return errNilCryptoRegistry
 	}
-	return registry.AddWrap(KMSContextWrap, newKMSContextWrapEntryWithAnyCMK(client))
+	return registry.AddWrap(KMSContextWrap, newKMSContextWrapEntryWithAnyCMK(apiClient))
 }
 
 // newKMSContextWrapEntryWithCMK builds returns a new kms+context key provider and its decrypt handler.
 // The returned handler will be configured to calls KMS Decrypt API without specifying a specific KMS CMK.
-func newKMSContextWrapEntryWithCMK(kmsClient kmsiface.KMSAPI, cmkID string) WrapEntry {
+func newKMSContextWrapEntryWithCMK(apiClient KmsAPIClient, cmkID string) WrapEntry {
 	// These values are read only making them thread safe
 	kp := &kmsContextKeyHandler{
-		kms:   kmsClient,
-		cmkID: &cmkID,
+		apiClient: apiClient,
+		cmkID:     &cmkID,
 	}
 
 	return kp.decryptHandler
@@ -77,10 +92,10 @@ func newKMSContextWrapEntryWithCMK(kmsClient kmsiface.KMSAPI, cmkID string) Wrap
 
 // newKMSContextWrapEntryWithAnyCMK builds returns a new kms+context key provider and its decrypt handler.
 // The returned handler will be configured to calls KMS Decrypt API without specifying a specific KMS CMK.
-func newKMSContextWrapEntryWithAnyCMK(kmsClient kmsiface.KMSAPI) WrapEntry {
+func newKMSContextWrapEntryWithAnyCMK(apiClient KmsAPIClient) WrapEntry {
 	// These values are read only making them thread safe
 	kp := &kmsContextKeyHandler{
-		kms: kmsClient,
+		apiClient: apiClient,
 	}
 
 	return kp.decryptHandler
@@ -89,8 +104,8 @@ func newKMSContextWrapEntryWithAnyCMK(kmsClient kmsiface.KMSAPI) WrapEntry {
 // kmsContextKeyHandler wraps the kmsKeyHandler to explicitly make this type incompatible with the v1 client
 // by not exposing the old interface implementations.
 type kmsContextKeyHandler struct {
-	kms   kmsiface.KMSAPI
-	cmkID *string
+	apiClient KmsAPIClient
+	cmkID     *string
 
 	CipherData
 }
@@ -99,10 +114,10 @@ func (kp *kmsContextKeyHandler) isAWSFixture() bool {
 	return true
 }
 
-func newKMSContextKeyHandler(client kmsiface.KMSAPI, cmkID string, matdesc MaterialDescription) *kmsContextKeyHandler {
+func newKMSContextKeyHandler(apiClient KmsAPIClient, cmkID string, matdesc MaterialDescription) *kmsContextKeyHandler {
 	kp := &kmsContextKeyHandler{
-		kms:   client,
-		cmkID: &cmkID,
+		apiClient: apiClient,
+		cmkID:     &cmkID,
 	}
 
 	if matdesc == nil {
@@ -115,7 +130,7 @@ func newKMSContextKeyHandler(client kmsiface.KMSAPI, cmkID string, matdesc Mater
 	return kp
 }
 
-func (kp *kmsContextKeyHandler) GenerateCipherDataWithCEKAlg(ctx aws.Context, keySize int, ivSize int, cekAlgorithm string) (CipherData, error) {
+func (kp *kmsContextKeyHandler) GenerateCipherDataWithCEKAlg(ctx context.Context, keySize int, ivSize int, cekAlgorithm string) (CipherData, error) {
 	cd := kp.CipherData.Clone()
 
 	if len(cekAlgorithm) == 0 {
@@ -125,13 +140,13 @@ func (kp *kmsContextKeyHandler) GenerateCipherDataWithCEKAlg(ctx aws.Context, ke
 	if _, ok := cd.MaterialDescription[kmsAWSCEKContextKey]; ok {
 		return CipherData{}, fmt.Errorf(kmsReservedKeyConflictErrMsg, kmsAWSCEKContextKey)
 	}
-	cd.MaterialDescription[kmsAWSCEKContextKey] = &cekAlgorithm
+	cd.MaterialDescription[kmsAWSCEKContextKey] = cekAlgorithm
 
-	out, err := kp.kms.GenerateDataKeyWithContext(ctx,
+	out, err := kp.apiClient.GenerateDataKey(ctx,
 		&kms.GenerateDataKeyInput{
 			EncryptionContext: cd.MaterialDescription,
 			KeyId:             kp.cmkID,
-			KeySpec:           aws.String("AES_256"),
+			KeySpec:           types.DataKeySpecAes256,
 		})
 	if err != nil {
 		return CipherData{}, err
@@ -164,7 +179,7 @@ func (kp kmsContextKeyHandler) decryptHandler(env Envelope) (CipherDataDecrypter
 
 	if v, ok := m[kmsAWSCEKContextKey]; !ok {
 		return nil, fmt.Errorf("required key %v is missing from encryption context", kmsAWSCEKContextKey)
-	} else if v == nil || *v != env.CEKAlg {
+	} else if v != env.CEKAlg {
 		return nil, fmt.Errorf(kmsMismatchCEKAlg)
 	}
 
@@ -176,17 +191,17 @@ func (kp kmsContextKeyHandler) decryptHandler(env Envelope) (CipherDataDecrypter
 
 // DecryptKey makes a call to KMS to decrypt the key.
 func (kp *kmsContextKeyHandler) DecryptKey(key []byte) ([]byte, error) {
-	return kp.DecryptKeyWithContext(aws.BackgroundContext(), key)
+	return kp.DecryptKeyWithContext(context.Background(), key)
 }
 
 // DecryptKeyWithContext makes a call to KMS to decrypt the key with request context.
-func (kp *kmsContextKeyHandler) DecryptKeyWithContext(ctx aws.Context, key []byte) ([]byte, error) {
-	out, err := kp.kms.DecryptWithContext(ctx,
+func (kp *kmsContextKeyHandler) DecryptKeyWithContext(ctx context.Context, key []byte) ([]byte, error) {
+	out, err := kp.apiClient.Decrypt(ctx,
 		&kms.DecryptInput{
 			KeyId:             kp.cmkID, // will be nil and not serialized if created with the AnyCMK constructor
 			EncryptionContext: kp.MaterialDescription,
 			CiphertextBlob:    key,
-			GrantTokens:       []*string{},
+			GrantTokens:       []string{},
 		})
 	if err != nil {
 		return nil, err

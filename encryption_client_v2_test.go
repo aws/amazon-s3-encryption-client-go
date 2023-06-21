@@ -1,61 +1,35 @@
-//go:build go1.7
-// +build go1.7
-
 package s3crypto
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/awslabs/aws-sdk-go-s3-crypto/internal/awstesting"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
-	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/awstesting/unit"
-	"github.com/aws/aws-sdk-go/service/kms"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
 )
 
-func sessionWithLogCheck(message string) (*session.Session, *bool) {
-	gotWarning := false
+type mockPutObjectClient struct{}
 
-	u := unit.Session.Copy(&aws.Config{Logger: aws.LoggerFunc(func(i ...interface{}) {
-		if len(i) == 0 {
-			return
-		}
-		s, ok := i[0].(string)
-		if !ok {
-			return
-		}
-		if s == message {
-			gotWarning = true
-		}
-	})})
-
-	return u, &gotWarning
+func (m *mockPutObjectClient) PutObject(ctx context.Context, input *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
+	panic("not implemented")
 }
 
 func TestNewEncryptionClientV2(t *testing.T) {
-	tUnit, gotWarning := sessionWithLogCheck(customTypeWarningMessage)
+	tClient := &mockPutObjectClient{}
 
 	mcb := AESGCMContentCipherBuilderV2(NewKMSContextKeyGenerator(nil, "id", nil))
-	v2, err := NewEncryptionClientV2(tUnit, mcb)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	v2 := NewEncryptionClientV2(tClient, mcb)
 	if v2 == nil {
 		t.Fatal("expected client to not be nil")
-	}
-
-	if *gotWarning {
-		t.Errorf("expected no warning for aws provided custom cipher builder")
 	}
 
 	if !reflect.DeepEqual(mcb, v2.options.ContentCipherBuilder) {
@@ -67,7 +41,7 @@ func TestNewEncryptionClientV2(t *testing.T) {
 		t.Errorf("expected default save strategy to be s3 header strategy")
 	}
 
-	if v2.options.S3Client == nil {
+	if v2.apiClient == nil {
 		t.Errorf("expected s3 client not be nil")
 	}
 
@@ -81,27 +55,19 @@ func TestNewEncryptionClientV2(t *testing.T) {
 }
 
 func TestNewEncryptionClientV2_NonDefaults(t *testing.T) {
-	tUnit, gotWarning := sessionWithLogCheck(customTypeWarningMessage)
-
-	s3Client := s3.New(tUnit)
+	tConfig := awstesting.Config()
+	tClient := s3.NewFromConfig(tConfig)
 
 	mcb := mockCipherBuilderV2{}
-	v2, err := NewEncryptionClientV2(tUnit, nil, func(clientOptions *EncryptionClientOptions) {
-		clientOptions.S3Client = s3Client
+	v2 := NewEncryptionClientV2(tClient, nil, func(clientOptions *EncryptionClientOptions) {
 		clientOptions.ContentCipherBuilder = mcb
 		clientOptions.TempFolderPath = "/mock/path"
 		clientOptions.MinFileSize = 42
 		clientOptions.SaveStrategy = S3SaveStrategy{}
 	})
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+
 	if v2 == nil {
 		t.Fatal("expected client to not be nil")
-	}
-
-	if !*gotWarning {
-		t.Errorf("expected warning for custom provided content cipher builder")
 	}
 
 	if !reflect.DeepEqual(mcb, v2.options.ContentCipherBuilder) {
@@ -113,7 +79,7 @@ func TestNewEncryptionClientV2_NonDefaults(t *testing.T) {
 		t.Errorf("expected default save strategy to be s3 header strategy")
 	}
 
-	if v2.options.S3Client != s3Client {
+	if v2.apiClient != tClient {
 		t.Errorf("expected s3 client not be nil")
 	}
 
@@ -138,7 +104,7 @@ func (k cdgWithStaticTestIV) isAWSFixture() bool {
 	return true
 }
 
-func (k cdgWithStaticTestIV) GenerateCipherDataWithCEKAlg(ctx aws.Context, keySize, ivSize int, cekAlg string) (CipherData, error) {
+func (k cdgWithStaticTestIV) GenerateCipherDataWithCEKAlg(ctx context.Context, keySize, ivSize int, cekAlg string) (CipherData, error) {
 	cipherData, err := k.CipherDataGeneratorWithCEKAlg.GenerateCipherDataWithCEKAlg(ctx, keySize, ivSize, cekAlg)
 	if err == nil {
 		cipherData.IV = k.IV
@@ -151,8 +117,11 @@ func TestEncryptionClientV2_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 		fmt.Fprintln(writer, `{"CiphertextBlob":"8gSzlk7giyfFbLPUVgoVjvQebI1827jp8lDkO+n2chsiSoegx1sjm8NdPk0Bl70I","KeyId":"test-key-id","Plaintext":"lP6AbIQTmptyb/+WQq+ubDw+w7na0T1LGSByZGuaono="}`)
 	}))
 
-	sess := unit.Session.Copy()
-	kmsClient := kms.New(sess.Copy(&aws.Config{Endpoint: &ts.URL}))
+	tKmsConfig := awstesting.Config()
+	tKmsConfig.Region = "us-west-2"
+	tKmsConfig.RetryMaxAttempts = 0
+	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
+	kmsClient := kms.NewFromConfig(tKmsConfig)
 
 	var md MaterialDescription
 	iv, _ := hex.DecodeString("ae325acae2bfd5b9c3d0b813")
@@ -161,12 +130,21 @@ func TestEncryptionClientV2_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 		CipherDataGeneratorWithCEKAlg: NewKMSContextKeyGenerator(kmsClient, "test-key-id", md),
 	}
 	contentCipherBuilderV2 := AESGCMContentCipherBuilderV2(kmsWithStaticIV)
-	client, err := NewEncryptionClientV2(sess, contentCipherBuilderV2)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
 
-	req, _ := client.PutObjectRequest(&s3.PutObjectInput{
+	tConfig := awstesting.Config()
+	tHttpClient := &awstesting.MockHttpClient{
+		Response: &http.Response{
+			Status:     http.StatusText(200),
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(bytes.NewReader([]byte{})),
+		},
+	}
+	tConfig.HTTPClient = tHttpClient
+	s3Client := s3.NewFromConfig(tConfig)
+
+	client := NewEncryptionClientV2(s3Client, contentCipherBuilderV2)
+
+	_, err := client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket: aws.String("test-bucket"),
 		Key:    aws.String("test-key"),
 		Body: func() io.ReadSeeker {
@@ -174,39 +152,21 @@ func TestEncryptionClientV2_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 			return bytes.NewReader(content)
 		}(),
 	})
+	if err != nil {
+		t.Fatalf("PutObject failed with %v", err)
+	}
 
-	req.Handlers.Send.Clear()
-	req.Handlers.Send.PushFront(func(r *request.Request) {
-		all, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
+	if tHttpClient.CapturedReq == nil || tHttpClient.CapturedBody == nil {
+		t.Errorf("captured HTTP request/body was nil")
+	}
 
-		expected, _ := hex.DecodeString("4cd8e95a1c9b8b19640e02838b02c8c09e66250703a602956695afbc23cbb8647d51645955ab63b89733d0766f9a264adb88571b1d467b734ff72eb73d31de9a83670d59688c54ea")
+	expected, _ := hex.DecodeString("4cd8e95a1c9b8b19640e02838b02c8c09e66250703a602956695afbc23cbb8647d51645955ab63b89733d0766f9a264adb88571b1d467b734ff72eb73d31de9a83670d59688c54ea")
 
-		if !bytes.Equal(all, expected) {
-			t.Error("encrypted bytes did not match expected")
-		}
+	if !bytes.Equal(tHttpClient.CapturedBody, expected) {
+		t.Error("encrypted bytes did not match expected")
+	}
 
-		req.HTTPResponse = &http.Response{
-			Status:     http.StatusText(200),
-			StatusCode: http.StatusOK,
-			Body:       aws.ReadSeekCloser(bytes.NewReader([]byte{})),
-		}
-	})
-	err = req.Send()
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
-	}
-}
-
-func TestNewEncryptionClientV2_FailsOnIncompatibleFixtures(t *testing.T) {
-	sess := unit.Session.Copy()
-	_, err := NewEncryptionClientV2(sess, AESGCMContentCipherBuilder(NewKMSKeyGenerator(kms.New(sess), "cmkId")))
-	if err == nil {
-		t.Fatal("expected to fail, but got nil")
-	}
-	if !strings.Contains(err.Error(), "attempted to use deprecated or incompatible cipher builder") {
-		t.Errorf("expected to get error for using dperecated cipher builder")
 	}
 }

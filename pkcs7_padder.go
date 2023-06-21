@@ -7,8 +7,7 @@ package s3crypto
 import (
 	"bytes"
 	"crypto/subtle"
-
-	"github.com/aws/aws-sdk-go/aws/awserr"
+	"errors"
 )
 
 const (
@@ -26,13 +25,14 @@ func NewPKCS7Padder(blockSize int) Padder {
 	return pkcs7Padder{blockSize}
 }
 
-var errPKCS7Padding = awserr.New("InvalidPadding", "invalid padding", nil)
+var errPKCS7Padding = errors.New("invalid padding")
+var errInvalidBlockSize = errors.New("invalid block size, must be between 1 and 255")
 
 // Pad will pad the data relative to how many bytes have been read.
 // Pad follows the PKCS7 standard.
 func (padder pkcs7Padder) Pad(buf []byte, n int) ([]byte, error) {
 	if padder.blockSize < 1 || padder.blockSize > pkcs7MaxPaddingSize {
-		return nil, awserr.New("InvalidBlockSize", "block size must be between 1 and 255", nil)
+		return nil, errInvalidBlockSize
 	}
 	size := padder.blockSize - (n % padder.blockSize)
 	pad := bytes.Repeat([]byte{byte(size)}, size)

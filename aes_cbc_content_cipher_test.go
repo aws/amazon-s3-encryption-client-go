@@ -5,40 +5,6 @@ import (
 	"testing"
 )
 
-func TestAESCBCBuilder(t *testing.T) {
-	generator := mockGenerator{}
-	builder := AESCBCContentCipherBuilder(generator, NoPadder)
-	if builder == nil {
-		t.Fatal(builder)
-	}
-
-	_, err := builder.ContentCipher()
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestAesCBCContentCipher_isFixtureEncryptionCompatible(t *testing.T) {
-	generator := mockGenerator{}
-	builder := AESCBCContentCipherBuilder(generator, NoPadder)
-	if builder == nil {
-		t.Fatal("expected builder to not be nil")
-	}
-
-	compatibility, ok := builder.(compatibleEncryptionFixture)
-	if !ok {
-		t.Fatal("expected builder to implement compatibleEncryptionFixture interface")
-	}
-
-	if err := compatibility.isEncryptionVersionCompatible(v1ClientVersion); err != nil {
-		t.Errorf("expected builder to be compatible with v1 client")
-	}
-
-	if err := compatibility.isEncryptionVersionCompatible(v2ClientVersion); err == nil {
-		t.Errorf("expected builder to not be compatible with v2 client")
-	}
-}
-
 func TestRegisterAESCBCContentCipher(t *testing.T) {
 	cr := NewCryptoRegistry()
 	padder := AESCBCPadder

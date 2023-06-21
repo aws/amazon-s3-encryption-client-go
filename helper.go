@@ -3,28 +3,37 @@ package s3crypto
 import (
 	"errors"
 	"io"
-	"io/ioutil"
 	"os"
-
-	"github.com/aws/aws-sdk-go/aws/request"
 )
 
-func getWriterStore(req *request.Request, path string, useTempFile bool) (io.ReadWriteSeeker, error) {
+type writerStore struct {
+	io.ReadWriteSeeker
+	cleanup func()
+}
+
+func getWriterStore(path string, useTempFile bool) (*writerStore, error) {
 	if !useTempFile {
-		return &bytesReadWriteSeeker{}, nil
+		return &writerStore{
+			ReadWriteSeeker: &bytesReadWriteSeeker{},
+			cleanup:         func() {},
+		}, nil
 	}
 	// Create temp file to be used later for calculating the SHA256 header
-	f, err := ioutil.TempFile(path, "")
+	f, err := os.CreateTemp(path, "")
 	if err != nil {
 		return nil, err
 	}
 
-	req.Handlers.Complete.PushBack(func(r *request.Request) {
-		// Close the temp file and cleanup
-		f.Close()
-		os.Remove(f.Name())
-	})
-	return f, nil
+	ws := &writerStore{
+		ReadWriteSeeker: f,
+		cleanup: func() {
+			// Close the temp file and cleanup
+			f.Close()
+			os.Remove(f.Name())
+		},
+	}
+
+	return ws, nil
 }
 
 type bytesReadWriteSeeker struct {

@@ -1,9 +1,5 @@
 package s3crypto
 
-const (
-	pkcs5BlockSize = 16
-)
-
 var aescbcPadding = aescbcPadder{pkcs7Padder{16}}
 
 // AESCBCPadder is used to pad AES encrypted and decrypted data.

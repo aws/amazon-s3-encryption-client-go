@@ -4,24 +4,6 @@ import (
 	"io"
 )
 
-const (
-	cbcKeySize   = 32
-	cbcNonceSize = 16
-)
-
-type cbcContentCipherBuilder struct {
-	generator CipherDataGenerator
-	padder    Padder
-}
-
-// AESCBCContentCipherBuilder returns a new encryption only AES/CBC mode structure using the provided padder. The provided cipher data generator
-// will be used to provide keys for content encryption.
-//
-// deprecated: This feature is in maintenance mode, no new updates will be released. Please see https://docs.aws.amazon.com/general/latest/gr/aws_sdk_cryptography.html for more information.
-func AESCBCContentCipherBuilder(generator CipherDataGenerator, padder Padder) ContentCipherBuilder {
-	return cbcContentCipherBuilder{generator: generator, padder: padder}
-}
-
 // RegisterAESCBCContentCipher registers the AES/CBC cipher and padder with the provided CryptoRegistry.
 //
 // Example:
@@ -43,27 +25,6 @@ func RegisterAESCBCContentCipher(registry *CryptoRegistry, padder Padder) error 
 	}
 	if err := registry.AddPadder(name, padder); err != nil {
 		return err
-	}
-	return nil
-}
-
-func (builder cbcContentCipherBuilder) ContentCipher() (ContentCipher, error) {
-	cd, err := builder.generator.GenerateCipherData(cbcKeySize, cbcNonceSize)
-	if err != nil {
-		return nil, err
-	}
-
-	cd.Padder = builder.padder
-	return newAESCBCContentCipher(cd)
-}
-
-func (builder cbcContentCipherBuilder) isAWSFixture() bool {
-	return true
-}
-
-func (cbcContentCipherBuilder) isEncryptionVersionCompatible(version clientVersion) error {
-	if version != v1ClientVersion {
-		return errDeprecatedIncompatibleCipherBuilder
 	}
 	return nil
 }
@@ -110,9 +71,5 @@ func (cc aesCBCContentCipher) GetCipherData() CipherData {
 }
 
 var (
-	_ ContentCipherBuilder        = (*cbcContentCipherBuilder)(nil)
-	_ compatibleEncryptionFixture = (*cbcContentCipherBuilder)(nil)
-	_ awsFixture                  = (*cbcContentCipherBuilder)(nil)
-
 	_ ContentCipher = (*aesCBCContentCipher)(nil)
 )

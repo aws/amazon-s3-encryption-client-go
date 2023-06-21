@@ -2,31 +2,14 @@ package s3crypto
 
 import (
 	"bytes"
-	"fmt"
+	"context"
 	"io"
 	"io/ioutil"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/kms/kmsiface"
 )
-
-type mockGenerator struct{}
-
-func (m mockGenerator) GenerateCipherData(keySize, ivSize int) (CipherData, error) {
-	cd := CipherData{
-		Key: make([]byte, keySize),
-		IV:  make([]byte, ivSize),
-	}
-	return cd, nil
-}
-
-func (m mockGenerator) DecryptKey(key []byte) ([]byte, error) {
-	return make([]byte, 16), nil
-}
 
 type mockGeneratorV2 struct{}
 
-func (m mockGeneratorV2) GenerateCipherDataWithCEKAlg(ctx aws.Context, keySize int, ivSize int, cekAlg string) (CipherData, error) {
+func (m mockGeneratorV2) GenerateCipherDataWithCEKAlg(ctx context.Context, keySize int, ivSize int, cekAlg string) (CipherData, error) {
 	cd := CipherData{
 		Key: make([]byte, keySize),
 		IV:  make([]byte, ivSize),
@@ -38,45 +21,12 @@ func (m mockGeneratorV2) DecryptKey(key []byte) ([]byte, error) {
 	return make([]byte, 16), nil
 }
 
-func (m mockGeneratorV2) isEncryptionVersionCompatible(version clientVersion) error {
-	if version != v2ClientVersion {
-		return fmt.Errorf("mock error about version")
-	}
-	return nil
-}
-
-type mockCipherBuilder struct {
-	generator CipherDataGenerator
-}
-
-func (builder mockCipherBuilder) isEncryptionVersionCompatible(version clientVersion) error {
-	if version != v1ClientVersion {
-		return fmt.Errorf("mock error about version")
-	}
-	return nil
-}
-
-func (builder mockCipherBuilder) ContentCipher() (ContentCipher, error) {
-	cd, err := builder.generator.GenerateCipherData(32, 16)
-	if err != nil {
-		return nil, err
-	}
-	return &mockContentCipher{cd}, nil
-}
-
 type mockCipherBuilderV2 struct {
 	generator CipherDataGeneratorWithCEKAlg
 }
 
-func (builder mockCipherBuilderV2) isEncryptionVersionCompatible(version clientVersion) error {
-	if version != v2ClientVersion {
-		return fmt.Errorf("mock error about version")
-	}
-	return nil
-}
-
 func (builder mockCipherBuilderV2) ContentCipher() (ContentCipher, error) {
-	cd, err := builder.generator.GenerateCipherDataWithCEKAlg(aws.BackgroundContext(), 32, 16, "mock-cek-alg")
+	cd, err := builder.generator.GenerateCipherDataWithCEKAlg(context.Background(), 32, 16, "mock-cek-alg")
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +61,7 @@ func (cipher *mockContentCipher) DecryptContents(src io.ReadCloser) (io.ReadClos
 }
 
 type mockKMS struct {
-	kmsiface.KMSAPI
+	KmsAPIClient
 }
 
 type mockPadder struct {

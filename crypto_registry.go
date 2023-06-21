@@ -4,6 +4,12 @@ import (
 	"fmt"
 )
 
+// WrapEntry is builder that return a proper key decrypter and error
+type WrapEntry func(Envelope) (CipherDataDecrypter, error)
+
+// CEKEntry is a builder that returns a proper content decrypter and error
+type CEKEntry func(CipherData) (ContentCipher, error)
+
 // CryptoRegistry is a collection of registries for configuring a decryption client with different key wrapping algorithms,
 // content encryption algorithms, and padders.
 type CryptoRegistry struct {

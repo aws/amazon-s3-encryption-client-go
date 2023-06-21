@@ -1,18 +1,13 @@
-//go:build go1.7
-// +build go1.7
-
 package s3crypto
 
 import (
 	"reflect"
 	"testing"
-
-	"github.com/aws/aws-sdk-go/aws"
 )
 
 func TestEncodeMaterialDescription(t *testing.T) {
 	md := MaterialDescription{}
-	md["foo"] = aws.String("bar")
+	md["foo"] = "bar"
 	b, err := md.encodeDescription()
 	expected := `{"foo":"bar"}`
 	if err != nil {
@@ -27,7 +22,7 @@ func TestDecodeMaterialDescription(t *testing.T) {
 	json := `{"foo":"bar"}`
 	err := md.decodeDescription([]byte(json))
 	expected := MaterialDescription{
-		"foo": aws.String("bar"),
+		"foo": "bar",
 	}
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
@@ -48,12 +43,12 @@ func TestMaterialDescription_Clone(t *testing.T) {
 		},
 		"it copies all values": {
 			md: MaterialDescription{
-				"key1": aws.String("value1"),
-				"key2": aws.String("value2"),
+				"key1": "value1",
+				"key2": "value2",
 			},
 			wantClone: MaterialDescription{
-				"key1": aws.String("value1"),
-				"key2": aws.String("value2"),
+				"key1": "value1",
+				"key2": "value2",
 			},
 		},
 	}

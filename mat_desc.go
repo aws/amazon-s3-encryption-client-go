@@ -6,7 +6,7 @@ import (
 
 // MaterialDescription is used to identify how and what master
 // key has been used.
-type MaterialDescription map[string]*string
+type MaterialDescription map[string]string
 
 // Clone returns a copy of the MaterialDescription
 func (md MaterialDescription) Clone() (clone MaterialDescription) {
@@ -15,7 +15,7 @@ func (md MaterialDescription) Clone() (clone MaterialDescription) {
 	}
 	clone = make(MaterialDescription, len(md))
 	for k, v := range md {
-		clone[k] = copyPtrString(v)
+		clone[k] = v
 	}
 	return clone
 }
@@ -27,12 +27,4 @@ func (md *MaterialDescription) encodeDescription() ([]byte, error) {
 
 func (md *MaterialDescription) decodeDescription(b []byte) error {
 	return json.Unmarshal(b, &md)
-}
-
-func copyPtrString(v *string) *string {
-	if v == nil {
-		return nil
-	}
-	ns := *v
-	return &ns
 }

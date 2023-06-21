@@ -1,9 +1,8 @@
 package s3crypto
 
 import (
+	"context"
 	"io"
-
-	"github.com/aws/aws-sdk-go/aws"
 )
 
 // ContentCipherBuilder is a builder interface that builds
@@ -15,7 +14,7 @@ type ContentCipherBuilder interface {
 // ContentCipherBuilderWithContext is a builder interface that builds
 // ciphers for each request.
 type ContentCipherBuilderWithContext interface {
-	ContentCipherWithContext(aws.Context) (ContentCipher, error)
+	ContentCipherWithContext(context.Context) (ContentCipher, error)
 }
 
 // ContentCipher deals with encrypting and decrypting content
@@ -36,8 +35,7 @@ type CipherData struct {
 	MaterialDescription MaterialDescription
 	// EncryptedKey should be populated when calling GenerateCipherData
 	EncryptedKey []byte
-
-	Padder Padder
+	Padder       Padder
 }
 
 // Clone returns a new copy of CipherData
