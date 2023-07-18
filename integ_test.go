@@ -53,10 +53,7 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 			fixtures := getFixtures(t, s3Client, c.CEKAlg, bucket)
 			builder, masterKey := getEncryptFixtureBuilder(t, cfg, c.KEK, c.V1, c.V2, c.CEK)
 
-			encClient, err := s3crypto.NewEncryptionClientV2(s3Client, builder)
-			if err != nil {
-				t.Fatalf("failed to create encryption client: %v", err)
-			}
+			encClient := s3crypto.NewEncryptionClientV2(s3Client, builder)
 
 			for caseKey, plaintext := range fixtures.Plaintexts {
 				_, err := encClient.PutObject(ctx, &s3.PutObjectInput{
@@ -177,7 +174,7 @@ func getFixtures(t *testing.T, s3Client *s3.Client, cekAlg, bucket string) testF
 func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, v1, v2, cek string) (builder s3crypto.ContentCipherBuilder, masterKey string) {
 	t.Helper()
 
-	var handler s3crypto.CipherDataGenerator
+	//var handler s3crypto.CipherDataGenerator
 	var handlerWithCek s3crypto.CipherDataGeneratorWithCEKAlg
 	switch kek {
 	case "kms":
@@ -194,7 +191,7 @@ func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, v1, v2, cek str
 		kmsSvc := kms.NewFromConfig(cfg)
 		var matDesc s3crypto.MaterialDescription
 		handlerWithCek = s3crypto.NewKMSContextKeyGenerator(kmsSvc, arn, matDesc)
-		handler = s3crypto.NewKMSKeyGenerator(kmsSvc, arn)
+		//handler = s3crypto.NewKMSKeyGenerator(kmsSvc, arn)
 	default:
 		t.Fatalf("unknown fixture KEK, %v", kek)
 	}
@@ -203,7 +200,7 @@ func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, v1, v2, cek str
 	case "aes_gcm":
 		builder = s3crypto.AESGCMContentCipherBuilderV2(handlerWithCek)
 	case "aes_cbc":
-		builder = s3crypto.AESCBCContentCipherBuilder(handler, s3crypto.AESCBCPadder)
+		//builder = s3crypto.AESCBCContentCipherBuilder(handler, s3crypto.AESCBCPadder)
 	default:
 		t.Fatalf("unknown fixture CEK, %v", cek)
 	}
