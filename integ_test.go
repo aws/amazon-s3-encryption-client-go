@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	s3crypto "github.com/aws/amazon-s3-encryption-client-go"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"io"
 	"strings"
@@ -15,7 +16,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/awslabs/aws-sdk-go-s3-crypto"
 )
 
 func TestInteg_EncryptFixtures(t *testing.T) {
@@ -29,7 +29,7 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 	}
 
 	// aws-dr-tools-functional-test
-	const bucket = "aws-s3-shared-tests"
+	const bucket = "s3-encryption-client-v3-go-justplaz-us-west-2"
 	const version = "version_2"
 
 	cases := []struct {
@@ -38,11 +38,7 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 	}{
 		{
 			CEKAlg: "aes_gcm",
-			KEK:    "kms", V1: "AWS_SDK_TEST_ALIAS", V2: "us-west-2", CEK: "aes_gcm",
-		},
-		{
-			CEKAlg: "aes_cbc",
-			KEK:    "kms", V1: "AWS_SDK_TEST_ALIAS", V2: "us-west-2", CEK: "aes_cbc",
+			KEK:    "kms", V1: "s3-encryption-client-v3-go-justplaz-us-west-2", V2: "us-west-2", CEK: "aes_gcm",
 		},
 	}
 
@@ -55,6 +51,8 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 
 			encClient := s3crypto.NewEncryptionClientV2(s3Client, builder)
 
+			// dumb and lazy way to keep this compiling
+			fmt.Println(masterKey)
 			for caseKey, plaintext := range fixtures.Plaintexts {
 				_, err := encClient.PutObject(ctx, &s3.PutObjectInput{
 					Bucket: aws.String(bucket),
@@ -63,9 +61,10 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 							fixtures.BaseFolder, version, caseKey),
 					),
 					Body: bytes.NewReader(plaintext),
-					Metadata: map[string]string{
-						"Masterkey": masterKey,
-					},
+					// TODO: remove for now to isolate metadata issue
+					//Metadata: map[string]string{
+					//	"Masterkey": masterKey,
+					//},
 				})
 				if err != nil {
 					t.Fatalf("failed to upload encrypted fixture, %v", err)
@@ -85,8 +84,8 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 		t.Fatalf("failed to load cfg: %v", err)
 	}
 
-	const bucket = "aws-s3-shared-tests"
-	const version = "version_2"
+	const bucket = "s3-encryption-client-v3-go-justplaz-us-west-2"
+	const version = "version_2" // TODO version 3
 
 	cases := []struct {
 		CEKAlg string
@@ -171,16 +170,15 @@ func getFixtures(t *testing.T, s3Client *s3.Client, cekAlg, bucket string) testF
 	}
 }
 
-func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, v1, v2, cek string) (builder s3crypto.ContentCipherBuilder, masterKey string) {
+func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, cek string) (builder s3crypto.ContentCipherBuilder, masterKey string) {
 	t.Helper()
 
-	//var handler s3crypto.CipherDataGenerator
 	var handlerWithCek s3crypto.CipherDataGeneratorWithCEKAlg
 	switch kek {
 	case "kms":
-		arn, err := getAliasInformation(cfg, v1, v2)
+		arn, err := getAliasInformation(cfg, alias, region)
 		if err != nil {
-			t.Fatalf("failed to get fixture alias info for %s, %v", v1, err)
+			t.Fatalf("failed to get fixture alias info for %s, %v", alias, err)
 		}
 
 		masterKey = base64.StdEncoding.EncodeToString([]byte(arn))
@@ -191,7 +189,6 @@ func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, v1, v2, cek str
 		kmsSvc := kms.NewFromConfig(cfg)
 		var matDesc s3crypto.MaterialDescription
 		handlerWithCek = s3crypto.NewKMSContextKeyGenerator(kmsSvc, arn, matDesc)
-		//handler = s3crypto.NewKMSKeyGenerator(kmsSvc, arn)
 	default:
 		t.Fatalf("unknown fixture KEK, %v", kek)
 	}
@@ -200,7 +197,7 @@ func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, v1, v2, cek str
 	case "aes_gcm":
 		builder = s3crypto.AESGCMContentCipherBuilderV2(handlerWithCek)
 	case "aes_cbc":
-		//builder = s3crypto.AESCBCContentCipherBuilder(handler, s3crypto.AESCBCPadder)
+		t.Fatalf("aes cbc is not supported ")
 	default:
 		t.Fatalf("unknown fixture CEK, %v", cek)
 	}
@@ -256,12 +253,16 @@ func decryptFixtures(t *testing.T, decClient *s3crypto.DecryptionClientV2, s3Cli
 		})
 
 		if err != nil {
-			// TODO error?
+			fmt.Println("error!!!!")
+			fmt.Println(err)
 			continue
 		}
 
 		// We don't support wrap, so skip it
 		if ctObj.Metadata["X-Amz-Wrap-Alg"] != "kms" {
+			// TODO - check other md and make this an error,
+			// tests are passing despite no metadata whatsoever
+			fmt.Println("...no wrap alg ... skipping...")
 			continue
 		}
 

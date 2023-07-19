@@ -64,23 +64,33 @@ func (strat S3SaveStrategy) Save(ctx context.Context, req *SaveStrategyRequest) 
 type HeaderV2SaveStrategy struct{}
 
 // Save will save the envelope to the request's header.
-func (strat HeaderV2SaveStrategy) Save(ctx context.Context, req *SaveStrategyRequest) error {
-	input := req.Input.(*s3.PutObjectInput)
+func (strat HeaderV2SaveStrategy) Save(ctx context.Context, saveReq *SaveStrategyRequest) error {
+
+	input := saveReq.Input.(*s3.PutObjectInput)
 	if input.Metadata == nil {
 		input.Metadata = map[string]string{}
 	}
 
-	env := req.Envelope
+	env := saveReq.Envelope
+	saveReq.HTTPRequest.Header.Add(http.CanonicalHeaderKey(keyV2Header), env.CipherKey)
 	input.Metadata[http.CanonicalHeaderKey(keyV2Header)] = env.CipherKey
+	saveReq.HTTPRequest.Header.Add(http.CanonicalHeaderKey(ivHeader), env.IV)
 	input.Metadata[http.CanonicalHeaderKey(ivHeader)] = env.IV
+	saveReq.HTTPRequest.Header.Add(http.CanonicalHeaderKey(matDescHeader), env.MatDesc)
 	input.Metadata[http.CanonicalHeaderKey(matDescHeader)] = env.MatDesc
+	saveReq.HTTPRequest.Header.Add(http.CanonicalHeaderKey(wrapAlgorithmHeader), env.WrapAlg)
 	input.Metadata[http.CanonicalHeaderKey(wrapAlgorithmHeader)] = env.WrapAlg
+	saveReq.HTTPRequest.Header.Add(http.CanonicalHeaderKey(cekAlgorithmHeader), env.CEKAlg)
 	input.Metadata[http.CanonicalHeaderKey(cekAlgorithmHeader)] = env.CEKAlg
+	saveReq.HTTPRequest.Header.Add(http.CanonicalHeaderKey(unencryptedContentLengthHeader), env.UnencryptedContentLen)
 	input.Metadata[http.CanonicalHeaderKey(unencryptedContentLengthHeader)] = env.UnencryptedContentLen
 
 	if len(env.TagLen) > 0 {
+		saveReq.HTTPRequest.Header.Add(http.CanonicalHeaderKey(tagLengthHeader), env.TagLen)
 		input.Metadata[http.CanonicalHeaderKey(tagLengthHeader)] = env.TagLen
 	}
+	// TODO - remove, testing header without Amz prefix
+	saveReq.HTTPRequest.Header.Add("custom-key", "custom-value")
 	return nil
 }
 

@@ -1,11 +1,10 @@
 package s3crypto_test
 
 import (
+	s3crypto "github.com/aws/amazon-s3-encryption-client-go"
 	"io"
 	"strings"
 	"testing"
-
-	"github.com/awslabs/aws-sdk-go-s3-crypto"
 )
 
 func TestCryptoReadCloserRead(t *testing.T) {

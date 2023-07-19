@@ -210,10 +210,13 @@ func (m *encryptMiddleware) HandleBuild(
 		Input:       m.input,
 	}
 
+	// this copies the required crypto params (IV, tag length, etc.)
+	// into saveReq.HTTPRequest.Header (req.Request)
 	if err = m.ec.options.SaveStrategy.Save(ctx, saveReq); err != nil {
 		return out, metadata, err
 	}
 
+	// set the middleware input's Request to req
 	in.Request = req
 	return next.HandleBuild(ctx, in)
 }

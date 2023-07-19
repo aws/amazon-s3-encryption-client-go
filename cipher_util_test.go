@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"github.com/awslabs/aws-sdk-go-s3-crypto/internal/awstesting"
+	"github.com/aws/amazon-s3-encryption-client-go/internal/awstesting"
 	"net/http"
 	"net/http/httptest"
 	"testing"

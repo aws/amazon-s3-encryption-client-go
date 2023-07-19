@@ -1,4 +1,4 @@
-module github.com/awslabs/aws-sdk-go-s3-crypto
+module github.com/aws/amazon-s3-encryption-client-go
 
 go 1.19
 
