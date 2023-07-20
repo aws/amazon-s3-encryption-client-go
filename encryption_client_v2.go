@@ -211,7 +211,7 @@ func (m *encryptMiddleware) HandleBuild(
 	}
 
 	// this copies the required crypto params (IV, tag length, etc.)
-	// into saveReq.HTTPRequest.Header (req.Request)
+	// into saveReq.HTTPRequest.Headers (req.Request)
 	if err = m.ec.options.SaveStrategy.Save(ctx, saveReq); err != nil {
 		return out, metadata, err
 	}

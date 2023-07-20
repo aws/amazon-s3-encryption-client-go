@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/smithy-go"
 	"io"
@@ -71,8 +72,11 @@ func (strat HeaderV2SaveStrategy) Save(ctx context.Context, saveReq *SaveStrateg
 		input.Metadata = map[string]string{}
 	}
 
+	fmt.Println("!!!! -- saving params to metadata")
+
 	env := saveReq.Envelope
-	saveReq.HTTPRequest.Header.Add(http.CanonicalHeaderKey(keyV2Header), env.CipherKey)
+	saveReq.HTTPRequest.Header.Add("X-Amz-Meta-"+http.CanonicalHeaderKey(keyV2Header), env.CipherKey)
+	//saveReq.HTTPRequest.Header.Add(http.CanonicalHeaderKey(keyV2Header), env.CipherKey)
 	input.Metadata[http.CanonicalHeaderKey(keyV2Header)] = env.CipherKey
 	saveReq.HTTPRequest.Header.Add(http.CanonicalHeaderKey(ivHeader), env.IV)
 	input.Metadata[http.CanonicalHeaderKey(ivHeader)] = env.IV
