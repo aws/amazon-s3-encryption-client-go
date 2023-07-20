@@ -2,10 +2,9 @@ package s3crypto
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
-	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/smithy-go"
 	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 	"io"
@@ -98,8 +97,7 @@ func NewEncryptionClientV2(apiClient PutObjectAPIClient, contentCipherBuilder Co
 // a temporary file may be used to buffer the encrypted contents to.
 func (c *EncryptionClientV2) PutObject(ctx context.Context, input *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
 	em := &encryptMiddleware{
-		ec:    c,
-		input: input,
+		ec: c,
 	}
 
 	encryptOpts := []func(*s3.Options){
@@ -113,21 +111,18 @@ func (c *EncryptionClientV2) PutObject(ctx context.Context, input *s3.PutObjectI
 
 func (m *encryptMiddleware) addEncryptAPIOptions(options *s3.Options) {
 	options.APIOptions = append(options.APIOptions,
-		// remove default sha256 payload computation (taken care of by encryption middleware)
-		v4.RemoveComputePayloadSHA256Middleware,
 		m.addEncryptMiddleware,
 	)
 }
 
 func (m *encryptMiddleware) addEncryptMiddleware(stack *middleware.Stack) error {
-	return stack.Build.Add(m, middleware.Before)
+	return stack.Serialize.Add(m, middleware.Before)
 }
 
 const encryptMiddlewareID = "S3Encrypt"
 
 type encryptMiddleware struct {
-	ec    *EncryptionClientV2
-	input *s3.PutObjectInput
+	ec *EncryptionClientV2
 }
 
 // ID returns the resolver identifier
@@ -135,20 +130,30 @@ func (m *encryptMiddleware) ID() string {
 	return encryptMiddlewareID
 }
 
-// HandleBuild replaces the request body with an encrypted version
-func (m *encryptMiddleware) HandleBuild(
-	ctx context.Context, in middleware.BuildInput, next middleware.BuildHandler,
+// HandleSerialize replaces the request body with an encrypted version and saves the envelope using the save strategy
+func (m *encryptMiddleware) HandleSerialize(
+	ctx context.Context, in middleware.SerializeInput, next middleware.SerializeHandler,
 ) (
-	out middleware.BuildOutput, metadata middleware.Metadata, err error,
+	out middleware.SerializeOutput, metadata middleware.Metadata, err error,
 ) {
+
 	req, ok := in.Request.(*smithyhttp.Request)
 	if !ok {
-		return out, metadata, fmt.Errorf("unknown transport type %T", in.Request)
+		return out, metadata, &smithy.SerializationError{Err: fmt.Errorf("unknown transport type %T", in.Request)}
+	}
+
+	input, ok := in.Parameters.(*s3.PutObjectInput)
+	if !ok {
+		return out, metadata, &smithy.SerializationError{Err: fmt.Errorf("unknown input parameters type %T", in.Parameters)}
 	}
 
 	// TODO - customize errors?
+	reqCopy, err := req.SetStream(input.Body)
+	if err != nil {
+		return out, metadata, &smithy.SerializationError{Err: err}
+	}
 
-	n, ok, err := req.StreamLength()
+	n, ok, err := reqCopy.StreamLength()
 	if !ok || err != nil {
 		return out, metadata, err
 	}
@@ -170,15 +175,14 @@ func (m *encryptMiddleware) HandleBuild(
 		return out, metadata, err
 	}
 
-	stream := req.GetStream()
+	stream := reqCopy.GetStream()
 	lengthReader := newContentLengthReader(stream)
-	sha := newSHA256Writer(dst)
 	reader, err := encryptor.EncryptContents(lengthReader)
 	if err != nil {
 		return out, metadata, err
 	}
 
-	_, err = io.Copy(sha, reader)
+	_, err = io.Copy(dst, reader)
 	if err != nil {
 		return out, metadata, err
 	}
@@ -189,34 +193,32 @@ func (m *encryptMiddleware) HandleBuild(
 		return out, metadata, err
 	}
 
-	// set the precomputed payload hash to encrypted hash value, this is consumed downstream by signing middleware
-	shaHex := hex.EncodeToString(sha.GetValue())
-	ctx = v4.SetPayloadHash(ctx, shaHex)
+	// rewind
+	if _, err := dst.Seek(0, io.SeekStart); err != nil {
+		return out, metadata, err
+	}
 
 	// update the request body to encrypted contents
-	if req, err = req.SetStream(dst); err != nil {
-		return out, metadata, err
-	}
-
-	// rewind
-	if err = req.RewindStream(); err != nil {
-		return out, metadata, err
-	}
+	input.Body = dst
 
 	// save the metadata
 	saveReq := &SaveStrategyRequest{
 		Envelope:    &envelope,
 		HTTPRequest: req.Request,
-		Input:       m.input,
+		Input:       input,
 	}
 
-	// this copies the required crypto params (IV, tag length, etc.)
-	// into saveReq.HTTPRequest.Headers (req.Request)
+	// this saves the required crypto params (IV, tag length, etc.)
 	if err = m.ec.options.SaveStrategy.Save(ctx, saveReq); err != nil {
 		return out, metadata, err
 	}
 
-	// set the middleware input's Request to req
-	in.Request = req
-	return next.HandleBuild(ctx, in)
+	// update the middleware input's parameter which is what the generated serialize step will use
+	in.Parameters = input
+
+	out, metadata, err = next.HandleSerialize(ctx, in)
+
+	// cleanup any temp files after the request is made
+	dst.cleanup()
+	return out, metadata, err
 }
