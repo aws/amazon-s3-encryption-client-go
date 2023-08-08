@@ -9,6 +9,7 @@ import (
 	s3crypto "github.com/aws/amazon-s3-encryption-client-go"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"io"
+	"os"
 	"strings"
 	"testing"
 
@@ -18,13 +19,24 @@ import (
 )
 
 const version = "v3"
-const bucket = "s3-encryption-client-v3-go-justplaz-us-west-2"
+const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
+const bucketEnvvar = "BUCKET"
+
+func LoadBucket() string {
+	if len(os.Getenv(bucketEnvvar)) > 0 {
+		return os.Getenv(bucketEnvvar)
+	} else {
+		return defaultBucket
+	}
+}
 
 func TestInteg_EncryptFixtures(t *testing.T) {
 	ctx := context.Background()
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion("us-west-2"),
 	)
+
+	var bucket = LoadBucket()
 
 	if err != nil {
 		t.Fatalf("failed to load cfg: %v", err)
@@ -76,7 +88,7 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 		t.Fatalf("failed to load cfg: %v", err)
 	}
 
-	const bucket = "s3-encryption-client-v3-go-justplaz-us-west-2"
+	var bucket = LoadBucket()
 
 	cases := []struct {
 		CEKAlg string
