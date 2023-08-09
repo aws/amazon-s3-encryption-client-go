@@ -3,6 +3,7 @@ package s3crypto_test
 import (
 	"context"
 	"encoding/json"
+	s3crypto "github.com/aws/amazon-s3-encryption-client-go"
 	"io"
 	"net/http"
 	"reflect"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/awslabs/aws-sdk-go-s3-crypto"
 )
 
 func TestHeaderV2SaveStrategy(t *testing.T) {

@@ -64,13 +64,14 @@ func (strat S3SaveStrategy) Save(ctx context.Context, req *SaveStrategyRequest) 
 type HeaderV2SaveStrategy struct{}
 
 // Save will save the envelope to the request's header.
-func (strat HeaderV2SaveStrategy) Save(ctx context.Context, req *SaveStrategyRequest) error {
-	input := req.Input.(*s3.PutObjectInput)
+func (strat HeaderV2SaveStrategy) Save(ctx context.Context, saveReq *SaveStrategyRequest) error {
+
+	input := saveReq.Input.(*s3.PutObjectInput)
 	if input.Metadata == nil {
 		input.Metadata = map[string]string{}
 	}
 
-	env := req.Envelope
+	env := saveReq.Envelope
 	input.Metadata[http.CanonicalHeaderKey(keyV2Header)] = env.CipherKey
 	input.Metadata[http.CanonicalHeaderKey(ivHeader)] = env.IV
 	input.Metadata[http.CanonicalHeaderKey(matDescHeader)] = env.MatDesc

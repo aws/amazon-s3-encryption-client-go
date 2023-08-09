@@ -5,7 +5,8 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/awslabs/aws-sdk-go-s3-crypto/internal/awstesting"
+	s3crypto "github.com/aws/amazon-s3-encryption-client-go"
+	"github.com/aws/amazon-s3-encryption-client-go/internal/awstesting"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,7 +16,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/awslabs/aws-sdk-go-s3-crypto"
 )
 
 func TestDecryptionClientV2_GetObject(t *testing.T) {

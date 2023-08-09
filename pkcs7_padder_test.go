@@ -3,9 +3,8 @@ package s3crypto_test
 import (
 	"bytes"
 	"fmt"
+	s3crypto "github.com/aws/amazon-s3-encryption-client-go"
 	"testing"
-
-	"github.com/awslabs/aws-sdk-go-s3-crypto"
 )
 
 func padTest(size int, t *testing.T) {

@@ -5,18 +5,30 @@ package s3crypto_test
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"fmt"
+	s3crypto "github.com/aws/amazon-s3-encryption-client-go"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"io"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/awslabs/aws-sdk-go-s3-crypto"
 )
+
+const version = "v3"
+const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
+const bucketEnvvar = "BUCKET"
+
+func LoadBucket() string {
+	if len(os.Getenv(bucketEnvvar)) > 0 {
+		return os.Getenv(bucketEnvvar)
+	} else {
+		return defaultBucket
+	}
+}
 
 func TestInteg_EncryptFixtures(t *testing.T) {
 	ctx := context.Background()
@@ -24,13 +36,11 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 		config.WithRegion("us-west-2"),
 	)
 
+	var bucket = LoadBucket()
+
 	if err != nil {
 		t.Fatalf("failed to load cfg: %v", err)
 	}
-
-	// aws-dr-tools-functional-test
-	const bucket = "aws-s3-shared-tests"
-	const version = "version_2"
 
 	cases := []struct {
 		CEKAlg           string
@@ -38,11 +48,7 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 	}{
 		{
 			CEKAlg: "aes_gcm",
-			KEK:    "kms", V1: "AWS_SDK_TEST_ALIAS", V2: "us-west-2", CEK: "aes_gcm",
-		},
-		{
-			CEKAlg: "aes_cbc",
-			KEK:    "kms", V1: "AWS_SDK_TEST_ALIAS", V2: "us-west-2", CEK: "aes_cbc",
+			KEK:    "kms", V1: "s3-encryption-client-v3-go-justplaz-us-west-2", V2: "us-west-2", CEK: "aes_gcm",
 		},
 	}
 
@@ -51,12 +57,9 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 			s3Client := s3.NewFromConfig(cfg)
 
 			fixtures := getFixtures(t, s3Client, c.CEKAlg, bucket)
-			builder, masterKey := getEncryptFixtureBuilder(t, cfg, c.KEK, c.V1, c.V2, c.CEK)
+			builder := getEncryptFixtureBuilder(t, cfg, c.KEK, c.V1, c.V2, c.CEK)
 
-			encClient, err := s3crypto.NewEncryptionClientV2(s3Client, builder)
-			if err != nil {
-				t.Fatalf("failed to create encryption client: %v", err)
-			}
+			encClient := s3crypto.NewEncryptionClientV2(s3Client, builder)
 
 			for caseKey, plaintext := range fixtures.Plaintexts {
 				_, err := encClient.PutObject(ctx, &s3.PutObjectInput{
@@ -66,9 +69,6 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 							fixtures.BaseFolder, version, caseKey),
 					),
 					Body: bytes.NewReader(plaintext),
-					Metadata: map[string]string{
-						"Masterkey": masterKey,
-					},
 				})
 				if err != nil {
 					t.Fatalf("failed to upload encrypted fixture, %v", err)
@@ -88,8 +88,7 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 		t.Fatalf("failed to load cfg: %v", err)
 	}
 
-	const bucket = "aws-s3-shared-tests"
-	const version = "version_2"
+	var bucket = LoadBucket()
 
 	cases := []struct {
 		CEKAlg string
@@ -97,8 +96,9 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 	}{
 		{CEKAlg: "aes_cbc", Lang: "Go"},
 		{CEKAlg: "aes_gcm", Lang: "Go"},
-		{CEKAlg: "aes_cbc", Lang: "Java"},
-		{CEKAlg: "aes_gcm", Lang: "Java"},
+		// TODO: Generate ciphertexts using Java client
+		//{CEKAlg: "aes_cbc", Lang: "Java"},
+		//{CEKAlg: "aes_gcm", Lang: "Java"},
 	}
 
 	for _, c := range cases {
@@ -174,27 +174,20 @@ func getFixtures(t *testing.T, s3Client *s3.Client, cekAlg, bucket string) testF
 	}
 }
 
-func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, v1, v2, cek string) (builder s3crypto.ContentCipherBuilder, masterKey string) {
+func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, cek string) (builder s3crypto.ContentCipherBuilder) {
 	t.Helper()
 
-	var handler s3crypto.CipherDataGenerator
 	var handlerWithCek s3crypto.CipherDataGeneratorWithCEKAlg
 	switch kek {
 	case "kms":
-		arn, err := getAliasInformation(cfg, v1, v2)
+		arn, err := getAliasInformation(cfg, alias, region)
 		if err != nil {
-			t.Fatalf("failed to get fixture alias info for %s, %v", v1, err)
-		}
-
-		masterKey = base64.StdEncoding.EncodeToString([]byte(arn))
-		if err != nil {
-			t.Fatalf("failed to encode alias's arn %v", err)
+			t.Fatalf("failed to get fixture alias info for %s, %v", alias, err)
 		}
 
 		kmsSvc := kms.NewFromConfig(cfg)
 		var matDesc s3crypto.MaterialDescription
 		handlerWithCek = s3crypto.NewKMSContextKeyGenerator(kmsSvc, arn, matDesc)
-		handler = s3crypto.NewKMSKeyGenerator(kmsSvc, arn)
 	default:
 		t.Fatalf("unknown fixture KEK, %v", kek)
 	}
@@ -203,12 +196,12 @@ func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, v1, v2, cek str
 	case "aes_gcm":
 		builder = s3crypto.AESGCMContentCipherBuilderV2(handlerWithCek)
 	case "aes_cbc":
-		builder = s3crypto.AESCBCContentCipherBuilder(handler, s3crypto.AESCBCPadder)
+		t.Fatalf("aes cbc is not supported ")
 	default:
 		t.Fatalf("unknown fixture CEK, %v", cek)
 	}
 
-	return builder, masterKey
+	return builder
 }
 
 func getAliasInformation(cfg aws.Config, alias, region string) (string, error) {
@@ -252,23 +245,7 @@ func decryptFixtures(t *testing.T, decClient *s3crypto.DecryptionClientV2, s3Cli
 	for caseKey := range fixtures.Plaintexts {
 		cipherKey := fixtures.BaseFolder + "/" + version + "/" + lang + "/" + prefix + caseKey
 
-		// To get metadata for encryption key
-		ctObj, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
-			Bucket: &bucket,
-			Key:    &cipherKey,
-		})
-
-		if err != nil {
-			// TODO error?
-			continue
-		}
-
-		// We don't support wrap, so skip it
-		if ctObj.Metadata["X-Amz-Wrap-Alg"] != "kms" {
-			continue
-		}
-
-		ctObj, err = decClient.GetObject(ctx, &s3.GetObjectInput{
+		ctObj, err := decClient.GetObject(ctx, &s3.GetObjectInput{
 			Bucket: &bucket,
 			Key:    &cipherKey,
 		})
