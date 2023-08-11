@@ -6,7 +6,7 @@ import (
 )
 
 func TestAESGCMContentCipherBuilderV2(t *testing.T) {
-	builder := AESGCMContentCipherBuilderV2(mockGeneratorV2{})
+	builder := AESGCMContentCipherBuilder(mockGenerator{})
 	cipher, err := builder.ContentCipher()
 
 	if err != nil {
@@ -71,12 +71,12 @@ func TestRegisterAESGCMContentCipher(t *testing.T) {
 }
 
 func TestAESGCMContentCipherBuilderV2_isAWSFixture(t *testing.T) {
-	builder := AESGCMContentCipherBuilderV2(NewKMSContextKeyGenerator(&mockKMS{}, "cmk", nil))
+	builder := AESGCMContentCipherBuilder(NewKMSContextKeyGenerator(&mockKMS{}, "cmk", nil))
 	if !builder.(awsFixture).isAWSFixture() {
 		t.Error("expected to be AWS ContentCipherBuilder constructed with a AWS CipherDataGenerator")
 	}
 
-	builder = AESGCMContentCipherBuilderV2(mockGeneratorV2{})
+	builder = AESGCMContentCipherBuilder(mockGenerator{})
 	if builder.(awsFixture).isAWSFixture() {
 		t.Error("expected to return that this is not an AWS fixture")
 	}

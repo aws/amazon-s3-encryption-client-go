@@ -22,13 +22,13 @@ type PutObjectAPIClient interface {
 	PutObject(context.Context, *s3.PutObjectInput, ...func(*s3.Options)) (*s3.PutObjectOutput, error)
 }
 
-// EncryptionClientV2 is an S3 crypto client.
-type EncryptionClientV2 struct {
+// EncryptionClientV3 is an S3 crypto client.
+type EncryptionClientV3 struct {
 	apiClient PutObjectAPIClient
 	options   EncryptionClientOptions
 }
 
-// EncryptionClientOptions is the configuration options for EncryptionClientV2
+// EncryptionClientOptions is the configuration options for EncryptionClientV3
 type EncryptionClientOptions struct {
 	// Cipher builder for each request
 	ContentCipherBuilder ContentCipherBuilder
@@ -50,7 +50,7 @@ type EncryptionClientOptions struct {
 	Logger *log.Logger
 }
 
-// NewEncryptionClientV2 instantiates a new S3 crypto client.
+// NewEncryptionClientV3 instantiates a new S3 crypto client.
 //
 // Example:
 //
@@ -66,9 +66,9 @@ type EncryptionClientOptions struct {
 //	cmkID := "arn:aws:kms:region:000000000000:key/00000000-0000-0000-0000-000000000000"
 //	var matDesc s3crypto.MaterialDescription
 //	handler := s3crypto.NewKMSContextKeyGenerator(kmsClient, cmkID, matDesc)
-//	cipherBuilder := s3crypto.AESGCMContentCipherBuilderV2(handler)
-//	client := s3crypto.NewEncryptionClientV2(s3Client, cipherBuilder)
-func NewEncryptionClientV2(apiClient PutObjectAPIClient, contentCipherBuilder ContentCipherBuilder, optFns ...func(*EncryptionClientOptions)) *EncryptionClientV2 {
+//	cipherBuilder := s3crypto.AESGCMContentCipherBuilder(handler)
+//	client := s3crypto.NewEncryptionClientV3(s3Client, cipherBuilder)
+func NewEncryptionClientV3(apiClient PutObjectAPIClient, contentCipherBuilder ContentCipherBuilder, optFns ...func(*EncryptionClientOptions)) *EncryptionClientV3 {
 	clientOptions := EncryptionClientOptions{
 		ContentCipherBuilder: contentCipherBuilder,
 		SaveStrategy:         HeaderV2SaveStrategy{},
@@ -85,7 +85,7 @@ func NewEncryptionClientV2(apiClient PutObjectAPIClient, contentCipherBuilder Co
 		clientOptions.Logger.Println(customTypeWarningMessage)
 	}
 
-	encClient := &EncryptionClientV2{
+	encClient := &EncryptionClientV3{
 		apiClient: apiClient,
 		options:   clientOptions,
 	}
@@ -95,7 +95,7 @@ func NewEncryptionClientV2(apiClient PutObjectAPIClient, contentCipherBuilder Co
 
 // PutObject will make encrypt the contents before sending the data to S3. Depending on the MinFileSize
 // a temporary file may be used to buffer the encrypted contents to.
-func (c *EncryptionClientV2) PutObject(ctx context.Context, input *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
+func (c *EncryptionClientV3) PutObject(ctx context.Context, input *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
 	em := &encryptMiddleware{
 		ec: c,
 	}
@@ -122,7 +122,7 @@ func (m *encryptMiddleware) addEncryptMiddleware(stack *middleware.Stack) error 
 const encryptMiddlewareID = "S3Encrypt"
 
 type encryptMiddleware struct {
-	ec *EncryptionClientV2
+	ec *EncryptionClientV3
 }
 
 // ID returns the resolver identifier

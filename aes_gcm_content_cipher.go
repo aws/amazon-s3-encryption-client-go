@@ -11,15 +11,14 @@ const (
 	gcmNonceSize = 12
 )
 
-// AESGCMContentCipherBuilderV2 returns a new encryption only AES/GCM mode structure with a specific cipher data generator
+// AESGCMContentCipherBuilder returns a new encryption only AES/GCM mode structure with a specific cipher data generator
 // that will provide keys to be used for content encryption.
 //
 // Note: This uses the Go stdlib AEAD implementation for AES/GCM. Due to this objects to be encrypted or decrypted
 // will be fully loaded into memory before encryption or decryption can occur. Caution must be taken to avoid memory
 // allocation failures.
-func AESGCMContentCipherBuilderV2(generator CipherDataGeneratorWithCEKAlg) ContentCipherBuilder {
-	// TODO - rename (drop v2, New prefix?)
-	return gcmContentCipherBuilderV2{generator}
+func AESGCMContentCipherBuilder(generator CipherDataGeneratorWithCEKAlg) ContentCipherBuilder {
+	return gcmContentCipherBuilder{generator}
 }
 
 // RegisterAESGCMContentCipher registers the AES/GCM content cipher algorithm with the provided CryptoRegistry.
@@ -53,18 +52,18 @@ func RegisterAESGCMContentCipher(registry *CryptoRegistry) error {
 	return nil
 }
 
-// gcmContentCipherBuilderV2 return a new builder for encryption content using AES/GCM/NoPadding. This type is meant
+// gcmContentCipherBuilder return a new builder for encryption content using AES/GCM/NoPadding. This type is meant
 // to be used with key wrapping implementations that allow the cek algorithm to be provided when calling the
 // cipher data generator.
-type gcmContentCipherBuilderV2 struct {
+type gcmContentCipherBuilder struct {
 	generator CipherDataGeneratorWithCEKAlg
 }
 
-func (builder gcmContentCipherBuilderV2) ContentCipher() (ContentCipher, error) {
+func (builder gcmContentCipherBuilder) ContentCipher() (ContentCipher, error) {
 	return builder.ContentCipherWithContext(context.Background())
 }
 
-func (builder gcmContentCipherBuilderV2) ContentCipherWithContext(ctx context.Context) (ContentCipher, error) {
+func (builder gcmContentCipherBuilder) ContentCipherWithContext(ctx context.Context) (ContentCipher, error) {
 	cd, err := builder.generator.GenerateCipherDataWithCEKAlg(ctx, gcmKeySize, gcmNonceSize, AESGCMNoPadding)
 	if err != nil {
 		return nil, err
@@ -74,7 +73,7 @@ func (builder gcmContentCipherBuilderV2) ContentCipherWithContext(ctx context.Co
 }
 
 // isAWSFixture will return whether this type was constructed with an AWS provided CipherDataGenerator
-func (builder gcmContentCipherBuilderV2) isAWSFixture() bool {
+func (builder gcmContentCipherBuilder) isAWSFixture() bool {
 	v, ok := builder.generator.(awsFixture)
 	return ok && v.isAWSFixture()
 }
@@ -120,12 +119,12 @@ func (cc aesGCMContentCipher) GetCipherData() CipherData {
 
 // assert ContentCipherBuilder implementations
 var (
-	_ ContentCipherBuilder = (*gcmContentCipherBuilderV2)(nil)
+	_ ContentCipherBuilder = (*gcmContentCipherBuilder)(nil)
 )
 
 // assert ContentCipherBuilderWithContext implementations
 var (
-	_ ContentCipherBuilderWithContext = (*gcmContentCipherBuilderV2)(nil)
+	_ ContentCipherBuilderWithContext = (*gcmContentCipherBuilder)(nil)
 )
 
 // assert ContentCipher implementations
@@ -135,5 +134,5 @@ var (
 
 // assert awsFixture implementations
 var (
-	_ awsFixture = (*gcmContentCipherBuilderV2)(nil)
+	_ awsFixture = (*gcmContentCipherBuilder)(nil)
 )

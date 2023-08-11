@@ -18,7 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-func TestDecryptionClientV2_GetObject(t *testing.T) {
+func TestDecryptionClientV3_GetObject(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, fmt.Sprintf("%s%s%s", `{"KeyId":"test-key-id","Plaintext":"`, "hJUv7S6K2cHF64boS9ixHX0TZAjBZLT4ZpEO4XxkGnY=", `"}`))
 	}))
@@ -60,7 +60,7 @@ func TestDecryptionClientV2_GetObject(t *testing.T) {
 	tConfig.HTTPClient = tHttpClient
 	s3Client := s3.NewFromConfig(tConfig)
 
-	client, err := s3crypto.NewDecryptionClientV2(s3Client, cr)
+	client, err := s3crypto.NewDecryptionClientV3(s3Client, cr)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -87,7 +87,7 @@ func TestDecryptionClientV2_GetObject(t *testing.T) {
 	}
 }
 
-func TestDecryptionClientV2_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
+func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, fmt.Sprintf("%s%s%s", `{"KeyId":"test-key-id","Plaintext":"`, "7ItX9CTGNWWegC62RlaNu6EJ3+J9yGO7yAqDNU4CdeA=", `"}`))
 	}))
@@ -128,7 +128,7 @@ func TestDecryptionClientV2_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
 	tConfig.HTTPClient = tHttpClient
 	s3Client := s3.NewFromConfig(tConfig)
 
-	client, err := s3crypto.NewDecryptionClientV2(s3Client, cr)
+	client, err := s3crypto.NewDecryptionClientV3(s3Client, cr)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -158,7 +158,7 @@ func TestDecryptionClientV2_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
 	}
 }
 
-func TestDecryptionClientV2_GetObject_V1Interop_KMS_AESGCM(t *testing.T) {
+func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESGCM(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, fmt.Sprintf("%s%s%s", `{"KeyId":"test-key-id","Plaintext":"`, "Hrjrkkt/vQwMYtqvK6+MiXh3xiMvviL1Ks7w2mgsJgU=", `"}`))
 	}))
@@ -199,7 +199,7 @@ func TestDecryptionClientV2_GetObject_V1Interop_KMS_AESGCM(t *testing.T) {
 	tConfig.HTTPClient = tHttpClient
 	s3Client := s3.NewFromConfig(tConfig)
 
-	client, err := s3crypto.NewDecryptionClientV2(s3Client, cr)
+	client, err := s3crypto.NewDecryptionClientV3(s3Client, cr)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -229,7 +229,7 @@ func TestDecryptionClientV2_GetObject_V1Interop_KMS_AESGCM(t *testing.T) {
 	}
 }
 
-func TestDecryptionClientV2_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testing.T) {
+func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testing.T) {
 	httpClientFactory := func() *awstesting.MockHttpClient {
 		b, err := hex.DecodeString("1bd0271b25951fdef3dbe51a9b7af85f66b311e091aa10a346655068f657b9da9acc0843ea0522b0d1ae4a25a31b13605dd1ac5d002db8965d9d4652fd602693")
 		if err != nil {
@@ -252,11 +252,11 @@ func TestDecryptionClientV2_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 	}
 
 	cases := map[string]struct {
-		Client  *s3crypto.DecryptionClientV2
+		Client  *s3crypto.DecryptionClientV3
 		WantErr string
 	}{
 		"unsupported wrap": {
-			Client: func() *s3crypto.DecryptionClientV2 {
+			Client: func() *s3crypto.DecryptionClientV3 {
 				cr := s3crypto.NewCryptoRegistry()
 
 				if err := s3crypto.RegisterKMSContextWrapWithAnyCMK(cr, kms.NewFromConfig(awstesting.Config())); err != nil {
@@ -270,7 +270,7 @@ func TestDecryptionClientV2_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 				tConfig.HTTPClient = httpClientFactory()
 				s3Client := s3.NewFromConfig(tConfig)
 
-				client, err := s3crypto.NewDecryptionClientV2(s3Client, cr)
+				client, err := s3crypto.NewDecryptionClientV3(s3Client, cr)
 				if err != nil {
 					t.Fatalf("expected no error, got %v", err)
 				}
@@ -279,7 +279,7 @@ func TestDecryptionClientV2_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 			WantErr: "wrap algorithm isn't supported, kms",
 		},
 		"unsupported cek": {
-			Client: func() *s3crypto.DecryptionClientV2 {
+			Client: func() *s3crypto.DecryptionClientV3 {
 				cr := s3crypto.NewCryptoRegistry()
 				if err := s3crypto.RegisterKMSWrapWithAnyCMK(cr, kms.NewFromConfig(awstesting.Config())); err != nil {
 					t.Fatalf("expected no error, got %v", err)
@@ -291,7 +291,7 @@ func TestDecryptionClientV2_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 				tConfig.HTTPClient = httpClientFactory()
 				s3Client := s3.NewFromConfig(tConfig)
 
-				client, err := s3crypto.NewDecryptionClientV2(s3Client, cr)
+				client, err := s3crypto.NewDecryptionClientV3(s3Client, cr)
 				if err != nil {
 					t.Fatalf("expected no error, got %v", err)
 				}
@@ -322,9 +322,9 @@ func TestDecryptionClientV2_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 	}
 }
 
-func TestDecryptionClientV2_CheckValidCryptoRegistry(t *testing.T) {
+func TestDecryptionClientV3_CheckValidCryptoRegistry(t *testing.T) {
 	cr := s3crypto.NewCryptoRegistry()
-	_, err := s3crypto.NewDecryptionClientV2(nil, cr)
+	_, err := s3crypto.NewDecryptionClientV3(nil, cr)
 	if err == nil {
 		t.Fatal("expected error, got none")
 	}
