@@ -14,8 +14,9 @@ type GetObjectAPIClient interface {
 	GetObject(context.Context, *s3.GetObjectInput, ...func(*s3.Options)) (*s3.GetObjectOutput, error)
 }
 
-// DecryptionClientV3 is an S3 crypto client. The decryption client
-// will handle all get object requests from Amazon S3.
+// DecryptionClientV3 is an S3 crypto client.
+// The v3 client depends on the AWS SDK for Go v2.
+// The decryption client will handle all get object requests from Amazon S3.
 // Supported key wrapping algorithms:
 //   - AWS KMS
 //   - AWS KMS + Context

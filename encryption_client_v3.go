@@ -23,6 +23,13 @@ type PutObjectAPIClient interface {
 }
 
 // EncryptionClientV3 is an S3 crypto client.
+// The v3 client depends on the AWS SDK for Go v2.
+// The encryption client will encrypt data for all put object requests to Amazon S3.
+// Supported key wrapping algorithms:
+//   - AWS KMS + Context
+//
+// Supported content ciphers:
+//   - AES/GCM
 type EncryptionClientV3 struct {
 	apiClient PutObjectAPIClient
 	options   EncryptionClientOptions
