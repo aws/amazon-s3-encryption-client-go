@@ -19,7 +19,7 @@ type CryptoRegistry struct {
 }
 
 // NewCryptoRegistry creates a new CryptoRegistry to which wrapping algorithms, content encryption ciphers, and
-// padders can be registered for use with the DecryptionClientV2.
+// padders can be registered for use with the DecryptionClientV3.
 func NewCryptoRegistry() *CryptoRegistry {
 	return &CryptoRegistry{
 		wrap:   map[string]WrapEntry{},

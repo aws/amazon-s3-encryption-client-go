@@ -12,13 +12,13 @@ const (
 	KMSWrap = "kms"
 )
 
-// kmsKeyHandler will make calls to KMS to get the masterkey
+// kmsKeyHandler will make calls to KMS to generate data keys or decrypt them
 type kmsKeyHandler struct {
 	apiClient KmsAPIClient
 	cmkID     *string
 
-	// useProvidedCMK is toggled when using `kms` key wrapper with V2 client
-	useProvidedCMK bool
+	// useProvidedCMK is toggled when using `kms` key wrapper with the client
+	useProvidedCMK bool // TODO: This needs to ALWAYS be true for key committment reasons
 
 	CipherData
 }
@@ -121,7 +121,7 @@ func (kp *kmsKeyHandler) DecryptKeyWithContext(ctx context.Context, key []byte) 
 		GrantTokens:       []string{},
 	}
 
-	// useProvidedCMK will be true if a constructor was used with the new V2 client
+	// useProvidedCMK will be true if a constructor was used with the new client
 	if kp.useProvidedCMK {
 		in.KeyId = kp.cmkID
 	}

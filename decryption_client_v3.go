@@ -14,8 +14,9 @@ type GetObjectAPIClient interface {
 	GetObject(context.Context, *s3.GetObjectInput, ...func(*s3.Options)) (*s3.GetObjectOutput, error)
 }
 
-// DecryptionClientV2 is an S3 crypto client. The decryption client
-// will handle all get object requests from Amazon S3.
+// DecryptionClientV3 is an S3 crypto client.
+// The v3 client depends on the AWS SDK for Go v2.
+// The decryption client will handle all get object requests from Amazon S3.
 // Supported key wrapping algorithms:
 //   - AWS KMS
 //   - AWS KMS + Context
@@ -23,12 +24,12 @@ type GetObjectAPIClient interface {
 // Supported content ciphers:
 //   - AES/GCM
 //   - AES/CBC
-type DecryptionClientV2 struct {
+type DecryptionClientV3 struct {
 	apiClient GetObjectAPIClient
 	options   DecryptionClientOptions
 }
 
-// DecryptionClientOptions is the configuration options for DecryptionClientV2.
+// DecryptionClientOptions is the configuration options for DecryptionClientV3.
 type DecryptionClientOptions struct {
 	// LoadStrategy is used to load the metadata either from the metadata of the object
 	// or from a separate file in s3.
@@ -39,10 +40,10 @@ type DecryptionClientOptions struct {
 	CryptoRegistry *CryptoRegistry
 }
 
-// NewDecryptionClientV2 instantiates a new DecryptionClientV2. The NewDecryptionClientV2 must be configured with the
+// NewDecryptionClientV3 instantiates a new DecryptionClientV3. The NewDecryptionClientV3 must be configured with the
 // desired key wrapping and content encryption algorithms that are required to be read by the client. These algorithms
 // are registered by providing the client a CryptoRegistry that has been constructed with the desired configuration.
-// NewDecryptionClientV2 will return an error if no key wrapping or content encryption algorithms have been provided.
+// NewDecryptionClientV3 will return an error if no key wrapping or content encryption algorithms have been provided.
 //
 // Example:
 //
@@ -63,11 +64,11 @@ type DecryptionClientOptions struct {
 //		panic(err) // handle err
 //	}
 //
-//	client, err := s3crypto.NewDecryptionClientV2(s3Client, cr)
+//	client, err := s3crypto.NewDecryptionClientV3(s3Client, cr)
 //	if err != nil {
 //		panic(err) // handle err
 //	}
-func NewDecryptionClientV2(apiClient GetObjectAPIClient, cryptoRegistry *CryptoRegistry, optFns ...func(*DecryptionClientOptions)) (*DecryptionClientV2, error) {
+func NewDecryptionClientV3(apiClient GetObjectAPIClient, cryptoRegistry *CryptoRegistry, optFns ...func(*DecryptionClientOptions)) (*DecryptionClientV3, error) {
 	clientOptions := DecryptionClientOptions{
 		LoadStrategy:   defaultV2LoadStrategy{},
 		CryptoRegistry: cryptoRegistry,
@@ -80,7 +81,7 @@ func NewDecryptionClientV2(apiClient GetObjectAPIClient, cryptoRegistry *CryptoR
 		return nil, err
 	}
 
-	decryptClient := &DecryptionClientV2{
+	decryptClient := &DecryptionClientV3{
 		apiClient: apiClient,
 		options:   clientOptions,
 	}
@@ -89,8 +90,8 @@ func NewDecryptionClientV2(apiClient GetObjectAPIClient, cryptoRegistry *CryptoR
 }
 
 // GetObject will make a request to s3 and retrieve the object. In this process
-// decryption will be done. The SDK only supports V2 reads of KMS and GCM.
-func (c *DecryptionClientV2) GetObject(ctx context.Context, input *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+// decryption will be done. The SDK only supports region reads of KMS and GCM.
+func (c *DecryptionClientV3) GetObject(ctx context.Context, input *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
 	// TODO - updated docs
 	m := &decryptMiddleware{
 		client: c,
@@ -118,7 +119,7 @@ func (m *decryptMiddleware) addDecryptMiddleware(stack *middleware.Stack) error 
 const decryptMiddlewareID = "S3Decrypt"
 
 type decryptMiddleware struct {
-	client *DecryptionClientV2
+	client *DecryptionClientV3
 	input  *s3.GetObjectInput
 }
 

@@ -29,7 +29,7 @@ Creating an S3 cryptography client
 
 	// Create an encryption and decryption client
 	// We need to pass the S3 client to use, any decryption that occurs will use the KMS client.
-	encClient := s3crypto.NewEncryptionClientV2(sess, s3crypto.AESGCMContentCipherBuilderV2(handler))
+	encClient := s3crypto.NewEncryptionClientV3(sess, s3crypto.AESGCMContentCipherBuilder(handler))
 
 	// Create a CryptoRegistry and register the algorithms you wish to use for decryption
 	cr := s3crypto.NewCryptoRegistry()
@@ -43,7 +43,7 @@ Creating an S3 cryptography client
 	}
 
 	// Create a decryption client to decrypt artifacts
-	decClient, err := s3crypto.NewDecryptionClientV2(s3Client, cr)
+	decClient, err := s3crypto.NewDecryptionClientV3(s3Client, cr)
 	if err != nil {
 		panic(err) // handle error
 	}
@@ -51,7 +51,7 @@ Creating an S3 cryptography client
 Configuration of the S3 cryptography client
 
 	handler := s3crypto.NewKMSContextKeyGenerator(kms.NewFromConfig(cfg), cmkID, s3crypto.MaterialDescription{})
-	encClient, err := s3crypto.NewEncryptionClientV2(sess, s3crypto.AESGCMContentCipherBuilderV2(handler), func (o *s3crypto.EncryptionClientOptions) {
+	encClient, err := s3crypto.NewEncryptionClientV3(sess, s3crypto.AESGCMContentCipherBuilder(handler), func (o *s3crypto.EncryptionClientOptions) {
 		// Save instruction files to separate objects
 		o.SaveStrategy = NewS3SaveStrategy(sess, "")
 
@@ -71,10 +71,10 @@ Configuration of the S3 cryptography client
 
 # Object Metadata SaveStrategy
 
-The default SaveStrategy is to save metadata to an object's headers. An alternative SaveStrategy can be provided to the EncryptionClientV2.
+The default SaveStrategy is to save metadata to an object's headers. An alternative SaveStrategy can be provided to the EncryptionClientV3.
 For example, the S3SaveStrategy can be used to save the encryption metadata to an instruction file that is stored in S3
 using the objects KeyName+InstructionFileSuffix. The InstructionFileSuffix defaults to .instruction. If using this strategy you will need to
-configure the DecryptionClientV2 to use the matching S3LoadStrategy LoadStrategy in order to decrypt object using this save strategy.
+configure the DecryptionClientV3 to use the matching S3LoadStrategy LoadStrategy in order to decrypt object using this save strategy.
 
 # Custom Key Wrappers and Custom Content Encryption Algorithms
 
@@ -94,7 +94,7 @@ key wrapping algorithm and `CustomCEK` content encryption algorithm. You can use
 		panic(err) // handle error
 	}
 
-	decClient, err := s3crypto.NewDecryptionClientV2(s3Client, cr)
+	decClient, err := s3crypto.NewDecryptionClientV3(s3Client, cr)
 	if err != nil {
 		panic(err) // handle error
 	}
@@ -108,6 +108,6 @@ defined ciphers.
 	// Our wrap algorithm, CustomWrap
 	handler := NewCustomWrap(key, iv)
 	// Our content cipher builder, NewCustomCEKContentBuilder
-	encClient := s3crypto.NewEncryptionClientV2(s3Client, NewCustomCEKContentBuilder(handler))
+	encClient := s3crypto.NewEncryptionClientV3(s3Client, NewCustomCEKContentBuilder(handler))
 */
 package s3crypto

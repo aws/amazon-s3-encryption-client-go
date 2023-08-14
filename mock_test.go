@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 )
 
-type mockGeneratorV2 struct{}
+type mockGenerator struct{}
 
-func (m mockGeneratorV2) GenerateCipherDataWithCEKAlg(ctx context.Context, keySize int, ivSize int, cekAlg string) (CipherData, error) {
+func (m mockGenerator) GenerateCipherDataWithCEKAlg(ctx context.Context, keySize int, ivSize int, cekAlg string) (CipherData, error) {
 	cd := CipherData{
 		Key: make([]byte, keySize),
 		IV:  make([]byte, ivSize),
@@ -17,15 +17,15 @@ func (m mockGeneratorV2) GenerateCipherDataWithCEKAlg(ctx context.Context, keySi
 	return cd, nil
 }
 
-func (m mockGeneratorV2) DecryptKey(key []byte) ([]byte, error) {
+func (m mockGenerator) DecryptKey(key []byte) ([]byte, error) {
 	return make([]byte, 16), nil
 }
 
-type mockCipherBuilderV2 struct {
+type mockCipherBuilder struct {
 	generator CipherDataGeneratorWithCEKAlg
 }
 
-func (builder mockCipherBuilderV2) ContentCipher() (ContentCipher, error) {
+func (builder mockCipherBuilder) ContentCipher() (ContentCipher, error) {
 	cd, err := builder.generator.GenerateCipherDataWithCEKAlg(context.Background(), 32, 16, "mock-cek-alg")
 	if err != nil {
 		return nil, err
