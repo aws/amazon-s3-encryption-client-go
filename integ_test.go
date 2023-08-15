@@ -121,6 +121,9 @@ func TestParameterMalleabilityRemoval(t *testing.T) {
 			}
 
 			ciphertext, err := io.ReadAll(getOutput.Body)
+			if err != nil {
+				t.Fatalf("failed to read ciphertext from getObject output, %v", err)
+			}
 
 			// Modify metadata
 			metadata := getOutput.Metadata
