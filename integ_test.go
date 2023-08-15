@@ -19,14 +19,142 @@ import (
 )
 
 const version = "v3"
+
 const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
 const bucketEnvvar = "BUCKET"
+const defaultRegion = "us-west-2"
+const regionEnvvar = "AWS_REGION"
+const defaultAwsKmsAlias = "s3-encryption-client-v3-go-us-west-2"
+const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
 
 func LoadBucket() string {
 	if len(os.Getenv(bucketEnvvar)) > 0 {
 		return os.Getenv(bucketEnvvar)
 	} else {
 		return defaultBucket
+	}
+}
+
+func LoadRegion() string {
+	if len(os.Getenv(regionEnvvar)) > 0 {
+		return os.Getenv(regionEnvvar)
+	} else {
+		return defaultRegion
+	}
+}
+
+func LoadAwsKmsAlias() string {
+	if len(os.Getenv(awsKmsAliasEnvvar)) > 0 {
+		return os.Getenv(awsKmsAliasEnvvar)
+	} else {
+		return defaultAwsKmsAlias
+	}
+}
+
+func TestParameterMalleabilityRemoval(t *testing.T) {
+	var bucket = LoadBucket()
+	var region = LoadRegion()
+	var alias = LoadAwsKmsAlias()
+
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion(region),
+	)
+
+	if err != nil {
+		t.Fatalf("failed to load cfg: %v", err)
+	}
+
+	var handlerWithCek s3crypto.CipherDataGeneratorWithCEKAlg
+	arn, err := getAliasInformation(cfg, alias, region)
+	if err != nil {
+		t.Fatalf("failed to get fixture alias info for %s, %v", alias, err)
+	}
+
+	kmsClient := kms.NewFromConfig(cfg)
+	var matDesc s3crypto.MaterialDescription
+	handlerWithCek = s3crypto.NewKMSContextKeyGenerator(kmsClient, arn, matDesc)
+	builder := s3crypto.AESGCMContentCipherBuilder(handlerWithCek)
+
+	cr := s3crypto.NewCryptoRegistry()
+	s3crypto.RegisterAESGCMContentCipher(cr)
+	s3crypto.RegisterKMSContextWrapWithAnyCMK(cr, kmsClient)
+
+	plaintext := "this is a test of the S3 Encryption Client"
+
+	cases := []struct {
+		TestName, MetadataKey, Action string
+		NewMetadataKey                string
+	}{
+		{TestName: "content-encryption-downgrade", MetadataKey: "x-amz-cek-alg", Action: "delete"},
+		{TestName: "key-wrap-downgrade-delete", MetadataKey: "x-amz-wrap-alg", Action: "delete"},
+		{TestName: "key-wrap-downgrade-aes-wrap", MetadataKey: "x-amz-wrap-alg", Action: "update", NewMetadataKey: "AESWrap"},
+		{TestName: "key-wrap-downgrade-aes", MetadataKey: "x-amz-wrap-alg", Action: "update", NewMetadataKey: "AES"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.TestName, func(t *testing.T) {
+			s3Client := s3.NewFromConfig(cfg)
+			encClient := s3crypto.NewEncryptionClientV3(s3Client, builder)
+			decClient, err := s3crypto.NewDecryptionClientV3(s3Client, cr)
+			if err != nil {
+				t.Fatalf("failed to create decryption client: %v", err)
+			}
+
+			// First write some object using enc client
+			_, err = encClient.PutObject(ctx, &s3.PutObjectInput{
+				Bucket: aws.String(bucket),
+				Key:    aws.String(c.TestName),
+				Body:   bytes.NewReader([]byte(plaintext)),
+			})
+			if err != nil {
+				t.Fatalf("failed to upload encrypted fixture, %v", err)
+			}
+
+			// Next get ciphertext using default client
+			getOutput, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
+				Bucket: aws.String(bucket),
+				Key:    aws.String(c.TestName),
+			})
+			if err != nil {
+				t.Fatalf("failed to download encrypted fixture, %v", err)
+			}
+
+			ciphertext, err := io.ReadAll(getOutput.Body)
+			if err != nil {
+				t.Fatalf("failed to read ciphertext from getObject output, %v", err)
+			}
+
+			// Modify metadata
+			metadata := getOutput.Metadata
+			switch c.Action {
+			case "delete":
+				delete(metadata, c.MetadataKey)
+			case "update":
+				metadata[c.MetadataKey] = c.NewMetadataKey
+			}
+
+			// Put (with modified metadata) using default client
+			_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+				Bucket:   aws.String(bucket),
+				Key:      aws.String(c.TestName),
+				Body:     bytes.NewReader(ciphertext), // does work
+				Metadata: metadata,
+			})
+			if err != nil {
+				t.Fatalf("failed to upload tampered fixture, %v", err)
+			}
+
+			// Attempt to get using dec client
+			_, err = decClient.GetObject(ctx, &s3.GetObjectInput{
+				Bucket: aws.String(bucket),
+				Key:    aws.String(c.TestName),
+			})
+			if err == nil {
+				t.Fatalf("expected error, but err is nil!, %v", err)
+			}
+		})
+
 	}
 }
 
