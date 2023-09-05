@@ -1,8 +1,10 @@
-# Welcome to your CDK TypeScript project
+# CDK
 
-This is a blank project for CDK development with TypeScript.
+The Amazon S3 Encryption Client Go uses the AWS CDK to manage its CI infrastructure.
+To setup CI infrastructure in your own account, make sure to specify the following environment variables:
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+* CDK_DEPLOY_ACCOUNT
+* CDK_DEPLOY_REGION
 
 ## Useful commands
 

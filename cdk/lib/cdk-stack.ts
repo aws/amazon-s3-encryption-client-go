@@ -1,6 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-//import { Config } from "../config/Config";
 import {
   Alias,
   Key
@@ -20,7 +19,7 @@ import {
   LifecycleRule
 } from 'aws-cdk-lib/aws-s3';
 
-export class CdkStack extends cdk.Stack {
+export class S3ECGoGithub extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
     
@@ -58,7 +57,7 @@ export class CdkStack extends cdk.Stack {
     };
     const S3ECGithubTestS3Bucket = new Bucket(
       this,
-      "",
+      "S3ECGithubTestS3Bucket",
       {
         bucketName: "s3ec-go-github-test-bucket",
         lifecycleRules: [BucketLifecycleRule],
@@ -105,7 +104,6 @@ export class CdkStack extends cdk.Stack {
               ],
               resources: [
                 S3ECGithubKMSKey.keyArn,
-                S3ECGithubKMSKeyAlias.aliasName,
               ]
             })
           ]
