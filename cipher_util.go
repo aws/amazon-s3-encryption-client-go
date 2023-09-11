@@ -37,7 +37,7 @@ func encodeMeta(reader lengthReader, cd CipherData) (Envelope, error) {
 	}, nil
 }
 
-func wrapFromEnvelope(options DecryptionClientOptions, env Envelope) (CipherDataDecrypter, error) {
+func wrapFromEnvelope(options EncryptionClientOptions, env Envelope) (CipherDataDecrypter, error) {
 	f, ok := options.CryptoRegistry.GetWrap(env.WrapAlg)
 	if !ok || f == nil {
 		return nil, &smithy.GenericAPIError{
@@ -49,7 +49,7 @@ func wrapFromEnvelope(options DecryptionClientOptions, env Envelope) (CipherData
 	return f(env)
 }
 
-func cekFromEnvelope(ctx context.Context, options DecryptionClientOptions, env Envelope, decrypter CipherDataDecrypter) (ContentCipher, error) {
+func cekFromEnvelope(ctx context.Context, options EncryptionClientOptions, env Envelope, decrypter CipherDataDecrypter) (ContentCipher, error) {
 	f, ok := options.CryptoRegistry.GetCEK(env.CEKAlg)
 	if !ok || f == nil {
 		return nil, &smithy.GenericAPIError{
@@ -93,7 +93,7 @@ func cekFromEnvelope(ctx context.Context, options DecryptionClientOptions, env E
 // We return a no unpadder, if no unpadder was found. This means any customization
 // either contained padding within the cipher implementation, and to maintain
 // backwards compatibility we will simply not unpad anything.
-func getPadder(options DecryptionClientOptions, cekAlg string) Padder {
+func getPadder(options EncryptionClientOptions, cekAlg string) Padder {
 	padder, ok := options.CryptoRegistry.GetPadder(cekAlg)
 	if !ok {
 		padder, ok = options.CryptoRegistry.GetPadder(cekAlg[strings.LastIndex(cekAlg, "/")+1:])
@@ -104,7 +104,7 @@ func getPadder(options DecryptionClientOptions, cekAlg string) Padder {
 	return padder
 }
 
-func contentCipherFromEnvelope(ctx context.Context, options DecryptionClientOptions, env Envelope) (ContentCipher, error) {
+func contentCipherFromEnvelope(ctx context.Context, options EncryptionClientOptions, env Envelope) (ContentCipher, error) {
 	wrap, err := wrapFromEnvelope(options, env)
 	if err != nil {
 		return nil, err

@@ -8,23 +8,22 @@ import (
 	"fmt"
 	s3crypto "github.com/aws/amazon-s3-encryption-client-go"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"io"
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/kms"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 const version = "v3"
 
-const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
+const defaultBucket = "s3-encryption-client-v3-go-justplaz-us-west-2"
 const bucketEnvvar = "BUCKET"
 const defaultRegion = "us-west-2"
 const regionEnvvar = "AWS_REGION"
-const defaultAwsKmsAlias = "s3-encryption-client-v3-go-us-west-2"
+const defaultAwsKmsAlias = "s3-encryption-client-v3-go-justplaz-us-west-2"
 const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
 
 func LoadBucket() string {
@@ -95,8 +94,8 @@ func TestParameterMalleabilityRemoval(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.TestName, func(t *testing.T) {
 			s3Client := s3.NewFromConfig(cfg)
-			encClient := s3crypto.NewEncryptionClientV3(s3Client, builder)
-			decClient, err := s3crypto.NewDecryptionClientV3(s3Client, cr)
+			encClient, nil := s3crypto.NewS3EncryptionOnlyClientV3(s3Client, builder)
+			decClient, err := s3crypto.NewS3DecryptionOnlyClientV3(s3Client, cr)
 			if err != nil {
 				t.Fatalf("failed to create decryption client: %v", err)
 			}
@@ -187,7 +186,7 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 			fixtures := getFixtures(t, s3Client, c.CEKAlg, bucket)
 			builder := getEncryptFixtureBuilder(t, cfg, c.KEK, c.bucket, c.region, c.CEK)
 
-			encClient := s3crypto.NewEncryptionClientV3(s3Client, builder)
+			encClient, _ := s3crypto.NewS3EncryptionOnlyClientV3(s3Client, builder)
 
 			for caseKey, plaintext := range fixtures.Plaintexts {
 				_, err := encClient.PutObject(ctx, &s3.PutObjectInput{
@@ -234,11 +233,17 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 			s3Client := s3.NewFromConfig(cfg)
 			kmsClient := kms.NewFromConfig(cfg)
 			cr := s3crypto.NewCryptoRegistry()
-			s3crypto.RegisterAESCBCContentCipher(cr, s3crypto.AESCBCPadder)
-			s3crypto.RegisterAESGCMContentCipher(cr)
-			s3crypto.RegisterKMSContextWrapWithAnyCMK(cr, kmsClient)
+			if c.CEKAlg == "aes_cbc" {
+				s3crypto.RegisterKMSWrapWithAnyCMK(cr, kmsClient)
+				s3crypto.RegisterAESCBCContentCipher(cr, s3crypto.AESCBCPadder)
+			} else if c.CEKAlg == "aes_gcm" {
+				s3crypto.RegisterAESGCMContentCipher(cr)
+				s3crypto.RegisterKMSContextWrapWithAnyCMK(cr, kmsClient)
+			} else {
+				t.Fatalf("unknown CEKAlg, cannot configure crypto registry: %s", c.CEKAlg)
+			}
 
-			decClient, err := s3crypto.NewDecryptionClientV3(s3Client, cr)
+			decClient, err := s3crypto.NewS3DecryptionOnlyClientV3(s3Client, cr)
 			if err != nil {
 				t.Fatalf("failed to create decryption client: %v", err)
 			}
@@ -360,7 +365,7 @@ func getAliasInformation(cfg aws.Config, alias, region string) (string, error) {
 	return "", fmt.Errorf("kms alias %s does not exist", alias)
 }
 
-func decryptFixtures(t *testing.T, decClient *s3crypto.DecryptionClientV3, s3Client *s3.Client,
+func decryptFixtures(t *testing.T, decClient *s3crypto.S3EncryptionClientV3, s3Client *s3.Client,
 	fixtures testFixtures, bucket, lang, version string,
 ) map[string][]byte {
 	t.Helper()
