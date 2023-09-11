@@ -17,17 +17,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 )
 
-type mockPutObjectClient struct{}
-
-func (m *mockPutObjectClient) PutObject(ctx context.Context, input *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
-	panic("not implemented")
-}
-
-func TestNewEncryptionClientV3(t *testing.T) {
-	tClient := &mockPutObjectClient{}
+func TestNewS3EncryptionOnlyClientV3(t *testing.T) {
+	tConfig := awstesting.Config()
+	tClient := s3.NewFromConfig(tConfig)
 
 	mcb := AESGCMContentCipherBuilder(NewKMSContextKeyGenerator(nil, "id", nil))
-	v3 := NewEncryptionClientV3(tClient, mcb)
+	v3, _ := NewS3EncryptionOnlyClientV3(tClient, mcb)
 	if v3 == nil {
 		t.Fatal("expected client to not be nil")
 	}
@@ -41,8 +36,8 @@ func TestNewEncryptionClientV3(t *testing.T) {
 		t.Errorf("expected default save strategy to be s3 header strategy")
 	}
 
-	if v3.apiClient == nil {
-		t.Errorf("expected s3 client not be nil")
+	if v3.wrappedClient == nil {
+		t.Errorf("expected s3 client to be nil")
 	}
 
 	if e, a := DefaultMinFileSize, v3.options.MinFileSize; int64(e) != a {
@@ -52,6 +47,12 @@ func TestNewEncryptionClientV3(t *testing.T) {
 	if e, a := "", v3.options.TempFolderPath; e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
+
+	// most importantly,
+	// cryptoRegistry MUST be nil
+	if v3.options.CryptoRegistry != nil {
+		t.Errorf("expected CryptoRegistry to be nil")
+	}
 }
 
 func TestNewEncryptionClientV3_NonDefaults(t *testing.T) {
@@ -59,7 +60,7 @@ func TestNewEncryptionClientV3_NonDefaults(t *testing.T) {
 	tClient := s3.NewFromConfig(tConfig)
 
 	mcb := mockCipherBuilder{}
-	v3 := NewEncryptionClientV3(tClient, nil, func(clientOptions *EncryptionClientOptions) {
+	v3, _ := NewS3EncryptionOnlyClientV3(tClient, nil, func(clientOptions *EncryptionClientOptions) {
 		clientOptions.ContentCipherBuilder = mcb
 		clientOptions.TempFolderPath = "/mock/path"
 		clientOptions.MinFileSize = 42
@@ -79,7 +80,7 @@ func TestNewEncryptionClientV3_NonDefaults(t *testing.T) {
 		t.Errorf("expected default save strategy to be s3 header strategy")
 	}
 
-	if v3.apiClient != tClient {
+	if v3.wrappedClient != tClient {
 		t.Errorf("expected s3 client not be nil")
 	}
 
@@ -142,7 +143,7 @@ func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 	tConfig.HTTPClient = tHttpClient
 	s3Client := s3.NewFromConfig(tConfig)
 
-	client := NewEncryptionClientV3(s3Client, contentCipherBuilder)
+	client, _ := NewS3EncryptionOnlyClientV3(s3Client, contentCipherBuilder)
 
 	_, err := client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket: aws.String("test-bucket"),

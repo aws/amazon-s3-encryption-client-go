@@ -3,7 +3,6 @@ package s3crypto_test
 import (
 	"bytes"
 	"context"
-	"fmt"
 	s3crypto "github.com/aws/amazon-s3-encryption-client-go"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -69,7 +68,6 @@ func TestS3ECHeadObject(t *testing.T) {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
-	fmt.Printf("object "+key+" has length %d", headResult.ContentLength)
 	if e, a := int64(len(plaintext)+16), headResult.ContentLength; e != a {
 		t.Errorf("expect %v text, got %v", e, a)
 	}
