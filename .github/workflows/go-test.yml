@@ -27,4 +27,4 @@ jobs:
       run: go install golang.org/x/lint/golint@latest
 
     - name: Go Test
-      run: go test *.go -v
+      run: go test *.go -v -skip 'TestInteg*'

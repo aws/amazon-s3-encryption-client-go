@@ -50,7 +50,7 @@ func LoadAwsKmsAlias() string {
 	}
 }
 
-func TestParameterMalleabilityRemoval(t *testing.T) {
+func TestIntegParameterMalleabilityRemoval(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
 	var alias = LoadAwsKmsAlias()

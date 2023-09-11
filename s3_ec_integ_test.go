@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-func TestS3ECHeadObject(t *testing.T) {
+func TestIntegS3ECHeadObject(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
 	var key = "single-round-trip-test"
