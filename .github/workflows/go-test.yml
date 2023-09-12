@@ -28,8 +28,6 @@ jobs:
         role-session-name: S3EC-Github-Go-CI-Tests
         aws-region: ${{ vars.CI_AWS_REGION }}
 
-      run: |
-
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
