@@ -28,12 +28,7 @@ jobs:
         role-session-name: S3EC-Github-Go-CI-Tests
         aws-region: ${{ vars.CI_AWS_REGION }}
 
-    - name: Export environment variables
       run: |
-        export AWS_REGION=${{ vars.CI_AWS_REGION }}
-        export BUCKET=${{ vars.CI_S3_BUCKET }}
-        export AWS_KMS_ALIAS=${{ vars.CI_KMS_KEY_ALIAS }}
-        export AWS_ACCOUNT_ID=${{ secrets.CI_AWS_ACCOUNT_ID }}
 
     - name: Set up Go
       uses: actions/setup-go@v4
@@ -44,4 +39,9 @@ jobs:
       run: go install golang.org/x/lint/golint@latest
 
     - name: Go Test
-      run: go test *.go -v
+      run: |
+        export AWS_REGION=${{ vars.CI_AWS_REGION }}
+        export BUCKET=${{ vars.CI_S3_BUCKET }}
+        export AWS_KMS_ALIAS=${{ vars.CI_KMS_KEY_ALIAS }}
+        export AWS_ACCOUNT_ID=${{ secrets.CI_AWS_ACCOUNT_ID }}
+        go test *.go -v

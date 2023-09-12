@@ -20,11 +20,11 @@ import (
 
 const version = "v3"
 
-const defaultBucket = "s3-encryption-client-v3-go-justplaz-us-west-2"
+const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
 const bucketEnvvar = "BUCKET"
 const defaultRegion = "us-west-2"
 const regionEnvvar = "AWS_REGION"
-const defaultAwsKmsAlias = "s3-encryption-client-v3-go-justplaz-us-west-2"
+const defaultAwsKmsAlias = "s3-encryption-client-v3-go-us-west-2"
 const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
 const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
 
