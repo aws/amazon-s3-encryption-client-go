@@ -8,6 +8,7 @@ import (
 	"fmt"
 	s3crypto "github.com/aws/amazon-s3-encryption-client-go"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"io"
 	"os"
 	"strings"
@@ -76,6 +77,11 @@ func TestParameterMalleabilityRemoval(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get fixture alias info for %s, %v", alias, err)
 	}
+
+	stsClient := sts.NewFromConfig(cfg)
+	whoAmI, err := stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	fmt.Println("Who am I? apparently: " + *whoAmI.Arn)
+	fmt.Printf("and my bukkit is %s", bucket)
 
 	kmsClient := kms.NewFromConfig(cfg)
 	var matDesc s3crypto.MaterialDescription
