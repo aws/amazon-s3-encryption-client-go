@@ -340,7 +340,7 @@ func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, 
 }
 
 func getAliasArn(shortAlias string, region string, accountId string) (string, error) {
-	arnFormat := "arn:aws:kms:%s:%s:shortAlias/%s"
+	arnFormat := "arn:aws:kms:%s:%s:alias/%s"
 	return fmt.Sprintf(arnFormat, region, accountId, shortAlias), nil
 }
 
