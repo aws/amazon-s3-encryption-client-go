@@ -8,7 +8,6 @@ import (
 	"fmt"
 	s3crypto "github.com/aws/amazon-s3-encryption-client-go"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"io"
 	"os"
 	"strings"
@@ -77,11 +76,6 @@ func TestParameterMalleabilityRemoval(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get fixture alias info for %s, %v", alias, err)
 	}
-
-	stsClient := sts.NewFromConfig(cfg)
-	whoAmI, err := stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
-	fmt.Println("Who am I? apparently: " + *whoAmI.Arn)
-	fmt.Printf("and my bukkit is %s", bucket)
 
 	kmsClient := kms.NewFromConfig(cfg)
 	var matDesc s3crypto.MaterialDescription
@@ -171,9 +165,10 @@ func TestParameterMalleabilityRemoval(t *testing.T) {
 }
 
 func TestInteg_EncryptFixtures(t *testing.T) {
+	var region = LoadRegion()
 	ctx := context.Background()
 	cfg, err := config.LoadDefaultConfig(ctx,
-		config.WithRegion("us-west-2"),
+		config.WithRegion(region),
 	)
 
 	var bucket = LoadBucket()
@@ -189,7 +184,7 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 	}{
 		{
 			CEKAlg: "aes_gcm",
-			KEK:    "kms", bucket: "s3-encryption-client-v3-go-justplaz-us-west-2", region: "us-west-2", CEK: "aes_gcm",
+			KEK:    "kms", bucket: bucket, region: region, CEK: "aes_gcm",
 		},
 	}
 

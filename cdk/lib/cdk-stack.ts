@@ -81,7 +81,7 @@ export class S3ECGoGithub extends cdk.Stack {
                 "s3:ListObjects",
               ],
               resources: [
-                S3ECGithubTestS3Bucket.bucketArn
+                S3ECGithubTestS3Bucket.bucketArn + "/*"
               ],
             }),
           ]
