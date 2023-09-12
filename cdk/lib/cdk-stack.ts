@@ -78,10 +78,11 @@ export class S3ECGoGithub extends cdk.Stack {
                 "s3:PutObject",
                 "s3:GetObject",
                 "s3:DeleteObject",
-                "s3:ListObjects",
+                "s3:ListBucket",
               ],
               resources: [
-                S3ECGithubTestS3Bucket.bucketArn + "/*"
+                S3ECGithubTestS3Bucket.bucketArn + "/*",
+                S3ECGithubTestS3Bucket.bucketArn
               ],
             }),
           ]
