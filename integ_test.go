@@ -20,12 +20,13 @@ import (
 
 const version = "v3"
 
-const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
+const defaultBucket = "s3-encryption-client-v3-go-justplaz-us-west-2"
 const bucketEnvvar = "BUCKET"
 const defaultRegion = "us-west-2"
 const regionEnvvar = "AWS_REGION"
-const defaultAwsKmsAlias = "s3-encryption-client-v3-go-us-west-2"
+const defaultAwsKmsAlias = "s3-encryption-client-v3-go-justplaz-us-west-2"
 const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
+const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
 
 func LoadBucket() string {
 	if len(os.Getenv(bucketEnvvar)) > 0 {
@@ -51,10 +52,15 @@ func LoadAwsKmsAlias() string {
 	}
 }
 
+func LoadAwsAccountId() string {
+	return os.Getenv(awsAccountIdEnvvar)
+}
+
 func TestParameterMalleabilityRemoval(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
 	var alias = LoadAwsKmsAlias()
+	var accountId = LoadAwsAccountId()
 
 	ctx := context.Background()
 	cfg, err := config.LoadDefaultConfig(ctx,
@@ -66,7 +72,7 @@ func TestParameterMalleabilityRemoval(t *testing.T) {
 	}
 
 	var handlerWithCek s3crypto.CipherDataGeneratorWithCEKAlg
-	arn, err := getAliasInformation(cfg, alias, region)
+	arn, err := getAliasArn(alias, region, accountId)
 	if err != nil {
 		t.Fatalf("failed to get fixture alias info for %s, %v", alias, err)
 	}
@@ -165,6 +171,7 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 	)
 
 	var bucket = LoadBucket()
+	var accountId = LoadAwsAccountId()
 
 	if err != nil {
 		t.Fatalf("failed to load cfg: %v", err)
@@ -185,7 +192,7 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 			s3Client := s3.NewFromConfig(cfg)
 
 			fixtures := getFixtures(t, s3Client, c.CEKAlg, bucket)
-			builder := getEncryptFixtureBuilder(t, cfg, c.KEK, c.bucket, c.region, c.CEK)
+			builder := getEncryptFixtureBuilder(t, cfg, c.KEK, c.bucket, c.region, accountId, c.CEK)
 
 			encClient := s3crypto.NewEncryptionClientV3(s3Client, builder)
 
@@ -302,13 +309,13 @@ func getFixtures(t *testing.T, s3Client *s3.Client, cekAlg, bucket string) testF
 	}
 }
 
-func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, cek string) (builder s3crypto.ContentCipherBuilder) {
+func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, accountId string, cek string) (builder s3crypto.ContentCipherBuilder) {
 	t.Helper()
 
 	var handlerWithCek s3crypto.CipherDataGeneratorWithCEKAlg
 	switch kek {
 	case "kms":
-		arn, err := getAliasInformation(cfg, alias, region)
+		arn, err := getAliasArn(alias, region, accountId)
 		if err != nil {
 			t.Fatalf("failed to get fixture alias info for %s, %v", alias, err)
 		}
@@ -332,32 +339,9 @@ func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, 
 	return builder
 }
 
-func getAliasInformation(cfg aws.Config, alias, region string) (string, error) {
-	arn := ""
-
-	kmsConfig := cfg.Copy()
-	kmsConfig.Region = region
-	svc := kms.NewFromConfig(kmsConfig)
-
-	truncated := true
-	var marker *string
-	for truncated {
-		out, err := svc.ListAliases(context.Background(), &kms.ListAliasesInput{
-			Marker: marker,
-		})
-		if err != nil {
-			return arn, err
-		}
-		for _, aliasEntry := range out.Aliases {
-			if *aliasEntry.AliasName == "alias/"+alias {
-				return *aliasEntry.AliasArn, nil
-			}
-		}
-		truncated = out.Truncated
-		marker = out.NextMarker
-	}
-
-	return "", fmt.Errorf("kms alias %s does not exist", alias)
+func getAliasArn(shortAlias string, region string, accountId string) (string, error) {
+	arnFormat := "arn:aws:kms:%s:%s:shortAlias/%s"
+	return fmt.Sprintf(arnFormat, region, accountId, shortAlias), nil
 }
 
 func decryptFixtures(t *testing.T, decClient *s3crypto.DecryptionClientV3, s3Client *s3.Client,
