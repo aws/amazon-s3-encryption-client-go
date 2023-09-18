@@ -78,10 +78,17 @@ export class S3ECGoGithub extends cdk.Stack {
                 "s3:PutObject",
                 "s3:GetObject",
                 "s3:DeleteObject",
+              ],
+              resources: [
+                S3ECGithubTestS3Bucket.bucketArn + "/*", // object-level permissions need this extra path
+              ],
+            }),
+            new PolicyStatement({
+              effect: Effect.ALLOW,
+              actions: [
                 "s3:ListBucket",
               ],
               resources: [
-                S3ECGithubTestS3Bucket.bucketArn + "/*",
                 S3ECGithubTestS3Bucket.bucketArn
               ],
             }),
