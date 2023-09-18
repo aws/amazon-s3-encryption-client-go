@@ -15,6 +15,7 @@ import (
 func TestIntegS3ECHeadObject(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
+	var accountId = LoadAwsAccountId()
 	var key = "single-round-trip-test"
 	var plaintext = "this is some plaintext to encrypt!"
 
@@ -29,7 +30,7 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 
 	var alias = LoadAwsKmsAlias()
 	var handlerWithCek s3crypto.CipherDataGeneratorWithCEKAlg
-	arn, err := getAliasInformation(cfg, alias, region)
+	arn, err := getAliasArn(alias, region, accountId)
 	if err != nil {
 		t.Fatalf("failed to get fixture alias info for %s, %v", alias, err)
 	}
