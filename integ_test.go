@@ -250,7 +250,7 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 				t.Fatalf("unknown CEKAlg, cannot configure crypto registry: %s", c.CEKAlg)
 			}
 
-			decClient, err := s3crypto.NewS3DecryptionOnlyClientV3(s3Client, cr)
+			decClient, err := s3crypto.NewS3EncryptionClientV3(s3Client, cr, nil)
 			if err != nil {
 				t.Fatalf("failed to create decryption client: %v", err)
 			}

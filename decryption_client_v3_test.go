@@ -17,7 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-func TestNewS3DecryptionOnlyClientV3(t *testing.T) {
+func TestNewS3EncryptionClientV3(t *testing.T) {
 	tConfig := awstesting.Config()
 	tClient := s3.NewFromConfig(tConfig)
 	kmsClient := kms.NewFromConfig(tConfig)
@@ -25,7 +25,7 @@ func TestNewS3DecryptionOnlyClientV3(t *testing.T) {
 	cr := NewCryptoRegistry()
 	RegisterAESGCMContentCipher(cr)
 	RegisterKMSContextWrapWithAnyCMK(cr, kmsClient)
-	v3, _ := NewS3DecryptionOnlyClientV3(tClient, cr)
+	v3, _ := NewS3EncryptionClientV3(tClient, cr, nil)
 
 	if v3 == nil {
 		t.Fatal("expected client to not be nil")
@@ -80,7 +80,7 @@ func TestDecryptionClientV3_GetObject(t *testing.T) {
 	tConfig.HTTPClient = tHttpClient
 	s3Client := s3.NewFromConfig(tConfig)
 
-	client, err := NewS3DecryptionOnlyClientV3(s3Client, cr)
+	client, err := NewS3EncryptionClientV3(s3Client, cr, nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -148,7 +148,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
 	tConfig.HTTPClient = tHttpClient
 	s3Client := s3.NewFromConfig(tConfig)
 
-	client, err := NewS3DecryptionOnlyClientV3(s3Client, cr)
+	client, err := NewS3EncryptionClientV3(s3Client, cr, nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -219,7 +219,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESGCM(t *testing.T) {
 	tConfig.HTTPClient = tHttpClient
 	s3Client := s3.NewFromConfig(tConfig)
 
-	client, err := NewS3DecryptionOnlyClientV3(s3Client, cr)
+	client, err := NewS3EncryptionClientV3(s3Client, cr, nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -290,7 +290,7 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 				tConfig.HTTPClient = httpClientFactory()
 				s3Client := s3.NewFromConfig(tConfig)
 
-				client, err := NewS3DecryptionOnlyClientV3(s3Client, cr)
+				client, err := NewS3EncryptionClientV3(s3Client, cr, nil)
 				if err != nil {
 					t.Fatalf("expected no error, got %v", err)
 				}
@@ -311,7 +311,7 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 				tConfig.HTTPClient = httpClientFactory()
 				s3Client := s3.NewFromConfig(tConfig)
 
-				client, err := NewS3DecryptionOnlyClientV3(s3Client, cr)
+				client, err := NewS3EncryptionClientV3(s3Client, cr, nil)
 				if err != nil {
 					t.Fatalf("expected no error, got %v", err)
 				}
@@ -344,7 +344,7 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 
 func TestDecryptionClientV3_CheckValidCryptoRegistry(t *testing.T) {
 	cr := NewCryptoRegistry()
-	_, err := NewS3DecryptionOnlyClientV3(nil, cr)
+	_, err := NewS3EncryptionClientV3(nil, cr, nil)
 	if err == nil {
 		t.Fatal("expected error, got none")
 	}

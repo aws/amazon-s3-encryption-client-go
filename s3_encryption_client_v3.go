@@ -30,9 +30,14 @@ func NewS3EncryptionClientV3(s3Client *s3.Client, cryptoRegistry *CryptoRegistry
 		fn(&options)
 	}
 
-	// Check if the passed in type is a fixture, if not log a warning message to the user
-	if fixture, ok := keyring.(awsFixture); !ok || !fixture.isAWSFixture() {
-		options.Logger.Println(customTypeWarningMessage)
+	// keyring MAY be nil,
+	// in which case the client
+	// becomes "decrypt-only".
+	if keyring != nil {
+		// Check if the passed in type is a fixture, if not log a warning message to the user
+		if fixture, ok := keyring.(awsFixture); !ok || !fixture.isAWSFixture() {
+			options.Logger.Println(customTypeWarningMessage)
+		}
 	}
 
 	// CryptoRegistry MAY be nil,
@@ -42,30 +47,6 @@ func NewS3EncryptionClientV3(s3Client *s3.Client, cryptoRegistry *CryptoRegistry
 		if err := cryptoRegistry.valid(); err != nil {
 			return nil, err
 		}
-	}
-
-	// use the given wrappedClient for the promoted anon fields AND the crypto calls
-	s3ec := &S3EncryptionClientV3{wrappedClient, wrappedClient, options}
-	return s3ec, nil
-}
-
-func NewS3DecryptionOnlyClientV3(s3Client *s3.Client, cryptoRegistry *CryptoRegistry, optFns ...func(options *EncryptionClientOptions)) (*S3EncryptionClientV3, error) {
-	wrappedClient := s3Client
-	// default options
-	options := EncryptionClientOptions{
-		SaveStrategy:                  HeaderV2SaveStrategy{},
-		MinFileSize:                   DefaultMinFileSize,
-		Logger:                        log.Default(),
-		LoadStrategy:                  defaultV2LoadStrategy{},
-		CryptoRegistry:                cryptoRegistry,
-		CipherDataGeneratorWithCEKAlg: nil, // nil ContentCipherBuilder because encryption is forbidden
-	}
-	for _, fn := range optFns {
-		fn(&options)
-	}
-
-	if err := cryptoRegistry.valid(); err != nil {
-		return nil, err
 	}
 
 	// use the given wrappedClient for the promoted anon fields AND the crypto calls
@@ -108,9 +89,6 @@ func (c *S3EncryptionClientV3) PutObject(ctx context.Context, input *s3.PutObjec
 type EncryptionClientOptions struct {
 	// Keyring for encryption/decryption
 	CipherDataGeneratorWithCEKAlg CipherDataGeneratorWithCEKAlg
-
-	// Cipher builder for each request
-	//ContentCipherBuilder ContentCipherBuilder
 
 	// SaveStrategy will dictate where the envelope is saved.
 	//
