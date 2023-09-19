@@ -15,28 +15,33 @@ type S3EncryptionClientV3 struct {
 }
 
 // NewS3EncryptionClientV3 creates a new S3 client which can encrypt and decrypt
-func NewS3EncryptionClientV3(s3Client *s3.Client, cryptoRegistry *CryptoRegistry, contentCipherBuilder ContentCipherBuilder, optFns ...func(options *EncryptionClientOptions)) (*S3EncryptionClientV3, error) {
+func NewS3EncryptionClientV3(s3Client *s3.Client, cryptoRegistry *CryptoRegistry, keyring CipherDataGeneratorWithCEKAlg, optFns ...func(options *EncryptionClientOptions)) (*S3EncryptionClientV3, error) {
 	wrappedClient := s3Client
 	// default options
 	options := EncryptionClientOptions{
-		SaveStrategy:         HeaderV2SaveStrategy{},
-		MinFileSize:          DefaultMinFileSize,
-		Logger:               log.Default(),
-		LoadStrategy:         defaultV2LoadStrategy{},
-		CryptoRegistry:       cryptoRegistry,
-		ContentCipherBuilder: contentCipherBuilder,
+		SaveStrategy:                  HeaderV2SaveStrategy{},
+		MinFileSize:                   DefaultMinFileSize,
+		Logger:                        log.Default(),
+		LoadStrategy:                  defaultV2LoadStrategy{},
+		CryptoRegistry:                cryptoRegistry,
+		CipherDataGeneratorWithCEKAlg: keyring,
 	}
 	for _, fn := range optFns {
 		fn(&options)
 	}
 
 	// Check if the passed in type is a fixture, if not log a warning message to the user
-	if fixture, ok := contentCipherBuilder.(awsFixture); !ok || !fixture.isAWSFixture() {
+	if fixture, ok := keyring.(awsFixture); !ok || !fixture.isAWSFixture() {
 		options.Logger.Println(customTypeWarningMessage)
 	}
 
-	if err := cryptoRegistry.valid(); err != nil {
-		return nil, err
+	// CryptoRegistry MAY be nil,
+	// in which case the client
+	// becomes "encrypt-only".
+	if cryptoRegistry != nil {
+		if err := cryptoRegistry.valid(); err != nil {
+			return nil, err
+		}
 	}
 
 	// use the given wrappedClient for the promoted anon fields AND the crypto calls
@@ -48,12 +53,12 @@ func NewS3DecryptionOnlyClientV3(s3Client *s3.Client, cryptoRegistry *CryptoRegi
 	wrappedClient := s3Client
 	// default options
 	options := EncryptionClientOptions{
-		SaveStrategy:         HeaderV2SaveStrategy{},
-		MinFileSize:          DefaultMinFileSize,
-		Logger:               log.Default(),
-		LoadStrategy:         defaultV2LoadStrategy{},
-		CryptoRegistry:       cryptoRegistry,
-		ContentCipherBuilder: nil, // nil ContentCipherBuilder because encryption is forbidden
+		SaveStrategy:                  HeaderV2SaveStrategy{},
+		MinFileSize:                   DefaultMinFileSize,
+		Logger:                        log.Default(),
+		LoadStrategy:                  defaultV2LoadStrategy{},
+		CryptoRegistry:                cryptoRegistry,
+		CipherDataGeneratorWithCEKAlg: nil, // nil ContentCipherBuilder because encryption is forbidden
 	}
 	for _, fn := range optFns {
 		fn(&options)
@@ -66,33 +71,6 @@ func NewS3DecryptionOnlyClientV3(s3Client *s3.Client, cryptoRegistry *CryptoRegi
 	// use the given wrappedClient for the promoted anon fields AND the crypto calls
 	s3ec := &S3EncryptionClientV3{wrappedClient, wrappedClient, options}
 	return s3ec, nil
-}
-
-// NewS3EncryptionOnlyClientV3 creates a new encryption-only S3 crypto client
-func NewS3EncryptionOnlyClientV3(s3Client *s3.Client, contentCipherBuilder ContentCipherBuilder, optFns ...func(options *EncryptionClientOptions)) (*S3EncryptionClientV3, error) {
-	wrappedClient := s3Client
-	// default options
-	options := EncryptionClientOptions{
-		SaveStrategy:         HeaderV2SaveStrategy{},
-		MinFileSize:          DefaultMinFileSize,
-		Logger:               log.Default(),
-		LoadStrategy:         defaultV2LoadStrategy{},
-		CryptoRegistry:       nil, // nil CryptoRegistry as decryption is forbidden
-		ContentCipherBuilder: contentCipherBuilder,
-	}
-	for _, fn := range optFns {
-		fn(&options)
-	}
-
-	// Check if the passed in type is a fixture, if not log a warning message to the user
-	if fixture, ok := contentCipherBuilder.(awsFixture); !ok || !fixture.isAWSFixture() {
-		options.Logger.Println(customTypeWarningMessage)
-	}
-
-	// use the given wrappedClient for the promoted anon fields AND the crypto calls
-	s3ec := &S3EncryptionClientV3{wrappedClient, wrappedClient, options}
-	return s3ec, nil
-
 }
 
 // GetObject will make a request to s3 and retrieve the object. In this process
@@ -128,8 +106,11 @@ func (c *S3EncryptionClientV3) PutObject(ctx context.Context, input *s3.PutObjec
 }
 
 type EncryptionClientOptions struct {
+	// Keyring for encryption/decryption
+	CipherDataGeneratorWithCEKAlg CipherDataGeneratorWithCEKAlg
+
 	// Cipher builder for each request
-	ContentCipherBuilder ContentCipherBuilder
+	//ContentCipherBuilder ContentCipherBuilder
 
 	// SaveStrategy will dictate where the envelope is saved.
 	//

@@ -79,7 +79,7 @@ func TestParameterMalleabilityRemoval(t *testing.T) {
 	kmsClient := kms.NewFromConfig(cfg)
 	var matDesc s3crypto.MaterialDescription
 	handlerWithCek = s3crypto.NewKMSContextKeyGenerator(kmsClient, arn, matDesc)
-	builder := s3crypto.AESGCMContentCipherBuilder(handlerWithCek)
+	//builder := s3crypto.AESGCMContentCipherBuilder(handlerWithCek)
 
 	cr := s3crypto.NewCryptoRegistry()
 	s3crypto.RegisterAESGCMContentCipher(cr)
@@ -100,14 +100,13 @@ func TestParameterMalleabilityRemoval(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.TestName, func(t *testing.T) {
 			s3Client := s3.NewFromConfig(cfg)
-			encClient, nil := s3crypto.NewS3EncryptionOnlyClientV3(s3Client, builder)
-			decClient, err := s3crypto.NewS3DecryptionOnlyClientV3(s3Client, cr)
+			s3Ec, _ := s3crypto.NewS3EncryptionClientV3(s3Client, cr, handlerWithCek)
 			if err != nil {
 				t.Fatalf("failed to create decryption client: %v", err)
 			}
 
 			// First write some object using enc client
-			_, err = encClient.PutObject(ctx, &s3.PutObjectInput{
+			_, err = s3Ec.PutObject(ctx, &s3.PutObjectInput{
 				Bucket: aws.String(bucket),
 				Key:    aws.String(c.TestName),
 				Body:   bytes.NewReader([]byte(plaintext)),
@@ -151,7 +150,7 @@ func TestParameterMalleabilityRemoval(t *testing.T) {
 			}
 
 			// Attempt to get using dec client
-			_, err = decClient.GetObject(ctx, &s3.GetObjectInput{
+			_, err = s3Ec.GetObject(ctx, &s3.GetObjectInput{
 				Bucket: aws.String(bucket),
 				Key:    aws.String(c.TestName),
 			})
@@ -194,7 +193,7 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 			fixtures := getFixtures(t, s3Client, c.CEKAlg, bucket)
 			builder := getEncryptFixtureBuilder(t, cfg, c.KEK, c.bucket, c.region, accountId, c.CEK)
 
-			encClient, _ := s3crypto.NewS3EncryptionOnlyClientV3(s3Client, builder)
+			encClient, _ := s3crypto.NewS3EncryptionClientV3(s3Client, nil, builder)
 
 			for caseKey, plaintext := range fixtures.Plaintexts {
 				_, err := encClient.PutObject(ctx, &s3.PutObjectInput{
@@ -257,7 +256,7 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 			}
 
 			fixtures := getFixtures(t, s3Client, c.CEKAlg, bucket)
-			ciphertexts := decryptFixtures(t, decClient, s3Client, fixtures, bucket, c.Lang, version)
+			ciphertexts := decryptFixtures(t, decClient, fixtures, bucket, c.Lang, version)
 
 			for caseKey, ciphertext := range ciphertexts {
 				if e, a := len(fixtures.Plaintexts[caseKey]), len(ciphertext); e != a {
@@ -315,7 +314,7 @@ func getFixtures(t *testing.T, s3Client *s3.Client, cekAlg, bucket string) testF
 	}
 }
 
-func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, accountId string, cek string) (builder s3crypto.ContentCipherBuilder) {
+func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, accountId string, cek string) (keyring s3crypto.CipherDataGeneratorWithCEKAlg) {
 	t.Helper()
 
 	var handlerWithCek s3crypto.CipherDataGeneratorWithCEKAlg
@@ -335,14 +334,14 @@ func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, 
 
 	switch cek {
 	case "aes_gcm":
-		builder = s3crypto.AESGCMContentCipherBuilder(handlerWithCek)
+		return handlerWithCek
 	case "aes_cbc":
 		t.Fatalf("aes cbc is not supported ")
 	default:
 		t.Fatalf("unknown fixture CEK, %v", cek)
 	}
 
-	return builder
+	return handlerWithCek
 }
 
 func getAliasArn(shortAlias string, region string, accountId string) (string, error) {
@@ -350,8 +349,7 @@ func getAliasArn(shortAlias string, region string, accountId string) (string, er
 	return fmt.Sprintf(arnFormat, region, accountId, shortAlias), nil
 }
 
-func decryptFixtures(t *testing.T, decClient *s3crypto.S3EncryptionClientV3, s3Client *s3.Client,
-	fixtures testFixtures, bucket, lang, version string,
+func decryptFixtures(t *testing.T, decClient *s3crypto.S3EncryptionClientV3, fixtures testFixtures, bucket, lang, version string,
 ) map[string][]byte {
 	t.Helper()
 	ctx := context.Background()

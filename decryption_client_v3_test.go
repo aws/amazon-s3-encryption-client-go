@@ -33,7 +33,7 @@ func TestNewS3DecryptionOnlyClientV3(t *testing.T) {
 
 	// most importantly,
 	// contentCipherBuilder MUST be nil
-	if v3.options.ContentCipherBuilder != nil {
+	if v3.options.CipherDataGeneratorWithCEKAlg != nil {
 		t.Fatal("expected ContentCipherBuilder to be nil")
 	}
 }

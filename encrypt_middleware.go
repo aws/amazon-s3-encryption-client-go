@@ -86,13 +86,8 @@ func (m *encryptMiddleware) HandleSerialize(
 		return out, metadata, err
 	}
 
-	var encryptor ContentCipher
-	cipherBuilder := m.ec.options.ContentCipherBuilder
-	if v, ok := cipherBuilder.(ContentCipherBuilderWithContext); ok {
-		encryptor, err = v.ContentCipherWithContext(ctx)
-	} else {
-		encryptor, err = cipherBuilder.ContentCipher()
-	}
+	// in V3, AES GCM is the only supported content cipher
+	var encryptor, _ = AESGCMContentCipherBuilder(m.ec.options.CipherDataGeneratorWithCEKAlg).ContentCipher()
 
 	if err != nil {
 		return out, metadata, err
