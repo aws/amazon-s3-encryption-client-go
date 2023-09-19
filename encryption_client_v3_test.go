@@ -37,7 +37,7 @@ func TestNewS3EncryptionOnlyClientV3(t *testing.T) {
 		t.Errorf("expected default save strategy to be s3 header strategy")
 	}
 
-	if v3.wrappedClient == nil {
+	if v3.Client == nil {
 		t.Errorf("expected s3 client to be nil")
 	}
 
@@ -81,7 +81,7 @@ func TestNewEncryptionClientV3_NonDefaults(t *testing.T) {
 		t.Errorf("expected default save strategy to be s3 header strategy")
 	}
 
-	if v3.wrappedClient != tClient {
+	if v3.Client != tClient {
 		t.Errorf("expected s3 client not be nil")
 	}
 

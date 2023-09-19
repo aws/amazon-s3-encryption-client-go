@@ -9,9 +9,37 @@ import (
 const customTypeWarningMessage = "WARNING: The S3 Encryption Client is configured to write encrypted objects using types not provided by AWS. Security and compatibility with these types can not be guaranteed."
 
 type S3EncryptionClientV3 struct {
-	*s3.Client                            // promoted anonymous field, it allows this type to call s3 Client methods
-	wrappedClient *s3.Client              // contains the "wrapped" s3 Client, which is used within crypto-specific overrides
-	options       EncryptionClientOptions // options for encrypt/decrypt
+	*s3.Client                         // promoted anonymous field, it allows this type to call s3 Client methods
+	options    EncryptionClientOptions // options for encrypt/decrypt
+}
+
+type EncryptionClientOptions struct {
+	// Keyring for encryption/decryption
+	CipherDataGeneratorWithCEKAlg CipherDataGeneratorWithCEKAlg
+
+	// SaveStrategy will dictate where the envelope is saved.
+	//
+	// Defaults to the object's metadata
+	SaveStrategy SaveStrategy
+
+	// TempFolderPath is used to store temp files when calling PutObject.
+	// Temporary files are needed to compute the X-Amz-Content-Sha256 header.
+	TempFolderPath string
+
+	// MinFileSize is the minimum size for the content to write to a
+	// temporary file instead of using memory.
+	MinFileSize int64
+
+	// The logger to write logging messages to.
+	Logger *log.Logger
+
+	// LoadStrategy is used to load the metadata either from the metadata of the object
+	// or from a separate file in s3.
+	//
+	// Defaults to our default load strategy.
+	LoadStrategy LoadStrategy
+
+	CryptoRegistry *CryptoRegistry
 }
 
 // NewS3EncryptionClientV3 creates a new S3 client which can encrypt and decrypt
@@ -50,7 +78,7 @@ func NewS3EncryptionClientV3(s3Client *s3.Client, cryptoRegistry *CryptoRegistry
 	}
 
 	// use the given wrappedClient for the promoted anon fields AND the crypto calls
-	s3ec := &S3EncryptionClientV3{wrappedClient, wrappedClient, options}
+	s3ec := &S3EncryptionClientV3{wrappedClient, options}
 	return s3ec, nil
 }
 
@@ -67,7 +95,7 @@ func (c *S3EncryptionClientV3) GetObject(ctx context.Context, input *s3.GetObjec
 	}
 
 	opts := append(optFns, decryptOpts...)
-	return c.wrappedClient.GetObject(ctx, input, opts...)
+	return c.Client.GetObject(ctx, input, opts...)
 }
 
 // PutObject will make encrypt the contents before sending the data to S3. Depending on the MinFileSize
@@ -83,34 +111,5 @@ func (c *S3EncryptionClientV3) PutObject(ctx context.Context, input *s3.PutObjec
 	}
 
 	opts := append(optFns, encryptOpts...)
-	return c.wrappedClient.PutObject(ctx, input, opts...)
-}
-
-type EncryptionClientOptions struct {
-	// Keyring for encryption/decryption
-	CipherDataGeneratorWithCEKAlg CipherDataGeneratorWithCEKAlg
-
-	// SaveStrategy will dictate where the envelope is saved.
-	//
-	// Defaults to the object's metadata
-	SaveStrategy SaveStrategy
-
-	// TempFolderPath is used to store temp files when calling PutObject.
-	// Temporary files are needed to compute the X-Amz-Content-Sha256 header.
-	TempFolderPath string
-
-	// MinFileSize is the minimum size for the content to write to a
-	// temporary file instead of using memory.
-	MinFileSize int64
-
-	// The logger to write logging messages to.
-	Logger *log.Logger
-
-	// LoadStrategy is used to load the metadata either from the metadata of the object
-	// or from a separate file in s3.
-	//
-	// Defaults to our default load strategy.
-	LoadStrategy LoadStrategy
-
-	CryptoRegistry *CryptoRegistry
+	return c.Client.PutObject(ctx, input, opts...)
 }
