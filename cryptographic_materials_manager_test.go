@@ -91,11 +91,11 @@ func TestCryptographicMaterialsManager_Padder(t *testing.T) {
 	padder := &mockPadder{}
 
 	if _, ok := cr.GetPadder("foo"); ok {
-		t.Errorf("expected Keyring to not be present")
+		t.Errorf("expected padder to not be present")
 	}
 
 	if _, ok := cr.RemovePadder("foo"); ok {
-		t.Errorf("expected Keyring to not have been removed")
+		t.Errorf("expected padder to not have been removed")
 	}
 
 	if err := cr.AddPadder("foo", nil); err == nil {
@@ -111,11 +111,11 @@ func TestCryptographicMaterialsManager_Padder(t *testing.T) {
 	}
 
 	if v, ok := cr.GetPadder("foo"); !ok || v == nil {
-		t.Error("expected Keyring to be present and not nil")
+		t.Error("expected padder to be present and not nil")
 	}
 
 	if v, ok := cr.RemovePadder("foo"); !ok || v == nil {
-		t.Error("expected Keyring to have been removed and not nil")
+		t.Error("expected padder to have been removed and not nil")
 	}
 }
 
