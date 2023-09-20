@@ -17,22 +17,18 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 )
 
-type mockPutObjectClient struct{}
+// TEST-UNIT
+func TestNewS3EncryptionOnlyClientV3(t *testing.T) {
+	tConfig := awstesting.Config()
+	tClient := s3.NewFromConfig(tConfig)
 
-func (m *mockPutObjectClient) PutObject(ctx context.Context, input *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
-	panic("not implemented")
-}
-
-func TestNewEncryptionClientV3(t *testing.T) {
-	tClient := &mockPutObjectClient{}
-
-	mcb := AESGCMContentCipherBuilder(NewKMSContextKeyGenerator(nil, "id", nil))
-	v3 := NewEncryptionClientV3(tClient, mcb)
+	mcb := NewKMSContextKeyGenerator(nil, "id", nil)
+	v3, _ := NewS3EncryptionClientV3(tClient, nil, mcb)
 	if v3 == nil {
 		t.Fatal("expected client to not be nil")
 	}
 
-	if !reflect.DeepEqual(mcb, v3.options.ContentCipherBuilder) {
+	if !reflect.DeepEqual(mcb, v3.options.CipherDataGeneratorWithCEKAlg) {
 		t.Errorf("content cipher builder did not match provided value")
 	}
 
@@ -41,8 +37,8 @@ func TestNewEncryptionClientV3(t *testing.T) {
 		t.Errorf("expected default save strategy to be s3 header strategy")
 	}
 
-	if v3.apiClient == nil {
-		t.Errorf("expected s3 client not be nil")
+	if v3.Client == nil {
+		t.Errorf("expected s3 client to be nil")
 	}
 
 	if e, a := DefaultMinFileSize, v3.options.MinFileSize; int64(e) != a {
@@ -52,15 +48,21 @@ func TestNewEncryptionClientV3(t *testing.T) {
 	if e, a := "", v3.options.TempFolderPath; e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
+
+	// most importantly,
+	// cryptoRegistry MUST be nil
+	if v3.options.CryptoRegistry != nil {
+		t.Errorf("expected CryptoRegistry to be nil")
+	}
 }
 
 func TestNewEncryptionClientV3_NonDefaults(t *testing.T) {
 	tConfig := awstesting.Config()
 	tClient := s3.NewFromConfig(tConfig)
 
-	mcb := mockCipherBuilder{}
-	v3 := NewEncryptionClientV3(tClient, nil, func(clientOptions *EncryptionClientOptions) {
-		clientOptions.ContentCipherBuilder = mcb
+	mcb := mockGenerator{}
+	v3, _ := NewS3EncryptionClientV3(tClient, nil, nil, func(clientOptions *EncryptionClientOptions) {
+		clientOptions.CipherDataGeneratorWithCEKAlg = mcb
 		clientOptions.TempFolderPath = "/mock/path"
 		clientOptions.MinFileSize = 42
 		clientOptions.SaveStrategy = S3SaveStrategy{}
@@ -70,7 +72,7 @@ func TestNewEncryptionClientV3_NonDefaults(t *testing.T) {
 		t.Fatal("expected client to not be nil")
 	}
 
-	if !reflect.DeepEqual(mcb, v3.options.ContentCipherBuilder) {
+	if !reflect.DeepEqual(mcb, v3.options.CipherDataGeneratorWithCEKAlg) {
 		t.Errorf("content cipher builder did not match provided value")
 	}
 
@@ -79,7 +81,7 @@ func TestNewEncryptionClientV3_NonDefaults(t *testing.T) {
 		t.Errorf("expected default save strategy to be s3 header strategy")
 	}
 
-	if v3.apiClient != tClient {
+	if v3.Client != tClient {
 		t.Errorf("expected s3 client not be nil")
 	}
 
@@ -112,6 +114,7 @@ func (k cdgWithStaticTestIV) GenerateCipherDataWithCEKAlg(ctx context.Context, k
 	return cipherData, err
 }
 
+// TEST-MOCK
 func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		fmt.Fprintln(writer, `{"CiphertextBlob":"8gSzlk7giyfFbLPUVgoVjvQebI1827jp8lDkO+n2chsiSoegx1sjm8NdPk0Bl70I","KeyId":"test-key-id","Plaintext":"lP6AbIQTmptyb/+WQq+ubDw+w7na0T1LGSByZGuaono="}`)
@@ -129,7 +132,6 @@ func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 		IV:                            iv,
 		CipherDataGeneratorWithCEKAlg: NewKMSContextKeyGenerator(kmsClient, "test-key-id", md),
 	}
-	contentCipherBuilder := AESGCMContentCipherBuilder(kmsWithStaticIV)
 
 	tConfig := awstesting.Config()
 	tHttpClient := &awstesting.MockHttpClient{
@@ -142,7 +144,7 @@ func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 	tConfig.HTTPClient = tHttpClient
 	s3Client := s3.NewFromConfig(tConfig)
 
-	client := NewEncryptionClientV3(s3Client, contentCipherBuilder)
+	client, _ := NewS3EncryptionClientV3(s3Client, nil, kmsWithStaticIV)
 
 	_, err := client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket: aws.String("test-bucket"),

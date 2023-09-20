@@ -8,6 +8,7 @@ import (
 // CipherDataGenerator handles generating proper key and IVs of proper size for the
 // content cipher. CipherDataGenerator will also encrypt the key and store it in
 // the CipherData.
+// IMPLEMENTED BY: kms_key_handler.go -> kmsKeyHandler
 type CipherDataGenerator interface {
 	GenerateCipherData(int, int) (CipherData, error)
 }
@@ -15,6 +16,7 @@ type CipherDataGenerator interface {
 // CipherDataGeneratorWithContext handles generating proper key and IVs of
 // proper size for the content cipher. CipherDataGenerator will also encrypt
 // the key and store it in the CipherData.
+// IMPLEMENTED BY: kms_key_handler.go -> kmsKeyHandler
 type CipherDataGeneratorWithContext interface {
 	GenerateCipherDataWithContext(context.Context, int, int) (CipherData, error)
 }
@@ -22,6 +24,7 @@ type CipherDataGeneratorWithContext interface {
 // CipherDataGeneratorWithCEKAlg handles generating proper key and IVs of proper size for the
 // content cipher. CipherDataGenerator will also encrypt the key and store it in
 // the CipherData.
+// IMPLEMENTED BY: kms_context_key_handler.go -> kmsContextKeyHandler
 type CipherDataGeneratorWithCEKAlg interface {
 	GenerateCipherDataWithCEKAlg(ctx context.Context, keySize, ivSize int, cekAlgorithm string) (CipherData, error)
 }

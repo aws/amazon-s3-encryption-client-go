@@ -1,6 +1,6 @@
 module github.com/aws/amazon-s3-encryption-client-go
 
-go 1.19
+go 1.20
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.18.0

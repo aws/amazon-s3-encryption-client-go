@@ -17,7 +17,7 @@ func TestWrapFactory(t *testing.T) {
 	tConfig := awstesting.Config()
 	kmsClient := kms.NewFromConfig(tConfig)
 
-	o := DecryptionClientOptions{
+	o := EncryptionClientOptions{
 		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
 			KMSWrap: (kmsKeyHandler{
 				apiClient: kmsClient,
@@ -46,7 +46,7 @@ func TestWrapFactory(t *testing.T) {
 func TestWrapFactoryErrorNoWrap(t *testing.T) {
 	tConfig := awstesting.Config()
 	kmsClient := kms.NewFromConfig(tConfig)
-	o := DecryptionClientOptions{
+	o := EncryptionClientOptions{
 		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
 			KMSWrap: (kmsKeyHandler{
 				apiClient: kmsClient,
@@ -72,7 +72,7 @@ func TestWrapFactoryErrorNoWrap(t *testing.T) {
 func TestWrapFactoryCustomEntry(t *testing.T) {
 	tConfig := awstesting.Config()
 	kmsClient := kms.NewFromConfig(tConfig)
-	o := DecryptionClientOptions{
+	o := EncryptionClientOptions{
 		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
 			"custom": (kmsKeyHandler{
 				apiClient: kmsClient,
@@ -109,7 +109,7 @@ func TestCEKFactory(t *testing.T) {
 	tConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	svc := kms.NewFromConfig(tConfig)
 
-	o := DecryptionClientOptions{
+	o := EncryptionClientOptions{
 		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
 			KMSWrap: (kmsKeyHandler{
 				apiClient: svc,
@@ -168,7 +168,7 @@ func TestCEKFactoryNoCEK(t *testing.T) {
 	tConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	svc := kms.NewFromConfig(tConfig)
 
-	o := DecryptionClientOptions{
+	o := EncryptionClientOptions{
 		CryptoRegistry: initCryptoRegistryFrom(
 			map[string]WrapEntry{
 				KMSWrap: (kmsKeyHandler{
@@ -230,7 +230,7 @@ func TestCEKFactoryCustomEntry(t *testing.T) {
 	tConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	svc := kms.NewFromConfig(tConfig)
 
-	o := DecryptionClientOptions{
+	o := EncryptionClientOptions{
 		CryptoRegistry: initCryptoRegistryFrom(
 			map[string]WrapEntry{
 				KMSWrap: (kmsKeyHandler{
