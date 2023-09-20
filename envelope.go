@@ -17,7 +17,7 @@ const (
 	ivHeader                       = "x-amz-iv"
 	matDescHeader                  = "x-amz-matdesc"
 	cekAlgorithmHeader             = "x-amz-cek-alg"
-	wrapAlgorithmHeader            = "x-amz-wrap-alg"
+	KeyringAlgorithmHeader         = "x-amz-wrap-alg"
 	tagLengthHeader                = "x-amz-tag-len"
 	unencryptedMD5Header           = "x-amz-unencrypted-content-md5"
 	unencryptedContentLengthHeader = "x-amz-unencrypted-content-length"
@@ -35,7 +35,7 @@ type Envelope struct {
 	CipherKey string `json:"x-amz-key-v2"`
 	// MaterialDesc is a description to distinguish from other envelopes.
 	MatDesc               string `json:"x-amz-matdesc"`
-	WrapAlg               string `json:"x-amz-wrap-alg"`
+	KeyringAlg            string `json:"x-amz-wrap-alg"`
 	CEKAlg                string `json:"x-amz-cek-alg"`
 	TagLen                string `json:"x-amz-tag-len"`
 	UnencryptedContentLen string `json:"x-amz-unencrypted-content-length"`

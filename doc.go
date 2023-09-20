@@ -1,6 +1,7 @@
 /*
 Package s3crypto provides encryption to S3 using KMS and AES GCM.
 
+// TODO: this needs to be mostly rewritten...
 Keyproviders are interfaces that handle masterkeys. Masterkeys are used to encrypt and decrypt the randomly
 generated cipher keys. The SDK currently uses KMS to do this. A user does not need to provide a master key
 since all that information is hidden in KMS.
@@ -9,7 +10,7 @@ Modes are interfaces that handle content encryption and decryption. It is an abs
 the ciphers. If content is being encrypted we generate the key and iv of the cipher. For decryption, we use the
 metadata stored either on the object or an instruction file object to decrypt the contents.
 
-Ciphers are interfaces that handle encryption and decryption of data. This may be key wrap ciphers or content
+Ciphers are interfaces that handle encryption and decryption of data. Ciphers may be Keyring ciphers or content
 ciphers.
 
 Creating an S3 cryptography client
@@ -38,7 +39,7 @@ Creating an S3 cryptography client
 		panic(err) // handle error
 	}
 
-	if err := s3crypto.RegisterKMSContextWrapWithAnyCMK(cr, kmsClient); err != nil {
+	if err := s3crypto.RegisterKMSContextKeyringWithAnyCMK(cr, kmsClient); err != nil {
 		panic(err) // handle error
 	}
 
@@ -76,16 +77,16 @@ For example, the S3SaveStrategy can be used to save the encryption metadata to a
 using the objects KeyName+InstructionFileSuffix. The InstructionFileSuffix defaults to .instruction. If using this strategy you will need to
 configure the DecryptionClientV3 to use the matching S3LoadStrategy LoadStrategy in order to decrypt object using this save strategy.
 
-# Custom Key Wrappers and Custom Content Encryption Algorithms
+# Custom Keyrings and Custom Content Encryption Algorithms
 
-Registration of custom key wrapping or content encryption algorithms not provided by AWS is allowed by the SDK, but
-security and compatibility with custom types can not be guaranteed. For example if you want to support `CustomWrap`
-key wrapping algorithm and `CustomCEK` content encryption algorithm. You can use the CryptographicMaterialsManager to register these types.
+Registration of custom key Keyring or content encryption algorithms not provided by AWS is allowed by the SDK, but
+security and compatibility with custom types can not be guaranteed. For example if you want to support a `CustomKeyring`
+Keyring and a `CustomCEK` content encryption algorithm. You can use the CryptographicMaterialsManager to register these types.
 
 	cr := s3crypto.NewCryptographicMaterialsManager()
 
-	// Register a custom key wrap algorithm to the CryptographicMaterialsManager
-	if err := cr.AddWrap("CustomWrap", NewCustomWrapEntry); err != nil {
+	// Register a custom Keyring to the CryptographicMaterialsManager
+	if err := cr.AddKeyring("CustomKeyring", NewCustomKeyringEntry); err != nil {
 		panic(err) // handle error
 	}
 
@@ -100,13 +101,13 @@ key wrapping algorithm and `CustomCEK` content encryption algorithm. You can use
 	}
 
 We have now registered these new algorithms to the decryption client. When the client calls `GetObject` and sees
-the wrap as `CustomWrap` then it'll use that wrap algorithm. This is also true for `CustomCEK`.
+the Keyring as `CustomKeyring` then it'll use that Keyring algorithm. This is also true for `CustomCEK`.
 
-For encryption adding a custom content cipher builder and key handler will allow for encryption of custom
+For encryption adding a custom content cipher builder and keyring will allow for encryption of custom
 defined ciphers.
 
-	// Our wrap algorithm, CustomWrap
-	handler := NewCustomWrap(key, iv)
+	// Our Keyring algorithm, CustomKeyring
+	handler := NewCustomKeyring(key, iv)
 	// Our content cipher builder, NewCustomCEKContentBuilder
 	encClient := s3crypto.NewEncryptionClientV3(s3Client, NewCustomCEKContentBuilder(handler))
 */

@@ -75,7 +75,7 @@ func (strat HeaderV2SaveStrategy) Save(ctx context.Context, saveReq *SaveStrateg
 	input.Metadata[http.CanonicalHeaderKey(keyV2Header)] = env.CipherKey
 	input.Metadata[http.CanonicalHeaderKey(ivHeader)] = env.IV
 	input.Metadata[http.CanonicalHeaderKey(matDescHeader)] = env.MatDesc
-	input.Metadata[http.CanonicalHeaderKey(wrapAlgorithmHeader)] = env.WrapAlg
+	input.Metadata[http.CanonicalHeaderKey(KeyringAlgorithmHeader)] = env.KeyringAlg
 	input.Metadata[http.CanonicalHeaderKey(cekAlgorithmHeader)] = env.CEKAlg
 	input.Metadata[http.CanonicalHeaderKey(unencryptedContentLengthHeader)] = env.UnencryptedContentLen
 
@@ -139,7 +139,7 @@ func (load HeaderV2LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequ
 	env.CipherKey = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, keyV2Header}, "-"))
 	env.IV = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, ivHeader}, "-"))
 	env.MatDesc = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, matDescHeader}, "-"))
-	env.WrapAlg = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, wrapAlgorithmHeader}, "-"))
+	env.KeyringAlg = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, KeyringAlgorithmHeader}, "-"))
 	env.CEKAlg = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, cekAlgorithmHeader}, "-"))
 	env.TagLen = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, tagLengthHeader}, "-"))
 	env.UnencryptedContentLen = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, unencryptedContentLengthHeader}, "-"))

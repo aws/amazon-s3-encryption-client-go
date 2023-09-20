@@ -53,7 +53,7 @@ func RegisterAESGCMContentCipher(registry *CryptographicMaterialsManager) error 
 }
 
 // gcmContentCipherBuilder return a new builder for encryption content using AES/GCM/NoPadding. This type is meant
-// to be used with key wrapping implementations that allow the cek algorithm to be provided when calling the
+// to be used with Keyring implementations that allow the cek algorithm to be provided when calling the
 // cipher data generator.
 type gcmContentCipherBuilder struct {
 	generator CipherDataGeneratorWithCEKAlg

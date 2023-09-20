@@ -30,19 +30,19 @@ func encodeMeta(reader lengthReader, cd CipherData) (Envelope, error) {
 		CipherKey:             key,
 		IV:                    iv,
 		MatDesc:               string(matdesc),
-		WrapAlg:               cd.WrapAlgorithm,
+		KeyringAlg:            cd.KeyringAlgorithm,
 		CEKAlg:                cd.CEKAlgorithm,
 		TagLen:                cd.TagLength,
 		UnencryptedContentLen: strconv.FormatInt(contentLength, 10),
 	}, nil
 }
 
-func wrapFromEnvelope(options EncryptionClientOptions, env Envelope) (CipherDataDecrypter, error) {
-	f, ok := options.CryptographicMaterialsManager.GetWrap(env.WrapAlg)
+func KeyringFromEnvelope(options EncryptionClientOptions, env Envelope) (CipherDataDecrypter, error) {
+	f, ok := options.CryptographicMaterialsManager.GetKeyring(env.KeyringAlg)
 	if !ok || f == nil {
 		return nil, &smithy.GenericAPIError{
-			Code:    "InvalidWrapAlgorithmError",
-			Message: "wrap algorithm isn't supported, " + env.WrapAlg,
+			Code:    "InvalidKeyringAlgorithmError",
+			Message: "Keyring algorithm isn't supported, " + env.KeyringAlg,
 			Fault:   smithy.FaultClient,
 		}
 	}
@@ -105,10 +105,10 @@ func getPadder(options EncryptionClientOptions, cekAlg string) Padder {
 }
 
 func contentCipherFromEnvelope(ctx context.Context, options EncryptionClientOptions, env Envelope) (ContentCipher, error) {
-	wrap, err := wrapFromEnvelope(options, env)
+	keyring, err := KeyringFromEnvelope(options, env)
 	if err != nil {
 		return nil, err
 	}
 
-	return cekFromEnvelope(ctx, options, env, wrap)
+	return cekFromEnvelope(ctx, options, env, keyring)
 }

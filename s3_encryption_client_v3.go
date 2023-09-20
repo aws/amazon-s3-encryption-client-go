@@ -15,6 +15,7 @@ type S3EncryptionClientV3 struct {
 
 type EncryptionClientOptions struct {
 	// Keyring for encryption/decryption
+	// TODO: Fully refactor away in favor of CMM
 	CipherDataGeneratorWithCEKAlg CipherDataGeneratorWithCEKAlg
 
 	// SaveStrategy will dictate where the envelope is saved.
@@ -77,7 +78,7 @@ func NewS3EncryptionClientV3(s3Client *s3.Client, CryptographicMaterialsManager 
 		}
 	}
 
-	// use the given wrappedClient for the promoted anon fields AND the crypto calls
+	// use the given wrappedClient for the promoted anon fields
 	s3ec := &S3EncryptionClientV3{wrappedClient, options}
 	return s3ec, nil
 }

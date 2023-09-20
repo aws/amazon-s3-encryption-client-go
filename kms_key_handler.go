@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	// KMSWrap is a constant used during decryption to build a KMS key handler.
-	KMSWrap = "kms"
+	// KMSKeyring is a constant used during decryption to build a KMS key handler.
+	KMSKeyring = "kms"
 )
 
 // kmsKeyHandler will make calls to KMS to generate data keys or decrypt them
@@ -17,59 +17,59 @@ type kmsKeyHandler struct {
 	apiClient KmsAPIClient
 	cmkID     *string
 
-	// useProvidedCMK is toggled when using `kms` key wrapper with the client
+	// useProvidedCMK is toggled when using `kms` key Keyring with the client
 	useProvidedCMK bool // TODO: This needs to ALWAYS be true for key committment reasons
 
 	CipherData
 }
 
-// newKMSWrapEntry builds returns a new KMS key provider and its decrypt handler.
-func newKMSWrapEntry(apiClient KmsAPIClient) WrapEntry {
+// newKMSKeyringEntry builds returns a new KMS key provider and its decrypt handler.
+func newKMSKeyringEntry(apiClient KmsAPIClient) KeyringEntry {
 	kp := newKMSKeyHandler(apiClient)
 	return kp.decryptHandler
 }
 
-// RegisterKMSWrapWithCMK registers the `kms` wrapping algorithm to the given WrapRegistry. The wrapper will be
+// RegisterKMSKeyringWithCMK registers the `kms` Keyring algorithm to the given KeyringRegistry. The Keyring will be
 // configured to call KMS Decrypt with the provided CMK.
 //
 // Example:
 //
 //	sess := session.Must(session.NewSession())
 //	cr := s3crypto.NewCryptographicMaterialsManager()
-//	if err := s3crypto.RegisterKMSWrapWithCMK(cr, kms.New(sess), "cmkId"); err != nil {
+//	if err := s3crypto.RegisterKMSKeyringWithCMK(cr, kms.New(sess), "cmkId"); err != nil {
 //		panic(err) // handle error
 //	}
 //
 // deprecated: This feature is in maintenance mode, no new updates will be released. Please see https://docs.aws.amazon.com/general/latest/gr/aws_sdk_cryptography.html for more information.
-func RegisterKMSWrapWithCMK(registry *CryptographicMaterialsManager, apiClient KmsAPIClient, cmkID string) error {
+func RegisterKMSKeyringWithCMK(registry *CryptographicMaterialsManager, apiClient KmsAPIClient, cmkID string) error {
 	if registry == nil {
 		return errNilCryptographicMaterialsManager
 	}
-	return registry.AddWrap(KMSWrap, newKMSWrapEntryWithCMK(apiClient, cmkID))
+	return registry.AddKeyring(KMSKeyring, newKMSKeyringEntryWithCMK(apiClient, cmkID))
 }
 
-// RegisterKMSWrapWithAnyCMK registers the `kms` wrapping algorithm to the given WrapRegistry. The wrapper will be
+// RegisterKMSKeyringWithAnyCMK registers the `kms` Keyring algorithm to the given KeyringRegistry. The Keyring will be
 // configured to call KMS Decrypt without providing a CMK.
 //
 // Example:
 //
 //	sess := session.Must(session.NewSession())
 //	cr := s3crypto.NewCryptographicMaterialsManager()
-//	if err := s3crypto.RegisterKMSWrapWithAnyCMK(cr, kms.New(sess)); err != nil {
+//	if err := s3crypto.RegisterKMSKeyringWithAnyCMK(cr, kms.New(sess)); err != nil {
 //		panic(err) // handle error
 //	}
 //
 // deprecated: This feature is in maintenance mode, no new updates will be released. Please see https://docs.aws.amazon.com/general/latest/gr/aws_sdk_cryptography.html for more information.
-func RegisterKMSWrapWithAnyCMK(registry *CryptographicMaterialsManager, apiClient KmsAPIClient) error {
+func RegisterKMSKeyringWithAnyCMK(registry *CryptographicMaterialsManager, apiClient KmsAPIClient) error {
 	if registry == nil {
 		return errNilCryptographicMaterialsManager
 	}
-	return registry.AddWrap(KMSWrap, newKMSWrapEntry(apiClient))
+	return registry.AddKeyring(KMSKeyring, newKMSKeyringEntry(apiClient))
 }
 
-// newKMSWrapEntryWithCMK builds returns a new KMS key provider and its decrypt handler. The wrap entry will be configured
+// newKMSKeyringEntryWithCMK builds returns a new KMS key provider and its decrypt handler. The Keyring entry will be configured
 // to only attempt to decrypt the data key using the provided CMK.
-func newKMSWrapEntryWithCMK(apiClient KmsAPIClient, cmkID string) WrapEntry {
+func newKMSKeyringEntryWithCMK(apiClient KmsAPIClient, cmkID string) KeyringEntry {
 	kp := newKMSKeyHandler(apiClient)
 	kp.useProvidedCMK = true
 	kp.cmkID = &cmkID
@@ -103,7 +103,7 @@ func (kp kmsKeyHandler) decryptHandler(env Envelope) (CipherDataDecrypter, error
 	}
 
 	kp.CipherData.MaterialDescription = m
-	kp.WrapAlgorithm = KMSWrap
+	kp.KeyringAlgorithm = KMSKeyring
 
 	return &kp, nil
 }
