@@ -124,7 +124,7 @@ func TestCryptographicMaterialsManager_valid(t *testing.T) {
 
 	if err := cr.valid(); err == nil {
 		t.Errorf("expected error, got none")
-	} else if e, a := "at least one key Keyring algorithms must be provided", err.Error(); !strings.Contains(a, e) {
+	} else if e, a := "at least one Keyring must be provided", err.Error(); !strings.Contains(a, e) {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 
