@@ -22,7 +22,7 @@ func TestNewS3EncryptionClientV3(t *testing.T) {
 	tClient := s3.NewFromConfig(tConfig)
 	kmsClient := kms.NewFromConfig(tConfig)
 
-	cr := NewCryptoRegistry()
+	cr := NewCryptographicMaterialsManager()
 	RegisterAESGCMContentCipher(cr)
 	RegisterKMSContextWrapWithAnyCMK(cr, kmsClient)
 	v3, _ := NewS3EncryptionClientV3(tClient, cr, nil)
@@ -50,7 +50,7 @@ func TestDecryptionClientV3_GetObject(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	cr := NewCryptoRegistry()
+	cr := NewCryptographicMaterialsManager()
 	if err := RegisterKMSContextWrapWithAnyCMK(cr, kmsClient); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -119,7 +119,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	cr := NewCryptoRegistry()
+	cr := NewCryptographicMaterialsManager()
 	if err := RegisterKMSWrapWithAnyCMK(cr, kmsClient); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -190,7 +190,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESGCM(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	cr := NewCryptoRegistry()
+	cr := NewCryptographicMaterialsManager()
 	if err := RegisterKMSWrapWithAnyCMK(cr, kmsClient); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -277,7 +277,7 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 	}{
 		"unsupported wrap": {
 			Client: func() *S3EncryptionClientV3 {
-				cr := NewCryptoRegistry()
+				cr := NewCryptographicMaterialsManager()
 
 				if err := RegisterKMSContextWrapWithAnyCMK(cr, kms.NewFromConfig(awstesting.Config())); err != nil {
 					t.Fatalf("expected no error, got %v", err)
@@ -300,7 +300,7 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 		},
 		"unsupported cek": {
 			Client: func() *S3EncryptionClientV3 {
-				cr := NewCryptoRegistry()
+				cr := NewCryptographicMaterialsManager()
 				if err := RegisterKMSWrapWithAnyCMK(cr, kms.NewFromConfig(awstesting.Config())); err != nil {
 					t.Fatalf("expected no error, got %v", err)
 				}
@@ -342,8 +342,8 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 	}
 }
 
-func TestDecryptionClientV3_CheckValidCryptoRegistry(t *testing.T) {
-	cr := NewCryptoRegistry()
+func TestDecryptionClientV3_CheckValidCryptographicMaterialsManager(t *testing.T) {
+	cr := NewCryptographicMaterialsManager()
 	_, err := NewS3EncryptionClientV3(nil, cr, nil)
 	if err == nil {
 		t.Fatal("expected error, got none")

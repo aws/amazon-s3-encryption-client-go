@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestCryptoRegistry_Wrap(t *testing.T) {
-	cr := NewCryptoRegistry()
+func TestCryptographicMaterialsManager_Wrap(t *testing.T) {
+	cr := NewCryptographicMaterialsManager()
 
 	mockWrap := WrapEntry(func(envelope Envelope) (CipherDataDecrypter, error) {
 		return nil, nil
@@ -45,8 +45,8 @@ func TestCryptoRegistry_Wrap(t *testing.T) {
 	}
 }
 
-func TestCryptoRegistry_CEK(t *testing.T) {
-	cr := NewCryptoRegistry()
+func TestCryptographicMaterialsManager_CEK(t *testing.T) {
+	cr := NewCryptographicMaterialsManager()
 
 	mockEntry := CEKEntry(func(data CipherData) (ContentCipher, error) {
 		return nil, nil
@@ -85,8 +85,8 @@ func TestCryptoRegistry_CEK(t *testing.T) {
 	}
 }
 
-func TestCryptoRegistry_Padder(t *testing.T) {
-	cr := NewCryptoRegistry()
+func TestCryptographicMaterialsManager_Padder(t *testing.T) {
+	cr := NewCryptographicMaterialsManager()
 
 	padder := &mockPadder{}
 
@@ -119,8 +119,8 @@ func TestCryptoRegistry_Padder(t *testing.T) {
 	}
 }
 
-func TestCryptoRegistry_valid(t *testing.T) {
-	cr := NewCryptoRegistry()
+func TestCryptographicMaterialsManager_valid(t *testing.T) {
+	cr := NewCryptographicMaterialsManager()
 
 	if err := cr.valid(); err == nil {
 		t.Errorf("expected error, got none")

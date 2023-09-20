@@ -45,13 +45,13 @@ func NewKMSContextKeyGenerator(apiClient KmsAPIClient, cmkID string, matdesc Mat
 //
 // Example:
 //
-//	cr := s3crypto.NewCryptoRegistry()
+//	cr := s3crypto.NewCryptographicMaterialsManager()
 //	if err := RegisterKMSContextWrapWithCMK(); err != nil {
 //		panic(err) // handle error
 //	}
-func RegisterKMSContextWrapWithCMK(registry *CryptoRegistry, apiClient KmsAPIClient, cmkID string) error {
+func RegisterKMSContextWrapWithCMK(registry *CryptographicMaterialsManager, apiClient KmsAPIClient, cmkID string) error {
 	if registry == nil {
-		return errNilCryptoRegistry
+		return errNilCryptographicMaterialsManager
 	}
 	return registry.AddWrap(KMSContextWrap, newKMSContextWrapEntryWithCMK(apiClient, cmkID))
 }
@@ -67,13 +67,13 @@ func RegisterKMSContextWrapWithCMK(registry *CryptoRegistry, apiClient KmsAPICli
 //		panic(err) // handle err
 //	}
 //
-//	cr := s3crypto.NewCryptoRegistry()
+//	cr := s3crypto.NewCryptographicMaterialsManager()
 //	if err := s3crypto.RegisterKMSContextWrapWithAnyCMK(cr, kms.NewFromConfig(cfg)); err != nil {
 //		panic(err) // handle error
 //	}
-func RegisterKMSContextWrapWithAnyCMK(registry *CryptoRegistry, apiClient KmsAPIClient) error {
+func RegisterKMSContextWrapWithAnyCMK(registry *CryptographicMaterialsManager, apiClient KmsAPIClient) error {
 	if registry == nil {
-		return errNilCryptoRegistry
+		return errNilCryptographicMaterialsManager
 	}
 	return registry.AddWrap(KMSContextWrap, newKMSContextWrapEntryWithAnyCMK(apiClient))
 }

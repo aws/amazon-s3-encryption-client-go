@@ -93,7 +93,7 @@ func TestRegisterKMSWrapWithAnyCMK(t *testing.T) {
 	tConfig := awstesting.Config()
 	kmsClient := kms.NewFromConfig(tConfig)
 
-	cr := NewCryptoRegistry()
+	cr := NewCryptographicMaterialsManager()
 	if err := RegisterKMSWrapWithAnyCMK(cr, kmsClient); err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
@@ -113,7 +113,7 @@ func TestRegisterKMSWrapWithCMK(t *testing.T) {
 	tConfig := awstesting.Config()
 	kmsClient := kms.NewFromConfig(tConfig)
 
-	cr := NewCryptoRegistry()
+	cr := NewCryptographicMaterialsManager()
 	if err := RegisterKMSWrapWithCMK(cr, kmsClient, "cmkId"); err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}

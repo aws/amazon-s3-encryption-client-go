@@ -31,8 +31,8 @@ Creating an S3 cryptography client
 	// We need to pass the S3 client to use, any decryption that occurs will use the KMS client.
 	encClient := s3crypto.NewEncryptionClientV3(sess, s3crypto.AESGCMContentCipherBuilder(handler))
 
-	// Create a CryptoRegistry and register the algorithms you wish to use for decryption
-	cr := s3crypto.NewCryptoRegistry()
+	// Create a CryptographicMaterialsManager and register the algorithms you wish to use for decryption
+	cr := s3crypto.NewCryptographicMaterialsManager()
 
 	if err := s3crypto.RegisterAESGCMContentCipher(cr); err != nil {
 		panic(err) // handle error
@@ -80,16 +80,16 @@ configure the DecryptionClientV3 to use the matching S3LoadStrategy LoadStrategy
 
 Registration of custom key wrapping or content encryption algorithms not provided by AWS is allowed by the SDK, but
 security and compatibility with custom types can not be guaranteed. For example if you want to support `CustomWrap`
-key wrapping algorithm and `CustomCEK` content encryption algorithm. You can use the CryptoRegistry to register these types.
+key wrapping algorithm and `CustomCEK` content encryption algorithm. You can use the CryptographicMaterialsManager to register these types.
 
-	cr := s3crypto.NewCryptoRegistry()
+	cr := s3crypto.NewCryptographicMaterialsManager()
 
-	// Register a custom key wrap algorithm to the CryptoRegistry
+	// Register a custom key wrap algorithm to the CryptographicMaterialsManager
 	if err := cr.AddWrap("CustomWrap", NewCustomWrapEntry); err != nil {
 		panic(err) // handle error
 	}
 
-	// Register a custom content encryption algorithm to the CryptoRegistry
+	// Register a custom content encryption algorithm to the CryptographicMaterialsManager
 	if err := cr.AddCEK("CustomCEK", NewCustomCEKEntry); err != nil {
 		panic(err) // handle error
 	}

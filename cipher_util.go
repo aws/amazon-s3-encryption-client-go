@@ -38,7 +38,7 @@ func encodeMeta(reader lengthReader, cd CipherData) (Envelope, error) {
 }
 
 func wrapFromEnvelope(options EncryptionClientOptions, env Envelope) (CipherDataDecrypter, error) {
-	f, ok := options.CryptoRegistry.GetWrap(env.WrapAlg)
+	f, ok := options.CryptographicMaterialsManager.GetWrap(env.WrapAlg)
 	if !ok || f == nil {
 		return nil, &smithy.GenericAPIError{
 			Code:    "InvalidWrapAlgorithmError",
@@ -50,7 +50,7 @@ func wrapFromEnvelope(options EncryptionClientOptions, env Envelope) (CipherData
 }
 
 func cekFromEnvelope(ctx context.Context, options EncryptionClientOptions, env Envelope, decrypter CipherDataDecrypter) (ContentCipher, error) {
-	f, ok := options.CryptoRegistry.GetCEK(env.CEKAlg)
+	f, ok := options.CryptographicMaterialsManager.GetCEK(env.CEKAlg)
 	if !ok || f == nil {
 		return nil, &smithy.GenericAPIError{
 			Code:    "InvalidCEKAlgorithmError",
@@ -94,9 +94,9 @@ func cekFromEnvelope(ctx context.Context, options EncryptionClientOptions, env E
 // either contained padding within the cipher implementation, and to maintain
 // backwards compatibility we will simply not unpad anything.
 func getPadder(options EncryptionClientOptions, cekAlg string) Padder {
-	padder, ok := options.CryptoRegistry.GetPadder(cekAlg)
+	padder, ok := options.CryptographicMaterialsManager.GetPadder(cekAlg)
 	if !ok {
-		padder, ok = options.CryptoRegistry.GetPadder(cekAlg[strings.LastIndex(cekAlg, "/")+1:])
+		padder, ok = options.CryptographicMaterialsManager.GetPadder(cekAlg[strings.LastIndex(cekAlg, "/")+1:])
 		if !ok {
 			return NoPadder
 		}

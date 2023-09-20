@@ -18,7 +18,7 @@ func TestWrapFactory(t *testing.T) {
 	kmsClient := kms.NewFromConfig(tConfig)
 
 	o := EncryptionClientOptions{
-		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
+		CryptographicMaterialsManager: initCryptographicMaterialsManagerFrom(map[string]WrapEntry{
 			KMSWrap: (kmsKeyHandler{
 				apiClient: kmsClient,
 			}).decryptHandler,
@@ -47,7 +47,7 @@ func TestWrapFactoryErrorNoWrap(t *testing.T) {
 	tConfig := awstesting.Config()
 	kmsClient := kms.NewFromConfig(tConfig)
 	o := EncryptionClientOptions{
-		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
+		CryptographicMaterialsManager: initCryptographicMaterialsManagerFrom(map[string]WrapEntry{
 			KMSWrap: (kmsKeyHandler{
 				apiClient: kmsClient,
 			}).decryptHandler,
@@ -73,7 +73,7 @@ func TestWrapFactoryCustomEntry(t *testing.T) {
 	tConfig := awstesting.Config()
 	kmsClient := kms.NewFromConfig(tConfig)
 	o := EncryptionClientOptions{
-		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
+		CryptographicMaterialsManager: initCryptographicMaterialsManagerFrom(map[string]WrapEntry{
 			"custom": (kmsKeyHandler{
 				apiClient: kmsClient,
 			}).decryptHandler,
@@ -110,7 +110,7 @@ func TestCEKFactory(t *testing.T) {
 	svc := kms.NewFromConfig(tConfig)
 
 	o := EncryptionClientOptions{
-		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
+		CryptographicMaterialsManager: initCryptographicMaterialsManagerFrom(map[string]WrapEntry{
 			KMSWrap: (kmsKeyHandler{
 				apiClient: svc,
 			}).decryptHandler,
@@ -169,7 +169,7 @@ func TestCEKFactoryNoCEK(t *testing.T) {
 	svc := kms.NewFromConfig(tConfig)
 
 	o := EncryptionClientOptions{
-		CryptoRegistry: initCryptoRegistryFrom(
+		CryptographicMaterialsManager: initCryptographicMaterialsManagerFrom(
 			map[string]WrapEntry{
 				KMSWrap: (kmsKeyHandler{
 					apiClient: svc,
@@ -231,7 +231,7 @@ func TestCEKFactoryCustomEntry(t *testing.T) {
 	svc := kms.NewFromConfig(tConfig)
 
 	o := EncryptionClientOptions{
-		CryptoRegistry: initCryptoRegistryFrom(
+		CryptographicMaterialsManager: initCryptographicMaterialsManagerFrom(
 			map[string]WrapEntry{
 				KMSWrap: (kmsKeyHandler{
 					apiClient: svc,

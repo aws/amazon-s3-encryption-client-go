@@ -35,15 +35,15 @@ func newKMSWrapEntry(apiClient KmsAPIClient) WrapEntry {
 // Example:
 //
 //	sess := session.Must(session.NewSession())
-//	cr := s3crypto.NewCryptoRegistry()
+//	cr := s3crypto.NewCryptographicMaterialsManager()
 //	if err := s3crypto.RegisterKMSWrapWithCMK(cr, kms.New(sess), "cmkId"); err != nil {
 //		panic(err) // handle error
 //	}
 //
 // deprecated: This feature is in maintenance mode, no new updates will be released. Please see https://docs.aws.amazon.com/general/latest/gr/aws_sdk_cryptography.html for more information.
-func RegisterKMSWrapWithCMK(registry *CryptoRegistry, apiClient KmsAPIClient, cmkID string) error {
+func RegisterKMSWrapWithCMK(registry *CryptographicMaterialsManager, apiClient KmsAPIClient, cmkID string) error {
 	if registry == nil {
-		return errNilCryptoRegistry
+		return errNilCryptographicMaterialsManager
 	}
 	return registry.AddWrap(KMSWrap, newKMSWrapEntryWithCMK(apiClient, cmkID))
 }
@@ -54,15 +54,15 @@ func RegisterKMSWrapWithCMK(registry *CryptoRegistry, apiClient KmsAPIClient, cm
 // Example:
 //
 //	sess := session.Must(session.NewSession())
-//	cr := s3crypto.NewCryptoRegistry()
+//	cr := s3crypto.NewCryptographicMaterialsManager()
 //	if err := s3crypto.RegisterKMSWrapWithAnyCMK(cr, kms.New(sess)); err != nil {
 //		panic(err) // handle error
 //	}
 //
 // deprecated: This feature is in maintenance mode, no new updates will be released. Please see https://docs.aws.amazon.com/general/latest/gr/aws_sdk_cryptography.html for more information.
-func RegisterKMSWrapWithAnyCMK(registry *CryptoRegistry, apiClient KmsAPIClient) error {
+func RegisterKMSWrapWithAnyCMK(registry *CryptographicMaterialsManager, apiClient KmsAPIClient) error {
 	if registry == nil {
-		return errNilCryptoRegistry
+		return errNilCryptographicMaterialsManager
 	}
 	return registry.AddWrap(KMSWrap, newKMSWrapEntry(apiClient))
 }

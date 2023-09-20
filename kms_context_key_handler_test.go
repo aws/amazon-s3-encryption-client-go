@@ -227,7 +227,7 @@ func TestKmsContextKeyHandler_DecryptKey_WithCMK(t *testing.T) {
 func TestRegisterKMSContextWrapWithAnyCMK(t *testing.T) {
 	kmsClient := kms.NewFromConfig(awstesting.Config())
 
-	cr := NewCryptoRegistry()
+	cr := NewCryptographicMaterialsManager()
 	if err := RegisterKMSContextWrapWithAnyCMK(cr, kmsClient); err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
@@ -246,7 +246,7 @@ func TestRegisterKMSContextWrapWithAnyCMK(t *testing.T) {
 func TestRegisterKMSContextWrapWithCMK(t *testing.T) {
 	kmsClient := kms.NewFromConfig(awstesting.Config())
 
-	cr := NewCryptoRegistry()
+	cr := NewCryptographicMaterialsManager()
 	if err := RegisterKMSContextWrapWithCMK(cr, kmsClient, "cmkId"); err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}

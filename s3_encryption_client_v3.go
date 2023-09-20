@@ -39,11 +39,11 @@ type EncryptionClientOptions struct {
 	// Defaults to our default load strategy.
 	LoadStrategy LoadStrategy
 
-	CryptoRegistry *CryptoRegistry
+	CryptographicMaterialsManager *CryptographicMaterialsManager
 }
 
 // NewS3EncryptionClientV3 creates a new S3 client which can encrypt and decrypt
-func NewS3EncryptionClientV3(s3Client *s3.Client, cryptoRegistry *CryptoRegistry, keyring CipherDataGeneratorWithCEKAlg, optFns ...func(options *EncryptionClientOptions)) (*S3EncryptionClientV3, error) {
+func NewS3EncryptionClientV3(s3Client *s3.Client, CryptographicMaterialsManager *CryptographicMaterialsManager, keyring CipherDataGeneratorWithCEKAlg, optFns ...func(options *EncryptionClientOptions)) (*S3EncryptionClientV3, error) {
 	wrappedClient := s3Client
 	// default options
 	options := EncryptionClientOptions{
@@ -51,7 +51,7 @@ func NewS3EncryptionClientV3(s3Client *s3.Client, cryptoRegistry *CryptoRegistry
 		MinFileSize:                   DefaultMinFileSize,
 		Logger:                        log.Default(),
 		LoadStrategy:                  defaultV2LoadStrategy{},
-		CryptoRegistry:                cryptoRegistry,
+		CryptographicMaterialsManager: CryptographicMaterialsManager,
 		CipherDataGeneratorWithCEKAlg: keyring,
 	}
 	for _, fn := range optFns {
@@ -68,11 +68,11 @@ func NewS3EncryptionClientV3(s3Client *s3.Client, cryptoRegistry *CryptoRegistry
 		}
 	}
 
-	// CryptoRegistry MAY be nil,
+	// CryptographicMaterialsManager MAY be nil,
 	// in which case the client
 	// becomes "encrypt-only".
-	if cryptoRegistry != nil {
-		if err := cryptoRegistry.valid(); err != nil {
+	if CryptographicMaterialsManager != nil {
+		if err := CryptographicMaterialsManager.valid(); err != nil {
 			return nil, err
 		}
 	}

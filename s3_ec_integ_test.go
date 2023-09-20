@@ -39,7 +39,7 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 	kmsClient := kms.NewFromConfig(cfg)
 	var matDesc s3crypto.MaterialDescription
 	handlerWithCek = s3crypto.NewKMSContextKeyGenerator(kmsClient, arn, matDesc)
-	cr := s3crypto.NewCryptoRegistry()
+	cr := s3crypto.NewCryptographicMaterialsManager()
 	s3crypto.RegisterAESGCMContentCipher(cr)
 	s3crypto.RegisterKMSContextWrapWithAnyCMK(cr, kmsClient)
 

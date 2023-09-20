@@ -10,27 +10,27 @@ type WrapEntry func(Envelope) (CipherDataDecrypter, error)
 // CEKEntry is a builder that returns a proper content decrypter and error
 type CEKEntry func(CipherData) (ContentCipher, error)
 
-// CryptoRegistry is a collection of registries for configuring a decryption client with different key wrapping algorithms,
+// CryptographicMaterialsManager is a collection of registries for configuring a decryption client with different key wrapping algorithms,
 // content encryption algorithms, and padders.
-type CryptoRegistry struct {
+type CryptographicMaterialsManager struct {
 	wrap   map[string]WrapEntry
 	cek    map[string]CEKEntry
 	padder map[string]Padder
 }
 
-// NewCryptoRegistry creates a new CryptoRegistry to which wrapping algorithms, content encryption ciphers, and
+// NewCryptographicMaterialsManager creates a new CryptographicMaterialsManager to which wrapping algorithms, content encryption ciphers, and
 // padders can be registered for use with the DecryptionClientV3.
-func NewCryptoRegistry() *CryptoRegistry {
-	return &CryptoRegistry{
+func NewCryptographicMaterialsManager() *CryptographicMaterialsManager {
+	return &CryptographicMaterialsManager{
 		wrap:   map[string]WrapEntry{},
 		cek:    map[string]CEKEntry{},
 		padder: map[string]Padder{},
 	}
 }
 
-// initCryptoRegistryFrom creates a CryptoRegistry from prepopulated values, this is used for the V1 client
-func initCryptoRegistryFrom(wrapRegistry map[string]WrapEntry, cekRegistry map[string]CEKEntry, padderRegistry map[string]Padder) *CryptoRegistry {
-	cr := &CryptoRegistry{
+// initCryptographicMaterialsManagerFrom creates a CryptographicMaterialsManager from prepopulated values, this is used for the V1 client
+func initCryptographicMaterialsManagerFrom(wrapRegistry map[string]WrapEntry, cekRegistry map[string]CEKEntry, padderRegistry map[string]Padder) *CryptographicMaterialsManager {
+	cr := &CryptographicMaterialsManager{
 		wrap:   wrapRegistry,
 		cek:    cekRegistry,
 		padder: padderRegistry,
@@ -39,7 +39,7 @@ func initCryptoRegistryFrom(wrapRegistry map[string]WrapEntry, cekRegistry map[s
 }
 
 // GetWrap returns the WrapEntry identified by the given name. Returns false if the entry is not registered.
-func (c CryptoRegistry) GetWrap(name string) (WrapEntry, bool) {
+func (c CryptographicMaterialsManager) GetWrap(name string) (WrapEntry, bool) {
 	if c.wrap == nil {
 		return nil, false
 	}
@@ -57,7 +57,7 @@ func (c CryptoRegistry) GetWrap(name string) (WrapEntry, bool) {
 //	RegisterKMSContextWrapWithCMK (kms+context)
 //	RegisterKMSWrapWithAnyCMK (kms)
 //	RegisterKMSWrapWithCMK (kms)
-func (c *CryptoRegistry) AddWrap(name string, entry WrapEntry) error {
+func (c *CryptographicMaterialsManager) AddWrap(name string, entry WrapEntry) error {
 	if entry == nil {
 		return errNilWrapEntry
 	}
@@ -70,7 +70,7 @@ func (c *CryptoRegistry) AddWrap(name string, entry WrapEntry) error {
 }
 
 // RemoveWrap removes the WrapEntry identified by name. If the WrapEntry is not present returns false.
-func (c *CryptoRegistry) RemoveWrap(name string) (WrapEntry, bool) {
+func (c *CryptographicMaterialsManager) RemoveWrap(name string) (WrapEntry, bool) {
 	if c.wrap == nil {
 		return nil, false
 	}
@@ -82,7 +82,7 @@ func (c *CryptoRegistry) RemoveWrap(name string) (WrapEntry, bool) {
 }
 
 // GetCEK returns the CEKEntry identified by the given name. Returns false if the entry is not registered.
-func (c CryptoRegistry) GetCEK(name string) (CEKEntry, bool) {
+func (c CryptographicMaterialsManager) GetCEK(name string) (CEKEntry, bool) {
 	if c.cek == nil {
 		return nil, false
 	}
@@ -97,7 +97,7 @@ func (c CryptoRegistry) GetCEK(name string) (CEKEntry, bool) {
 //
 //	RegisterAESGCMContentCipher (AES/GCM)
 //	RegisterAESCBCContentCipher (AES/CBC)
-func (c *CryptoRegistry) AddCEK(name string, entry CEKEntry) error {
+func (c *CryptographicMaterialsManager) AddCEK(name string, entry CEKEntry) error {
 	if entry == nil {
 		return errNilCEKEntry
 	}
@@ -109,7 +109,7 @@ func (c *CryptoRegistry) AddCEK(name string, entry CEKEntry) error {
 }
 
 // RemoveCEK removes the CEKEntry identified by name. If the entry is not present returns false.
-func (c *CryptoRegistry) RemoveCEK(name string) (CEKEntry, bool) {
+func (c *CryptographicMaterialsManager) RemoveCEK(name string) (CEKEntry, bool) {
 	if c.cek == nil {
 		return nil, false
 	}
@@ -121,7 +121,7 @@ func (c *CryptoRegistry) RemoveCEK(name string) (CEKEntry, bool) {
 }
 
 // GetPadder returns the Padder identified by name. If the Padder is not present, returns false.
-func (c *CryptoRegistry) GetPadder(name string) (Padder, bool) {
+func (c *CryptographicMaterialsManager) GetPadder(name string) (Padder, bool) {
 	if c.padder == nil {
 		return nil, false
 	}
@@ -132,7 +132,7 @@ func (c *CryptoRegistry) GetPadder(name string) (Padder, bool) {
 // AddPadder registers Padder under the given name, returns an error if a Padder is already present for the given name.
 //
 // This method should only be used to register custom padder implementations not provided by AWS.
-func (c *CryptoRegistry) AddPadder(name string, padder Padder) error {
+func (c *CryptographicMaterialsManager) AddPadder(name string, padder Padder) error {
 	if padder == nil {
 		return errNilPadder
 	}
@@ -144,7 +144,7 @@ func (c *CryptoRegistry) AddPadder(name string, padder Padder) error {
 }
 
 // RemovePadder removes the Padder identified by name. If the entry is not present returns false.
-func (c *CryptoRegistry) RemovePadder(name string) (Padder, bool) {
+func (c *CryptographicMaterialsManager) RemovePadder(name string) (Padder, bool) {
 	if c.padder == nil {
 		return nil, false
 	}
@@ -155,7 +155,7 @@ func (c *CryptoRegistry) RemovePadder(name string) (Padder, bool) {
 	return padder, ok
 }
 
-func (c CryptoRegistry) valid() error {
+func (c CryptographicMaterialsManager) valid() error {
 	if len(c.wrap) == 0 {
 		return fmt.Errorf("at least one key wrapping algorithms must be provided")
 	}
