@@ -37,7 +37,7 @@ func encodeMeta(reader lengthReader, cd CipherData) (Envelope, error) {
 	}, nil
 }
 
-func KeyringFromEnvelope(options EncryptionClientOptions, env Envelope) (CipherDataDecrypter, error) {
+func keyringFromEnvelope(options EncryptionClientOptions, env Envelope) (CipherDataDecrypter, error) {
 	f, ok := options.CryptographicMaterialsManager.GetKeyring(env.KeyringAlg)
 	if !ok || f == nil {
 		return nil, &smithy.GenericAPIError{
@@ -105,7 +105,7 @@ func getPadder(options EncryptionClientOptions, cekAlg string) Padder {
 }
 
 func contentCipherFromEnvelope(ctx context.Context, options EncryptionClientOptions, env Envelope) (ContentCipher, error) {
-	keyring, err := KeyringFromEnvelope(options, env)
+	keyring, err := keyringFromEnvelope(options, env)
 	if err != nil {
 		return nil, err
 	}

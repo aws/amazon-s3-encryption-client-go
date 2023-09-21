@@ -30,7 +30,7 @@ func TestKeyringFactory(t *testing.T) {
 		KeyringAlg: KMSKeyring,
 		MatDesc:    `{"kms_cmk_id":""}`,
 	}
-	keyring, err := KeyringFromEnvelope(o, env)
+	keyring, err := keyringFromEnvelope(o, env)
 	w, ok := keyring.(*kmsKeyHandler)
 
 	if err != nil {
@@ -59,7 +59,7 @@ func TestKeyringFactoryErrorNoKeyring(t *testing.T) {
 		KeyringAlg: "none",
 		MatDesc:    `{"kms_cmk_id":""}`,
 	}
-	keyring, err := KeyringFromEnvelope(o, env)
+	keyring, err := keyringFromEnvelope(o, env)
 
 	if err == nil {
 		t.Error("expected error, but received none")
@@ -85,7 +85,7 @@ func TestKeyringFactoryCustomEntry(t *testing.T) {
 		KeyringAlg: "custom",
 		MatDesc:    `{"kms_cmk_id":""}`,
 	}
-	keyring, err := KeyringFromEnvelope(o, env)
+	keyring, err := keyringFromEnvelope(o, env)
 
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
@@ -139,7 +139,7 @@ func TestCEKFactory(t *testing.T) {
 		IV:         ivB64,
 		MatDesc:    `{"kms_cmk_id":""}`,
 	}
-	keyring, err := KeyringFromEnvelope(o, env)
+	keyring, err := keyringFromEnvelope(o, env)
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
 	}
@@ -201,7 +201,7 @@ func TestCEKFactoryNoCEK(t *testing.T) {
 		IV:         ivB64,
 		MatDesc:    `{"kms_cmk_id":""}`,
 	}
-	keyring, err := KeyringFromEnvelope(o, env)
+	keyring, err := keyringFromEnvelope(o, env)
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
 	}
@@ -259,7 +259,7 @@ func TestCEKFactoryCustomEntry(t *testing.T) {
 		IV:         ivB64,
 		MatDesc:    `{"kms_cmk_id":""}`,
 	}
-	keyring, err := KeyringFromEnvelope(o, env)
+	keyring, err := keyringFromEnvelope(o, env)
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
 	}
