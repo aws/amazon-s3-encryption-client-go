@@ -21,17 +21,17 @@ func AESGCMContentCipherBuilder(generator CipherDataGeneratorWithCEKAlg) Content
 	return gcmContentCipherBuilder{generator}
 }
 
-// RegisterAESGCMContentCipher registers the AES/GCM content cipher algorithm with the provided CryptoRegistry.
+// RegisterAESGCMContentCipher registers the AES/GCM content cipher algorithm with the provided CryptographicMaterialsManager.
 //
 // Example:
 //
-//	cr := s3crypto.NewCryptoRegistry()
+//	cr := s3crypto.NewCryptographicMaterialsManager()
 //	if err := s3crypto.RegisterAESGCMContentCipher(cr); err != nil {
 //		panic(err) // handle error
 //	}
-func RegisterAESGCMContentCipher(registry *CryptoRegistry) error {
+func RegisterAESGCMContentCipher(registry *CryptographicMaterialsManager) error {
 	if registry == nil {
-		return errNilCryptoRegistry
+		return errNilCryptographicMaterialsManager
 	}
 
 	err := registry.AddCEK(AESGCMNoPadding, newAESGCMContentCipher)
@@ -53,7 +53,7 @@ func RegisterAESGCMContentCipher(registry *CryptoRegistry) error {
 }
 
 // gcmContentCipherBuilder return a new builder for encryption content using AES/GCM/NoPadding. This type is meant
-// to be used with key wrapping implementations that allow the cek algorithm to be provided when calling the
+// to be used with Keyring implementations that allow the cek algorithm to be provided when calling the
 // cipher data generator.
 type gcmContentCipherBuilder struct {
 	generator CipherDataGeneratorWithCEKAlg

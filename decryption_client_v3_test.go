@@ -22,9 +22,9 @@ func TestNewS3EncryptionClientV3(t *testing.T) {
 	tClient := s3.NewFromConfig(tConfig)
 	kmsClient := kms.NewFromConfig(tConfig)
 
-	cr := NewCryptoRegistry()
+	cr := NewCryptographicMaterialsManager()
 	RegisterAESGCMContentCipher(cr)
-	RegisterKMSContextWrapWithAnyCMK(cr, kmsClient)
+	RegisterKMSContextKeyringWithAnyCMK(cr, kmsClient)
 	v3, _ := NewS3EncryptionClientV3(tClient, cr, nil)
 
 	if v3 == nil {
@@ -50,8 +50,8 @@ func TestDecryptionClientV3_GetObject(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	cr := NewCryptoRegistry()
-	if err := RegisterKMSContextWrapWithAnyCMK(cr, kmsClient); err != nil {
+	cr := NewCryptographicMaterialsManager()
+	if err := RegisterKMSContextKeyringWithAnyCMK(cr, kmsClient); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if err := RegisterAESGCMContentCipher(cr); err != nil {
@@ -71,7 +71,7 @@ func TestDecryptionClientV3_GetObject(t *testing.T) {
 				http.CanonicalHeaderKey("x-amz-meta-x-amz-key-v2"):   []string{"PsuclPnlo2O0MQoov6kL1TBlaZG6oyNwWuAqmAgq7g8b9ZeeORi3VTMg624FU9jx"},
 				http.CanonicalHeaderKey("x-amz-meta-x-amz-iv"):       []string{"dqqlq2dRVSQ5hFRb"},
 				http.CanonicalHeaderKey("x-amz-meta-x-amz-matdesc"):  []string{`{"aws:x-amz-cek-alg":"AES/GCM/NoPadding"}`},
-				http.CanonicalHeaderKey("x-amz-meta-x-amz-wrap-alg"): []string{KMSContextWrap},
+				http.CanonicalHeaderKey("x-amz-meta-x-amz-wrap-alg"): []string{KMSContextKeyring},
 				http.CanonicalHeaderKey("x-amz-meta-x-amz-cek-alg"):  []string{"AES/GCM/NoPadding"},
 			},
 			Body: io.NopCloser(bytes.NewBuffer(b)),
@@ -119,8 +119,8 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	cr := NewCryptoRegistry()
-	if err := RegisterKMSWrapWithAnyCMK(cr, kmsClient); err != nil {
+	cr := NewCryptographicMaterialsManager()
+	if err := RegisterKMSKeyringWithAnyCMK(cr, kmsClient); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if err := RegisterAESCBCContentCipher(cr, AESCBCPadder); err != nil {
@@ -139,7 +139,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
 				http.CanonicalHeaderKey("x-amz-meta-x-amz-key-v2"):   []string{"/nJlgMtxMNk2ErKLLrLp3H7A7aQyJcJOClE2ldAIIFNZU4OhUMc1mMCHdIEC8fby"},
 				http.CanonicalHeaderKey("x-amz-meta-x-amz-iv"):       []string{"adO9U7pcEHxUTaguIkho9g=="},
 				http.CanonicalHeaderKey("x-amz-meta-x-amz-matdesc"):  []string{`{"kms_cmk_id":"test-key-id"}`},
-				http.CanonicalHeaderKey("x-amz-meta-x-amz-wrap-alg"): []string{KMSWrap},
+				http.CanonicalHeaderKey("x-amz-meta-x-amz-wrap-alg"): []string{KMSKeyring},
 				http.CanonicalHeaderKey("x-amz-meta-x-amz-cek-alg"):  []string{"AES/CBC/PKCS5Padding"},
 			},
 			Body: io.NopCloser(bytes.NewBuffer(b)),
@@ -190,8 +190,8 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESGCM(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	cr := NewCryptoRegistry()
-	if err := RegisterKMSWrapWithAnyCMK(cr, kmsClient); err != nil {
+	cr := NewCryptographicMaterialsManager()
+	if err := RegisterKMSKeyringWithAnyCMK(cr, kmsClient); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if err := RegisterAESGCMContentCipher(cr); err != nil {
@@ -210,7 +210,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESGCM(t *testing.T) {
 				http.CanonicalHeaderKey("x-amz-meta-x-amz-key-v2"):   []string{"/7tu/RFXZU1UFwRzzf11IdF3b1wBxBZhnUMjVYHKKr5DjAHS602GvXt4zYcx/MJo"},
 				http.CanonicalHeaderKey("x-amz-meta-x-amz-iv"):       []string{"8Rlvyy8AoYj8v579"},
 				http.CanonicalHeaderKey("x-amz-meta-x-amz-matdesc"):  []string{`{"kms_cmk_id":"test-key-id"}`},
-				http.CanonicalHeaderKey("x-amz-meta-x-amz-wrap-alg"): []string{KMSWrap},
+				http.CanonicalHeaderKey("x-amz-meta-x-amz-wrap-alg"): []string{KMSKeyring},
 				http.CanonicalHeaderKey("x-amz-meta-x-amz-cek-alg"):  []string{"AES/GCM/NoPadding"},
 			},
 			Body: io.NopCloser(bytes.NewBuffer(b)),
@@ -263,7 +263,7 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 					http.CanonicalHeaderKey("x-amz-meta-x-amz-key-v2"):   []string{"gNuYjzkLTzfhOcIX9h1l8jApWcAAQqzlryOE166kdDojaHH/+7cCqR5HU8Bpxmij"},
 					http.CanonicalHeaderKey("x-amz-meta-x-amz-iv"):       []string{"Vmauu+TMEgaXa26ObqpARA=="},
 					http.CanonicalHeaderKey("x-amz-meta-x-amz-matdesc"):  []string{`{"kms_cmk_id":"test-key-id"}`},
-					http.CanonicalHeaderKey("x-amz-meta-x-amz-wrap-alg"): []string{KMSWrap},
+					http.CanonicalHeaderKey("x-amz-meta-x-amz-wrap-alg"): []string{KMSKeyring},
 					http.CanonicalHeaderKey("x-amz-meta-x-amz-cek-alg"):  []string{"AES/CBC/PKCS5Padding"},
 				},
 				Body: io.NopCloser(bytes.NewBuffer(b)),
@@ -275,11 +275,11 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 		Client  *S3EncryptionClientV3
 		WantErr string
 	}{
-		"unsupported wrap": {
+		"unsupported Keyring": {
 			Client: func() *S3EncryptionClientV3 {
-				cr := NewCryptoRegistry()
+				cr := NewCryptographicMaterialsManager()
 
-				if err := RegisterKMSContextWrapWithAnyCMK(cr, kms.NewFromConfig(awstesting.Config())); err != nil {
+				if err := RegisterKMSContextKeyringWithAnyCMK(cr, kms.NewFromConfig(awstesting.Config())); err != nil {
 					t.Fatalf("expected no error, got %v", err)
 				}
 				if err := RegisterAESGCMContentCipher(cr); err != nil {
@@ -296,12 +296,12 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 				}
 				return client
 			}(),
-			WantErr: "wrap algorithm isn't supported, kms",
+			WantErr: "Keyring algorithm isn't supported, kms",
 		},
 		"unsupported cek": {
 			Client: func() *S3EncryptionClientV3 {
-				cr := NewCryptoRegistry()
-				if err := RegisterKMSWrapWithAnyCMK(cr, kms.NewFromConfig(awstesting.Config())); err != nil {
+				cr := NewCryptographicMaterialsManager()
+				if err := RegisterKMSKeyringWithAnyCMK(cr, kms.NewFromConfig(awstesting.Config())); err != nil {
 					t.Fatalf("expected no error, got %v", err)
 				}
 				if err := RegisterAESGCMContentCipher(cr); err != nil {
@@ -342,13 +342,13 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 	}
 }
 
-func TestDecryptionClientV3_CheckValidCryptoRegistry(t *testing.T) {
-	cr := NewCryptoRegistry()
+func TestDecryptionClientV3_CheckValidCryptographicMaterialsManager(t *testing.T) {
+	cr := NewCryptographicMaterialsManager()
 	_, err := NewS3EncryptionClientV3(nil, cr, nil)
 	if err == nil {
 		t.Fatal("expected error, got none")
 	}
-	if e, a := "at least one key wrapping algorithms must be provided", err.Error(); !strings.Contains(a, e) {
+	if e, a := "at least one Keyring must be provided", err.Error(); !strings.Contains(a, e) {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 }

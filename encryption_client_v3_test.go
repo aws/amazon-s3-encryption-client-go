@@ -50,9 +50,9 @@ func TestNewS3EncryptionOnlyClientV3(t *testing.T) {
 	}
 
 	// most importantly,
-	// cryptoRegistry MUST be nil
-	if v3.options.CryptoRegistry != nil {
-		t.Errorf("expected CryptoRegistry to be nil")
+	// CryptographicMaterialsManager MUST be nil
+	if v3.options.CryptographicMaterialsManager != nil {
+		t.Errorf("expected CryptographicMaterialsManager to be nil")
 	}
 }
 

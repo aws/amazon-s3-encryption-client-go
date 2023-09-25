@@ -4,19 +4,19 @@ import (
 	"io"
 )
 
-// RegisterAESCBCContentCipher registers the AES/CBC cipher and padder with the provided CryptoRegistry.
+// RegisterAESCBCContentCipher registers the AES/CBC cipher and padder with the provided CryptographicMaterialsManager.
 //
 // Example:
 //
-//	cr := s3crypto.NewCryptoRegistry()
+//	cr := s3crypto.NewCryptographicMaterialsManager()
 //	if err := s3crypto.RegisterAESCBCContentCipher(cr, s3crypto.AESCBCPadder); err != nil {
 //		panic(err) // handle error
 //	}
 //
 // deprecated: This feature is in maintenance mode, no new updates will be released. Please see https://docs.aws.amazon.com/general/latest/gr/aws_sdk_cryptography.html for more information.
-func RegisterAESCBCContentCipher(registry *CryptoRegistry, padder Padder) error {
+func RegisterAESCBCContentCipher(registry *CryptographicMaterialsManager, padder Padder) error {
 	if registry == nil {
-		return errNilCryptoRegistry
+		return errNilCryptographicMaterialsManager
 	}
 	name := AESCBC + "/" + padder.Name()
 	err := registry.AddCEK(name, newAESCBCContentCipher)

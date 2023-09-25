@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	// KMSContextWrap is a constant used during decryption to build a kms+context key handler
-	KMSContextWrap      = "kms+context"
+	// KMSContextKeyring is a constant used during decryption to build a kms+context key handler
+	KMSContextKeyring   = "kms+context"
 	kmsAWSCEKContextKey = "aws:" + cekAlgorithmHeader
 
 	kmsReservedKeyConflictErrMsg = "conflict in reserved KMS Encryption Context key %s. This value is reserved for the S3 Encryption Client and cannot be set by the user"
@@ -40,24 +40,24 @@ func NewKMSContextKeyGenerator(apiClient KmsAPIClient, cmkID string, matdesc Mat
 	return newKMSContextKeyHandler(apiClient, cmkID, matdesc)
 }
 
-// RegisterKMSContextWrapWithCMK registers the kms+context wrapping algorithm to the given WrapRegistry. The wrapper
-// will be configured to only call KMS Decrypt using the provided CMK.
+// RegisterKMSContextKeyringWithCMK registers the kms+context Keyring to the given CryptographicMaterialsManager.
+// The Keyring will be configured to only call KMS Decrypt using the provided CMK.
 //
 // Example:
 //
-//	cr := s3crypto.NewCryptoRegistry()
-//	if err := RegisterKMSContextWrapWithCMK(); err != nil {
+//	cr := s3crypto.NewCryptographicMaterialsManager()
+//	if err := RegisterKMSContextKeyringWithCMK(); err != nil {
 //		panic(err) // handle error
 //	}
-func RegisterKMSContextWrapWithCMK(registry *CryptoRegistry, apiClient KmsAPIClient, cmkID string) error {
-	if registry == nil {
-		return errNilCryptoRegistry
+func RegisterKMSContextKeyringWithCMK(cmm *CryptographicMaterialsManager, apiClient KmsAPIClient, cmkID string) error {
+	if cmm == nil {
+		return errNilCryptographicMaterialsManager
 	}
-	return registry.AddWrap(KMSContextWrap, newKMSContextWrapEntryWithCMK(apiClient, cmkID))
+	return cmm.AddKeyring(KMSContextKeyring, newKMSContextKeyringEntryWithCMK(apiClient, cmkID))
 }
 
-// RegisterKMSContextWrapWithAnyCMK registers the kms+context wrapping algorithm to the given WrapRegistry. The wrapper
-// will be configured to call KMS decrypt without providing a CMK.
+// RegisterKMSContextKeyringWithAnyCMK registers the kms+context Keyring to the given CryptographicMaterialsManager.
+// The Keyring will be configured to call KMS decrypt without providing a CMK.
 //
 // Example:
 //
@@ -67,20 +67,20 @@ func RegisterKMSContextWrapWithCMK(registry *CryptoRegistry, apiClient KmsAPICli
 //		panic(err) // handle err
 //	}
 //
-//	cr := s3crypto.NewCryptoRegistry()
-//	if err := s3crypto.RegisterKMSContextWrapWithAnyCMK(cr, kms.NewFromConfig(cfg)); err != nil {
+//	cr := s3crypto.NewCryptographicMaterialsManager()
+//	if err := s3crypto.RegisterKMSContextKeyringWithAnyCMK(cr, kms.NewFromConfig(cfg)); err != nil {
 //		panic(err) // handle error
 //	}
-func RegisterKMSContextWrapWithAnyCMK(registry *CryptoRegistry, apiClient KmsAPIClient) error {
-	if registry == nil {
-		return errNilCryptoRegistry
+func RegisterKMSContextKeyringWithAnyCMK(cmm *CryptographicMaterialsManager, apiClient KmsAPIClient) error {
+	if cmm == nil {
+		return errNilCryptographicMaterialsManager
 	}
-	return registry.AddWrap(KMSContextWrap, newKMSContextWrapEntryWithAnyCMK(apiClient))
+	return cmm.AddKeyring(KMSContextKeyring, newKMSContextKeyringEntryWithAnyCMK(apiClient))
 }
 
-// newKMSContextWrapEntryWithCMK builds returns a new kms+context key provider and its decrypt handler.
+// newKMSContextKeyringEntryWithCMK builds returns a new kms+context key provider and its decrypt handler.
 // The returned handler will be configured to calls KMS Decrypt API without specifying a specific KMS CMK.
-func newKMSContextWrapEntryWithCMK(apiClient KmsAPIClient, cmkID string) WrapEntry {
+func newKMSContextKeyringEntryWithCMK(apiClient KmsAPIClient, cmkID string) KeyringEntry {
 	// These values are read only making them thread safe
 	kp := &kmsContextKeyHandler{
 		apiClient: apiClient,
@@ -90,9 +90,9 @@ func newKMSContextWrapEntryWithCMK(apiClient KmsAPIClient, cmkID string) WrapEnt
 	return kp.decryptHandler
 }
 
-// newKMSContextWrapEntryWithAnyCMK builds returns a new kms+context key provider and its decrypt handler.
+// newKMSContextKeyringEntryWithAnyCMK builds returns a new kms+context key provider and its decrypt handler.
 // The returned handler will be configured to calls KMS Decrypt API without specifying a specific KMS CMK.
-func newKMSContextWrapEntryWithAnyCMK(apiClient KmsAPIClient) WrapEntry {
+func newKMSContextKeyringEntryWithAnyCMK(apiClient KmsAPIClient) KeyringEntry {
 	// These values are read only making them thread safe
 	kp := &kmsContextKeyHandler{
 		apiClient: apiClient,
@@ -124,7 +124,7 @@ func newKMSContextKeyHandler(apiClient KmsAPIClient, cmkID string, matdesc Mater
 		matdesc = MaterialDescription{}
 	}
 
-	kp.CipherData.WrapAlgorithm = KMSContextWrap
+	kp.CipherData.KeyringAlgorithm = KMSContextKeyring
 	kp.CipherData.MaterialDescription = matdesc
 
 	return kp
@@ -164,11 +164,11 @@ func (kp *kmsContextKeyHandler) GenerateCipherDataWithCEKAlg(ctx context.Context
 	return cd, nil
 }
 
-// decryptHandler initializes a KMS keyprovider with a material description. This
+// decryptHandler initializes a KMS keyring with a material description. This
 // is used with Decrypting kms content, due to the cmkID being in the material description.
 func (kp kmsContextKeyHandler) decryptHandler(env Envelope) (CipherDataDecrypter, error) {
-	if env.WrapAlg != KMSContextWrap {
-		return nil, fmt.Errorf("%s value `%s` did not match the expected algorithm `%s` for this handler", cekAlgorithmHeader, env.WrapAlg, KMSContextWrap)
+	if env.KeyringAlg != KMSContextKeyring {
+		return nil, fmt.Errorf("%s value `%s` did not match the expected algorithm `%s` for this handler", cekAlgorithmHeader, env.KeyringAlg, KMSContextKeyring)
 	}
 
 	m := MaterialDescription{}
@@ -184,7 +184,7 @@ func (kp kmsContextKeyHandler) decryptHandler(env Envelope) (CipherDataDecrypter
 	}
 
 	kp.MaterialDescription = m
-	kp.WrapAlgorithm = KMSContextWrap
+	kp.KeyringAlgorithm = KMSContextKeyring
 
 	return &kp, nil
 }

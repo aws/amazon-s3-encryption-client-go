@@ -79,11 +79,10 @@ func TestParameterMalleabilityRemoval(t *testing.T) {
 	kmsClient := kms.NewFromConfig(cfg)
 	var matDesc s3crypto.MaterialDescription
 	handlerWithCek = s3crypto.NewKMSContextKeyGenerator(kmsClient, arn, matDesc)
-	//builder := s3crypto.AESGCMContentCipherBuilder(handlerWithCek)
 
-	cr := s3crypto.NewCryptoRegistry()
+	cr := s3crypto.NewCryptographicMaterialsManager()
 	s3crypto.RegisterAESGCMContentCipher(cr)
-	s3crypto.RegisterKMSContextWrapWithAnyCMK(cr, kmsClient)
+	s3crypto.RegisterKMSContextKeyringWithAnyCMK(cr, kmsClient)
 
 	plaintext := "this is a test of the S3 Encryption Client"
 
@@ -239,13 +238,13 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 		t.Run(c.CEKAlg+"-"+c.Lang, func(t *testing.T) {
 			s3Client := s3.NewFromConfig(cfg)
 			kmsClient := kms.NewFromConfig(cfg)
-			cr := s3crypto.NewCryptoRegistry()
+			cr := s3crypto.NewCryptographicMaterialsManager()
 			if c.CEKAlg == "aes_cbc" {
-				s3crypto.RegisterKMSWrapWithAnyCMK(cr, kmsClient)
+				s3crypto.RegisterKMSKeyringWithAnyCMK(cr, kmsClient)
 				s3crypto.RegisterAESCBCContentCipher(cr, s3crypto.AESCBCPadder)
 			} else if c.CEKAlg == "aes_gcm" {
 				s3crypto.RegisterAESGCMContentCipher(cr)
-				s3crypto.RegisterKMSContextWrapWithAnyCMK(cr, kmsClient)
+				s3crypto.RegisterKMSContextKeyringWithAnyCMK(cr, kmsClient)
 			} else {
 				t.Fatalf("unknown CEKAlg, cannot configure crypto registry: %s", c.CEKAlg)
 			}

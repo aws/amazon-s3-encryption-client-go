@@ -27,7 +27,7 @@ func TestEnvelope_UnmarshalJSON(t *testing.T) {
 				IV:                    "iv",
 				CipherKey:             "key",
 				MatDesc:               `{"aws:x-amz-cek-alg":"AES/GCM/NoPadding"}`,
-				WrapAlg:               "kms+context",
+				KeyringAlg:            "kms+context",
 				CEKAlg:                "AES/GCM/NoPadding",
 				TagLen:                "128",
 				UnencryptedContentLen: "1024",
@@ -48,7 +48,7 @@ func TestEnvelope_UnmarshalJSON(t *testing.T) {
 				IV:                    "iv",
 				CipherKey:             "key",
 				MatDesc:               `{"aws:x-amz-cek-alg":"AES/GCM/NoPadding"}`,
-				WrapAlg:               "kms+context",
+				KeyringAlg:            "kms+context",
 				CEKAlg:                "AES/GCM/NoPadding",
 				TagLen:                "128",
 				UnencryptedContentLen: "1024",
@@ -66,11 +66,11 @@ func TestEnvelope_UnmarshalJSON(t *testing.T) {
 }
 `),
 			expected: Envelope{
-				IV:        "iv",
-				CipherKey: "key",
-				MatDesc:   `{"aws:x-amz-cek-alg":"AES/GCM/NoPadding"}`,
-				WrapAlg:   "kms+context",
-				CEKAlg:    "AES/GCM/NoPadding",
+				IV:         "iv",
+				CipherKey:  "key",
+				MatDesc:    `{"aws:x-amz-cek-alg":"AES/GCM/NoPadding"}`,
+				KeyringAlg: "kms+context",
+				CEKAlg:     "AES/GCM/NoPadding",
 			},
 		},
 		"no json numbers": {
@@ -83,11 +83,11 @@ func TestEnvelope_UnmarshalJSON(t *testing.T) {
 }
 `),
 			expected: Envelope{
-				IV:        "iv",
-				CipherKey: "key",
-				MatDesc:   `{"aws:x-amz-cek-alg":"AES/GCM/NoPadding"}`,
-				WrapAlg:   "kms+context",
-				CEKAlg:    "AES/GCM/NoPadding",
+				IV:         "iv",
+				CipherKey:  "key",
+				MatDesc:    `{"aws:x-amz-cek-alg":"AES/GCM/NoPadding"}`,
+				KeyringAlg: "kms+context",
+				CEKAlg:     "AES/GCM/NoPadding",
 			},
 		},
 	}

@@ -29,7 +29,7 @@ type ContentCipher interface {
 type CipherData struct {
 	Key                 []byte
 	IV                  []byte
-	WrapAlgorithm       string
+	KeyringAlgorithm    string
 	CEKAlgorithm        string
 	TagLength           string
 	MaterialDescription MaterialDescription

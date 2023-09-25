@@ -13,13 +13,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 )
 
-func TestWrapFactory(t *testing.T) {
+func TestKeyringFactory(t *testing.T) {
 	tConfig := awstesting.Config()
 	kmsClient := kms.NewFromConfig(tConfig)
 
 	o := EncryptionClientOptions{
-		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
-			KMSWrap: (kmsKeyHandler{
+		CryptographicMaterialsManager: initCryptographicMaterialsManagerFrom(map[string]KeyringEntry{
+			KMSKeyring: (kmsKeyHandler{
 				apiClient: kmsClient,
 			}).decryptHandler,
 		}, map[string]CEKEntry{
@@ -27,28 +27,28 @@ func TestWrapFactory(t *testing.T) {
 		}, map[string]Padder{}),
 	}
 	env := Envelope{
-		WrapAlg: KMSWrap,
-		MatDesc: `{"kms_cmk_id":""}`,
+		KeyringAlg: KMSKeyring,
+		MatDesc:    `{"kms_cmk_id":""}`,
 	}
-	wrap, err := wrapFromEnvelope(o, env)
-	w, ok := wrap.(*kmsKeyHandler)
+	keyring, err := keyringFromEnvelope(o, env)
+	w, ok := keyring.(*kmsKeyHandler)
 
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
 	}
-	if wrap == nil {
+	if keyring == nil {
 		t.Error("expected non-nil value")
 	}
 	if !ok {
 		t.Errorf("expected kmsKeyHandler, but received %v", *w)
 	}
 }
-func TestWrapFactoryErrorNoWrap(t *testing.T) {
+func TestKeyringFactoryErrorNoKeyring(t *testing.T) {
 	tConfig := awstesting.Config()
 	kmsClient := kms.NewFromConfig(tConfig)
 	o := EncryptionClientOptions{
-		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
-			KMSWrap: (kmsKeyHandler{
+		CryptographicMaterialsManager: initCryptographicMaterialsManagerFrom(map[string]KeyringEntry{
+			KMSKeyring: (kmsKeyHandler{
 				apiClient: kmsClient,
 			}).decryptHandler,
 		}, map[string]CEKEntry{
@@ -56,24 +56,24 @@ func TestWrapFactoryErrorNoWrap(t *testing.T) {
 		}, map[string]Padder{}),
 	}
 	env := Envelope{
-		WrapAlg: "none",
-		MatDesc: `{"kms_cmk_id":""}`,
+		KeyringAlg: "none",
+		MatDesc:    `{"kms_cmk_id":""}`,
 	}
-	wrap, err := wrapFromEnvelope(o, env)
+	keyring, err := keyringFromEnvelope(o, env)
 
 	if err == nil {
 		t.Error("expected error, but received none")
 	}
-	if wrap != nil {
-		t.Errorf("expected nil wrap value, received %v", wrap)
+	if keyring != nil {
+		t.Errorf("expected nil Keyring value, received %v", keyring)
 	}
 }
 
-func TestWrapFactoryCustomEntry(t *testing.T) {
+func TestKeyringFactoryCustomEntry(t *testing.T) {
 	tConfig := awstesting.Config()
 	kmsClient := kms.NewFromConfig(tConfig)
 	o := EncryptionClientOptions{
-		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
+		CryptographicMaterialsManager: initCryptographicMaterialsManagerFrom(map[string]KeyringEntry{
 			"custom": (kmsKeyHandler{
 				apiClient: kmsClient,
 			}).decryptHandler,
@@ -82,16 +82,16 @@ func TestWrapFactoryCustomEntry(t *testing.T) {
 		}, map[string]Padder{}),
 	}
 	env := Envelope{
-		WrapAlg: "custom",
-		MatDesc: `{"kms_cmk_id":""}`,
+		KeyringAlg: "custom",
+		MatDesc:    `{"kms_cmk_id":""}`,
 	}
-	wrap, err := wrapFromEnvelope(o, env)
+	keyring, err := keyringFromEnvelope(o, env)
 
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
 	}
-	if wrap == nil {
-		t.Errorf("expected nil wrap value, received %v", wrap)
+	if keyring == nil {
+		t.Errorf("expected nil keyring value, received %v", keyring)
 	}
 }
 
@@ -110,8 +110,8 @@ func TestCEKFactory(t *testing.T) {
 	svc := kms.NewFromConfig(tConfig)
 
 	o := EncryptionClientOptions{
-		CryptoRegistry: initCryptoRegistryFrom(map[string]WrapEntry{
-			KMSWrap: (kmsKeyHandler{
+		CryptographicMaterialsManager: initCryptographicMaterialsManagerFrom(map[string]KeyringEntry{
+			KMSKeyring: (kmsKeyHandler{
 				apiClient: svc,
 			}).decryptHandler,
 		}, map[string]CEKEntry{
@@ -133,18 +133,18 @@ func TestCEKFactory(t *testing.T) {
 	cipherKeyB64 := base64.URLEncoding.EncodeToString(cipherKey)
 
 	env := Envelope{
-		WrapAlg:   KMSWrap,
-		CEKAlg:    AESGCMNoPadding,
-		CipherKey: cipherKeyB64,
-		IV:        ivB64,
-		MatDesc:   `{"kms_cmk_id":""}`,
+		KeyringAlg: KMSKeyring,
+		CEKAlg:     AESGCMNoPadding,
+		CipherKey:  cipherKeyB64,
+		IV:         ivB64,
+		MatDesc:    `{"kms_cmk_id":""}`,
 	}
-	wrap, err := wrapFromEnvelope(o, env)
+	keyring, err := keyringFromEnvelope(o, env)
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
 	}
 
-	cek, err := cekFromEnvelope(context.Background(), o, env, wrap)
+	cek, err := cekFromEnvelope(context.Background(), o, env, keyring)
 
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
@@ -169,9 +169,9 @@ func TestCEKFactoryNoCEK(t *testing.T) {
 	svc := kms.NewFromConfig(tConfig)
 
 	o := EncryptionClientOptions{
-		CryptoRegistry: initCryptoRegistryFrom(
-			map[string]WrapEntry{
-				KMSWrap: (kmsKeyHandler{
+		CryptographicMaterialsManager: initCryptographicMaterialsManagerFrom(
+			map[string]KeyringEntry{
+				KMSKeyring: (kmsKeyHandler{
 					apiClient: svc,
 				}).decryptHandler,
 			},
@@ -195,24 +195,24 @@ func TestCEKFactoryNoCEK(t *testing.T) {
 	cipherKeyB64 := base64.URLEncoding.EncodeToString(cipherKey)
 
 	env := Envelope{
-		WrapAlg:   KMSWrap,
-		CEKAlg:    "none",
-		CipherKey: cipherKeyB64,
-		IV:        ivB64,
-		MatDesc:   `{"kms_cmk_id":""}`,
+		KeyringAlg: KMSKeyring,
+		CEKAlg:     "none",
+		CipherKey:  cipherKeyB64,
+		IV:         ivB64,
+		MatDesc:    `{"kms_cmk_id":""}`,
 	}
-	wrap, err := wrapFromEnvelope(o, env)
+	keyring, err := keyringFromEnvelope(o, env)
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
 	}
 
-	cek, err := cekFromEnvelope(context.Background(), o, env, wrap)
+	cek, err := cekFromEnvelope(context.Background(), o, env, keyring)
 
 	if err == nil {
 		t.Error("expected error, but received none")
 	}
 	if cek != nil {
-		t.Errorf("expected nil cek value, received %v", wrap)
+		t.Errorf("expected nil cek value, received %v", keyring)
 	}
 }
 
@@ -231,9 +231,9 @@ func TestCEKFactoryCustomEntry(t *testing.T) {
 	svc := kms.NewFromConfig(tConfig)
 
 	o := EncryptionClientOptions{
-		CryptoRegistry: initCryptoRegistryFrom(
-			map[string]WrapEntry{
-				KMSWrap: (kmsKeyHandler{
+		CryptographicMaterialsManager: initCryptographicMaterialsManagerFrom(
+			map[string]KeyringEntry{
+				KMSKeyring: (kmsKeyHandler{
 					apiClient: svc,
 				}).decryptHandler,
 			}, map[string]CEKEntry{
@@ -253,18 +253,18 @@ func TestCEKFactoryCustomEntry(t *testing.T) {
 	cipherKeyB64 := base64.URLEncoding.EncodeToString(cipherKey)
 
 	env := Envelope{
-		WrapAlg:   KMSWrap,
-		CEKAlg:    "custom",
-		CipherKey: cipherKeyB64,
-		IV:        ivB64,
-		MatDesc:   `{"kms_cmk_id":""}`,
+		KeyringAlg: KMSKeyring,
+		CEKAlg:     "custom",
+		CipherKey:  cipherKeyB64,
+		IV:         ivB64,
+		MatDesc:    `{"kms_cmk_id":""}`,
 	}
-	wrap, err := wrapFromEnvelope(o, env)
+	keyring, err := keyringFromEnvelope(o, env)
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
 	}
 
-	cek, err := cekFromEnvelope(context.Background(), o, env, wrap)
+	cek, err := cekFromEnvelope(context.Background(), o, env, keyring)
 
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)

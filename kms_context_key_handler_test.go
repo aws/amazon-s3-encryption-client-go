@@ -137,7 +137,7 @@ func TestKmsContextKeyHandler_DecryptKey(t *testing.T) {
 	tConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	svc := kms.NewFromConfig(tConfig)
 
-	handler, err := newKMSContextWrapEntryWithAnyCMK(svc)(Envelope{WrapAlg: KMSContextWrap, CEKAlg: "AES/GCM/NoPadding", MatDesc: `{"aws:x-amz-cek-alg": "AES/GCM/NoPadding"}`})
+	handler, err := newKMSContextKeyringEntryWithAnyCMK(svc)(Envelope{KeyringAlg: KMSContextKeyring, CEKAlg: "AES/GCM/NoPadding", MatDesc: `{"aws:x-amz-cek-alg": "AES/GCM/NoPadding"}`})
 	if err != nil {
 		t.Fatalf("expected no error, but received %v", err)
 	}
@@ -154,7 +154,7 @@ func TestKmsContextKeyHandler_DecryptKey(t *testing.T) {
 
 func TestKmsContextKeyHandler_decryptHandler_MismatchCEK(t *testing.T) {
 	kmsClient := kms.NewFromConfig(awstesting.Config())
-	_, err := newKMSContextWrapEntryWithAnyCMK(kmsClient)(Envelope{WrapAlg: KMSContextWrap, CEKAlg: "MismatchCEKValue", MatDesc: `{"aws:x-amz-cek-alg": "AES/GCM/NoPadding"}`})
+	_, err := newKMSContextKeyringEntryWithAnyCMK(kmsClient)(Envelope{KeyringAlg: KMSContextKeyring, CEKAlg: "MismatchCEKValue", MatDesc: `{"aws:x-amz-cek-alg": "AES/GCM/NoPadding"}`})
 	if err == nil {
 		t.Fatal("expected error, but got none")
 	}
@@ -166,7 +166,7 @@ func TestKmsContextKeyHandler_decryptHandler_MismatchCEK(t *testing.T) {
 
 func TestKmsContextKeyHandler_decryptHandler_MissingContextKey(t *testing.T) {
 	kmsClient := kms.NewFromConfig(awstesting.Config())
-	_, err := newKMSContextWrapEntryWithAnyCMK(kmsClient)(Envelope{WrapAlg: KMSContextWrap, CEKAlg: "AES/GCM/NoPadding", MatDesc: `{}`})
+	_, err := newKMSContextKeyringEntryWithAnyCMK(kmsClient)(Envelope{KeyringAlg: KMSContextKeyring, CEKAlg: "AES/GCM/NoPadding", MatDesc: `{}`})
 	if err == nil {
 		t.Fatal("expected error, but got none")
 	}
@@ -176,9 +176,9 @@ func TestKmsContextKeyHandler_decryptHandler_MissingContextKey(t *testing.T) {
 	}
 }
 
-func TestKmsContextKeyHandler_decryptHandler_MismatchWrap(t *testing.T) {
+func TestKmsContextKeyHandler_decryptHandler_MismatchKeyring(t *testing.T) {
 	kmsClient := kms.NewFromConfig(awstesting.Config())
-	_, err := newKMSContextWrapEntryWithAnyCMK(kmsClient)(Envelope{WrapAlg: KMSWrap, CEKAlg: "AES/GCM/NoPadding", MatDesc: `{}`})
+	_, err := newKMSContextKeyringEntryWithAnyCMK(kmsClient)(Envelope{KeyringAlg: KMSKeyring, CEKAlg: "AES/GCM/NoPadding", MatDesc: `{}`})
 	if err == nil {
 		t.Fatal("expected error, but got none")
 	}
@@ -213,7 +213,7 @@ func TestKmsContextKeyHandler_DecryptKey_WithCMK(t *testing.T) {
 	tConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	svc := kms.NewFromConfig(tConfig)
 
-	handler, err := newKMSContextWrapEntryWithCMK(svc, "thisKey")(Envelope{WrapAlg: KMSContextWrap, CEKAlg: "AES/GCM/NoPadding", MatDesc: `{"aws:x-amz-cek-alg": "AES/GCM/NoPadding"}`})
+	handler, err := newKMSContextKeyringEntryWithCMK(svc, "thisKey")(Envelope{KeyringAlg: KMSContextKeyring, CEKAlg: "AES/GCM/NoPadding", MatDesc: `{"aws:x-amz-cek-alg": "AES/GCM/NoPadding"}`})
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
 	}
@@ -224,40 +224,40 @@ func TestKmsContextKeyHandler_DecryptKey_WithCMK(t *testing.T) {
 	}
 }
 
-func TestRegisterKMSContextWrapWithAnyCMK(t *testing.T) {
+func TestRegisterKMSContextKeyringWithAnyCMK(t *testing.T) {
 	kmsClient := kms.NewFromConfig(awstesting.Config())
 
-	cr := NewCryptoRegistry()
-	if err := RegisterKMSContextWrapWithAnyCMK(cr, kmsClient); err != nil {
+	cr := NewCryptographicMaterialsManager()
+	if err := RegisterKMSContextKeyringWithAnyCMK(cr, kmsClient); err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
 
-	if wrap, ok := cr.GetWrap(KMSContextWrap); !ok {
-		t.Errorf("expected wrapped to be present")
-	} else if wrap == nil {
-		t.Errorf("expected wrap to not be nil")
+	if keyring, ok := cr.GetKeyring(KMSContextKeyring); !ok {
+		t.Errorf("expected Keyring to be present")
+	} else if keyring == nil {
+		t.Errorf("expected Keyring to not be nil")
 	}
 
-	if err := RegisterKMSContextWrapWithCMK(cr, kmsClient, "test-key-id"); err == nil {
+	if err := RegisterKMSContextKeyringWithCMK(cr, kmsClient, "test-key-id"); err == nil {
 		t.Error("expected error, got none")
 	}
 }
 
-func TestRegisterKMSContextWrapWithCMK(t *testing.T) {
+func TestRegisterKMSContextKeyringWithCMK(t *testing.T) {
 	kmsClient := kms.NewFromConfig(awstesting.Config())
 
-	cr := NewCryptoRegistry()
-	if err := RegisterKMSContextWrapWithCMK(cr, kmsClient, "cmkId"); err != nil {
+	cr := NewCryptographicMaterialsManager()
+	if err := RegisterKMSContextKeyringWithCMK(cr, kmsClient, "cmkId"); err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
 
-	if wrap, ok := cr.GetWrap(KMSContextWrap); !ok {
-		t.Errorf("expected wrapped to be present")
-	} else if wrap == nil {
-		t.Errorf("expected wrap to not be nil")
+	if keyring, ok := cr.GetKeyring(KMSContextKeyring); !ok {
+		t.Errorf("expected Keyring to be present")
+	} else if keyring == nil {
+		t.Errorf("expected Keyring to not be nil")
 	}
 
-	if err := RegisterKMSContextWrapWithAnyCMK(cr, kmsClient); err == nil {
+	if err := RegisterKMSContextKeyringWithAnyCMK(cr, kmsClient); err == nil {
 		t.Error("expected error, got none")
 	}
 }

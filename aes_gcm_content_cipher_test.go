@@ -19,7 +19,7 @@ func TestAESGCMContentCipherBuilderV2(t *testing.T) {
 }
 
 func TestRegisterAESGCMContentCipher(t *testing.T) {
-	cr := NewCryptoRegistry()
+	cr := NewCryptographicMaterialsManager()
 	err := RegisterAESGCMContentCipher(cr)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)

@@ -6,7 +6,7 @@ import (
 )
 
 func TestRegisterAESCBCContentCipher(t *testing.T) {
-	cr := NewCryptoRegistry()
+	cr := NewCryptographicMaterialsManager()
 	padder := AESCBCPadder
 	err := RegisterAESCBCContentCipher(cr, padder)
 	if err != nil {

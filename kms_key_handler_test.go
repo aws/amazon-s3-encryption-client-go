@@ -36,7 +36,7 @@ func TestKmsKeyHandler_DecryptKey(t *testing.T) {
 	tConfig.RetryMaxAttempts = 0
 	tConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	svc := kms.NewFromConfig(tConfig)
-	handler, err := (kmsKeyHandler{apiClient: svc}).decryptHandler(Envelope{WrapAlg: KMSWrap, MatDesc: `{"kms_cmk_id":"test"}`})
+	handler, err := (kmsKeyHandler{apiClient: svc}).decryptHandler(Envelope{KeyringAlg: KMSKeyring, MatDesc: `{"kms_cmk_id":"test"}`})
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
 	}
@@ -75,7 +75,7 @@ func TestKmsKeyHandler_DecryptKey_WithCMK(t *testing.T) {
 	tConfig.RetryMaxAttempts = 0
 	tConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	svc := kms.NewFromConfig(tConfig)
-	handler, err := newKMSWrapEntryWithCMK(svc, "thisKey")(Envelope{WrapAlg: KMSWrap, MatDesc: `{"kms_cmk_id":"test"}`})
+	handler, err := newKMSKeyringEntryWithCMK(svc, "thisKey")(Envelope{KeyringAlg: KMSKeyring, MatDesc: `{"kms_cmk_id":"test"}`})
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
 	}
@@ -89,42 +89,42 @@ func TestKmsKeyHandler_DecryptKey_WithCMK(t *testing.T) {
 	}
 }
 
-func TestRegisterKMSWrapWithAnyCMK(t *testing.T) {
+func TestRegisterKMSKeyringWithAnyCMK(t *testing.T) {
 	tConfig := awstesting.Config()
 	kmsClient := kms.NewFromConfig(tConfig)
 
-	cr := NewCryptoRegistry()
-	if err := RegisterKMSWrapWithAnyCMK(cr, kmsClient); err != nil {
+	cr := NewCryptographicMaterialsManager()
+	if err := RegisterKMSKeyringWithAnyCMK(cr, kmsClient); err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
 
-	if wrap, ok := cr.GetWrap(KMSWrap); !ok {
-		t.Errorf("expected wrapped to be present")
-	} else if wrap == nil {
-		t.Errorf("expected wrap to not be nil")
+	if keyring, ok := cr.GetKeyring(KMSKeyring); !ok {
+		t.Errorf("expected Keyring to be present")
+	} else if keyring == nil {
+		t.Errorf("expected Keyring to not be nil")
 	}
 
-	if err := RegisterKMSWrapWithCMK(cr, kmsClient, "test-key-id"); err == nil {
+	if err := RegisterKMSKeyringWithCMK(cr, kmsClient, "test-key-id"); err == nil {
 		t.Error("expected error, got none")
 	}
 }
 
-func TestRegisterKMSWrapWithCMK(t *testing.T) {
+func TestRegisterKMSKeyringWithCMK(t *testing.T) {
 	tConfig := awstesting.Config()
 	kmsClient := kms.NewFromConfig(tConfig)
 
-	cr := NewCryptoRegistry()
-	if err := RegisterKMSWrapWithCMK(cr, kmsClient, "cmkId"); err != nil {
+	cr := NewCryptographicMaterialsManager()
+	if err := RegisterKMSKeyringWithCMK(cr, kmsClient, "cmkId"); err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
 
-	if wrap, ok := cr.GetWrap(KMSWrap); !ok {
-		t.Errorf("expected wrapped to be present")
-	} else if wrap == nil {
-		t.Errorf("expected wrap to not be nil")
+	if keyring, ok := cr.GetKeyring(KMSKeyring); !ok {
+		t.Errorf("expected Keyring to be present")
+	} else if keyring == nil {
+		t.Errorf("expected Keyring to not be nil")
 	}
 
-	if err := RegisterKMSWrapWithAnyCMK(cr, kmsClient); err == nil {
+	if err := RegisterKMSKeyringWithAnyCMK(cr, kmsClient); err == nil {
 		t.Error("expected error, got none")
 	}
 }
