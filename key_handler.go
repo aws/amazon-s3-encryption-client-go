@@ -7,26 +7,26 @@ import (
 
 // CipherDataGenerator handles generating proper key and IVs of proper size for the
 // content cipher. CipherDataGenerator will also encrypt the key and store it in
-// the CipherData.
+// the CryptographicMaterials.
 // IMPLEMENTED BY: kms_key_handler.go -> kmsKeyHandler
 type CipherDataGenerator interface {
-	GenerateCipherData(int, int) (CipherData, error)
+	GenerateCipherData(int, int) (CryptographicMaterials, error)
 }
 
 // CipherDataGeneratorWithContext handles generating proper key and IVs of
 // proper size for the content cipher. CipherDataGenerator will also encrypt
-// the key and store it in the CipherData.
+// the key and store it in the CryptographicMaterials.
 // IMPLEMENTED BY: kms_key_handler.go -> kmsKeyHandler
 type CipherDataGeneratorWithContext interface {
-	GenerateCipherDataWithContext(context.Context, int, int) (CipherData, error)
+	GenerateCipherDataWithContext(context.Context, int, int) (CryptographicMaterials, error)
 }
 
 // CipherDataGeneratorWithCEKAlg handles generating proper key and IVs of proper size for the
 // content cipher. CipherDataGenerator will also encrypt the key and store it in
-// the CipherData.
+// the CryptographicMaterials.
 // IMPLEMENTED BY: kms_context_key_handler.go -> kmsContextKeyHandler
 type CipherDataGeneratorWithCEKAlg interface {
-	GenerateCipherDataWithCEKAlg(ctx context.Context, keySize, ivSize int, cekAlgorithm string) (CipherData, error)
+	GenerateCipherDataWithCEKAlg(ctx context.Context, keySize, ivSize int, cekAlgorithm string) (CryptographicMaterials, error)
 }
 
 // CipherDataDecrypter is a handler to decrypt keys from the envelope.

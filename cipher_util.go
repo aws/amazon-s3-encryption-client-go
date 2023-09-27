@@ -15,7 +15,7 @@ const AESGCMNoPadding = "AES/GCM/NoPadding"
 // AESCBC is the string constant that signifies the AES CBC algorithm cipher.
 const AESCBC = "AES/CBC"
 
-func encodeMeta(reader lengthReader, cd CipherData) (Envelope, error) {
+func encodeMeta(reader lengthReader, cd CryptographicMaterials) (ObjectMetadata, error) {
 	iv := base64.StdEncoding.EncodeToString(cd.IV)
 	key := base64.StdEncoding.EncodeToString(cd.EncryptedKey)
 
@@ -23,10 +23,10 @@ func encodeMeta(reader lengthReader, cd CipherData) (Envelope, error) {
 
 	matdesc, err := cd.MaterialDescription.encodeDescription()
 	if err != nil {
-		return Envelope{}, err
+		return ObjectMetadata{}, err
 	}
 
-	return Envelope{
+	return ObjectMetadata{
 		CipherKey:             key,
 		IV:                    iv,
 		MatDesc:               string(matdesc),
@@ -37,21 +37,21 @@ func encodeMeta(reader lengthReader, cd CipherData) (Envelope, error) {
 	}, nil
 }
 
-func keyringFromEnvelope(options EncryptionClientOptions, env Envelope) (CipherDataDecrypter, error) {
+func keyringFromEnvelope(options EncryptionClientOptions, env ObjectMetadata) (CipherDataDecrypter, error) {
 	f, ok := options.CryptographicMaterialsManager.GetKeyring(env.KeyringAlg)
 	if !ok || f == nil {
 		return nil, &smithy.GenericAPIError{
 			Code:    "InvalidKeyringAlgorithmError",
-			Message: "Keyring algorithm isn't supported, " + env.KeyringAlg,
+			Message: "KeyringEntry algorithm isn't supported, " + env.KeyringAlg,
 			Fault:   smithy.FaultClient,
 		}
 	}
 	return f(env)
 }
 
-func cekFromEnvelope(ctx context.Context, options EncryptionClientOptions, env Envelope, decrypter CipherDataDecrypter) (ContentCipher, error) {
-	f, ok := options.CryptographicMaterialsManager.GetCEK(env.CEKAlg)
-	if !ok || f == nil {
+func cekFromEnvelope(ctx context.Context, options EncryptionClientOptions, env ObjectMetadata, decrypter CipherDataDecrypter) (ContentCipher, error) {
+	registeredCek, ok := options.CryptographicMaterialsManager.GetCEK(env.CEKAlg)
+	if !ok || registeredCek == nil {
 		return nil, &smithy.GenericAPIError{
 			Code:    "InvalidCEKAlgorithmError",
 			Message: "cek algorithm isn't supported, " + env.CEKAlg,
@@ -79,13 +79,13 @@ func cekFromEnvelope(ctx context.Context, options EncryptionClientOptions, env E
 		return nil, err
 	}
 
-	cd := CipherData{
+	cd := CryptographicMaterials{
 		Key:          key,
 		IV:           iv,
 		CEKAlgorithm: env.CEKAlg,
 		Padder:       getPadder(options, env.CEKAlg),
 	}
-	return f(cd)
+	return registeredCek(cd)
 }
 
 // getPadder will return an unpadder with checking the cek algorithm specific padder.
@@ -102,13 +102,4 @@ func getPadder(options EncryptionClientOptions, cekAlg string) Padder {
 		}
 	}
 	return padder
-}
-
-func contentCipherFromEnvelope(ctx context.Context, options EncryptionClientOptions, env Envelope) (ContentCipher, error) {
-	keyring, err := keyringFromEnvelope(options, env)
-	if err != nil {
-		return nil, err
-	}
-
-	return cekFromEnvelope(ctx, options, env, keyring)
 }

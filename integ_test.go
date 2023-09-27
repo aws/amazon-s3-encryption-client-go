@@ -12,49 +12,47 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"io"
-	"os"
 	"strings"
 	"testing"
 )
 
 const version = "v3"
 
-const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
-const bucketEnvvar = "BUCKET"
-const defaultRegion = "us-west-2"
-const regionEnvvar = "AWS_REGION"
-const defaultAwsKmsAlias = "s3-encryption-client-v3-go-us-west-2"
-const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
-const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
-
-func LoadBucket() string {
-	if len(os.Getenv(bucketEnvvar)) > 0 {
-		return os.Getenv(bucketEnvvar)
-	} else {
-		return defaultBucket
-	}
-}
-
-func LoadRegion() string {
-	if len(os.Getenv(regionEnvvar)) > 0 {
-		return os.Getenv(regionEnvvar)
-	} else {
-		return defaultRegion
-	}
-}
-
-func LoadAwsKmsAlias() string {
-	if len(os.Getenv(awsKmsAliasEnvvar)) > 0 {
-		return os.Getenv(awsKmsAliasEnvvar)
-	} else {
-		return defaultAwsKmsAlias
-	}
-}
-
-func LoadAwsAccountId() string {
-	return os.Getenv(awsAccountIdEnvvar)
-}
-
+// const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
+// const bucketEnvvar = "BUCKET"
+// const defaultRegion = "us-west-2"
+// const regionEnvvar = "AWS_REGION"
+// const defaultAwsKmsAlias = "s3-encryption-client-v3-go-us-west-2"
+// const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
+// const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
+//
+//	func LoadBucket() string {
+//		if len(os.Getenv(bucketEnvvar)) > 0 {
+//			return os.Getenv(bucketEnvvar)
+//		} else {
+//			return defaultBucket
+//		}
+//	}
+//
+//	func LoadRegion() string {
+//		if len(os.Getenv(regionEnvvar)) > 0 {
+//			return os.Getenv(regionEnvvar)
+//		} else {
+//			return defaultRegion
+//		}
+//	}
+//
+//	func LoadAwsKmsAlias() string {
+//		if len(os.Getenv(awsKmsAliasEnvvar)) > 0 {
+//			return os.Getenv(awsKmsAliasEnvvar)
+//		} else {
+//			return defaultAwsKmsAlias
+//		}
+//	}
+//
+//	func LoadAwsAccountId() string {
+//		return os.Getenv(awsAccountIdEnvvar)
+//	}
 func TestParameterMalleabilityRemoval(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
@@ -343,10 +341,10 @@ func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, 
 	return handlerWithCek
 }
 
-func getAliasArn(shortAlias string, region string, accountId string) (string, error) {
-	arnFormat := "arn:aws:kms:%s:%s:alias/%s"
-	return fmt.Sprintf(arnFormat, region, accountId, shortAlias), nil
-}
+//func getAliasArn(shortAlias string, region string, accountId string) (string, error) {
+//	arnFormat := "arn:aws:kms:%s:%s:alias/%s"
+//	return fmt.Sprintf(arnFormat, region, accountId, shortAlias), nil
+//}
 
 func decryptFixtures(t *testing.T, decClient *s3crypto.S3EncryptionClientV3, fixtures testFixtures, bucket, lang, version string,
 ) map[string][]byte {

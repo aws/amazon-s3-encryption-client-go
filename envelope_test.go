@@ -9,8 +9,8 @@ import (
 func TestEnvelope_UnmarshalJSON(t *testing.T) {
 	cases := map[string]struct {
 		content  []byte
-		expected Envelope
-		actual   Envelope
+		expected ObjectMetadata
+		actual   ObjectMetadata
 	}{
 		"string json numbers": {
 			content: []byte(`{
@@ -23,7 +23,7 @@ func TestEnvelope_UnmarshalJSON(t *testing.T) {
   "x-amz-unencrypted-content-length": "1024"
 }
 `),
-			expected: Envelope{
+			expected: ObjectMetadata{
 				IV:                    "iv",
 				CipherKey:             "key",
 				MatDesc:               `{"aws:x-amz-cek-alg":"AES/GCM/NoPadding"}`,
@@ -44,7 +44,7 @@ func TestEnvelope_UnmarshalJSON(t *testing.T) {
   "x-amz-unencrypted-content-length": 1024
 }
 `),
-			expected: Envelope{
+			expected: ObjectMetadata{
 				IV:                    "iv",
 				CipherKey:             "key",
 				MatDesc:               `{"aws:x-amz-cek-alg":"AES/GCM/NoPadding"}`,
@@ -65,7 +65,7 @@ func TestEnvelope_UnmarshalJSON(t *testing.T) {
   "x-amz-unencrypted-content-length": null
 }
 `),
-			expected: Envelope{
+			expected: ObjectMetadata{
 				IV:         "iv",
 				CipherKey:  "key",
 				MatDesc:    `{"aws:x-amz-cek-alg":"AES/GCM/NoPadding"}`,
@@ -82,7 +82,7 @@ func TestEnvelope_UnmarshalJSON(t *testing.T) {
   "x-amz-cek-alg": "AES/GCM/NoPadding"
 }
 `),
-			expected: Envelope{
+			expected: ObjectMetadata{
 				IV:         "iv",
 				CipherKey:  "key",
 				MatDesc:    `{"aws:x-amz-cek-alg":"AES/GCM/NoPadding"}`,

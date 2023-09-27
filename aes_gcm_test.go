@@ -162,7 +162,7 @@ func TestGCMDecryptReader_DecrypterOpenError(t *testing.T) {
 func aesgcmTest(t *testing.T, iv, key, plaintext, expected, tag []byte) {
 	t.Helper()
 	const gcmTagSize = 16
-	cd := CipherData{
+	cd := CryptographicMaterials{
 		Key: key,
 		IV:  iv,
 	}

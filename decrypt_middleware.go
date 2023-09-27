@@ -60,16 +60,31 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 		Input:        m.input,
 	}
 
-	envelope, err := m.client.options.LoadStrategy.Load(ctx, loadReq)
+	// decode metadata
+	objectMetadata, err := m.client.options.LoadStrategy.Load(ctx, loadReq)
 	if err != nil {
-		return out, metadata, fmt.Errorf("failed to load envelope: bucket=%v; key=%v; err=%w", m.input.Bucket, m.input.Key, err)
+		return out, metadata, fmt.Errorf("failed to load objectMetadata: bucket=%v; key=%v; err=%w", m.input.Bucket, m.input.Key, err)
 	}
 
-	cipher, err := contentCipherFromEnvelope(ctx, m.client.options, envelope)
-	if err != nil {
-		return out, metadata, err
+	// prepare materials
+	// Currently, this returns ContentCipher which is basically mats + content crypto
+	// it decrypts the data key anaw
+	// instead, or within, we want to instead call functions on the CMM
+	//var cekAlgGen = *m.client.options.CryptographicMaterialsManager.GeneratorWithCEKAlg
+	//*m.client.options.CryptographicMaterialsManager.
+	//	// there should be a func on the CMM to shell out to keyring instead
+	//	cekAlgGen.GenerateCipherDataWithCEKAlg(ctx, 256, len(objectMetadata.IV), objectMetadata.CEKAlg)
+	materials, err := m.client.options.CryptographicMaterialsManager.decryptMaterials(ctx, objectMetadata)
+
+	// TODO: not sure if this is the best place to put this, maybe instead where it's parsed? as early as possible?
+	// TODO: make sure this check is even correct lol, it's a very weak string match prob not
+	if m.client.options.EnableLegacyModes && materials.CEKAlgorithm == AESCBC {
+		return out, metadata, fmt.Errorf("configure client with enable legacy modes set to true to decrypt with %s", materials.CEKAlgorithm)
 	}
 
+	cek, ok := m.client.options.CryptographicMaterialsManager.GetCEK(materials.CEKAlgorithm)
+	cipher, err := cek(*materials)
+	cipher.DecryptContents(result.Body)
 	reader, err := cipher.DecryptContents(result.Body)
 	if err != nil {
 		return out, metadata, err

@@ -31,7 +31,7 @@ func RegisterAESCBCContentCipher(registry *CryptographicMaterialsManager, padder
 
 // newAESCBCContentCipher will create a new aes cbc content cipher. If the cipher data's
 // will set the cek algorithm if it hasn't been set.
-func newAESCBCContentCipher(cd CipherData) (ContentCipher, error) {
+func newAESCBCContentCipher(cd CryptographicMaterials) (ContentCipher, error) {
 	if len(cd.CEKAlgorithm) == 0 {
 		cd.CEKAlgorithm = AESCBC + "/" + cd.Padder.Name()
 	}
@@ -48,7 +48,7 @@ func newAESCBCContentCipher(cd CipherData) (ContentCipher, error) {
 
 // aesCBCContentCipher will use AES CBC for the main cipher.
 type aesCBCContentCipher struct {
-	CipherData CipherData
+	CipherData CryptographicMaterials
 	Cipher     Cipher
 }
 
@@ -66,7 +66,7 @@ func (cc *aesCBCContentCipher) DecryptContents(src io.ReadCloser) (io.ReadCloser
 }
 
 // GetCipherData returns cipher data
-func (cc aesCBCContentCipher) GetCipherData() CipherData {
+func (cc aesCBCContentCipher) GetCipherData() CryptographicMaterials {
 	return cc.CipherData
 }
 

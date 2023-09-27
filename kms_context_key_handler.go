@@ -107,7 +107,7 @@ type kmsContextKeyHandler struct {
 	apiClient KmsAPIClient
 	cmkID     *string
 
-	CipherData
+	CryptographicMaterials
 }
 
 func (kp *kmsContextKeyHandler) isAWSFixture() bool {
@@ -124,21 +124,21 @@ func newKMSContextKeyHandler(apiClient KmsAPIClient, cmkID string, matdesc Mater
 		matdesc = MaterialDescription{}
 	}
 
-	kp.CipherData.KeyringAlgorithm = KMSContextKeyring
-	kp.CipherData.MaterialDescription = matdesc
+	kp.CryptographicMaterials.KeyringAlgorithm = KMSContextKeyring
+	kp.CryptographicMaterials.MaterialDescription = matdesc
 
 	return kp
 }
 
-func (kp *kmsContextKeyHandler) GenerateCipherDataWithCEKAlg(ctx context.Context, keySize int, ivSize int, cekAlgorithm string) (CipherData, error) {
-	cd := kp.CipherData.Clone()
+func (kp *kmsContextKeyHandler) GenerateCipherDataWithCEKAlg(ctx context.Context, keySize int, ivSize int, cekAlgorithm string) (CryptographicMaterials, error) {
+	cd := kp.CryptographicMaterials.Clone()
 
 	if len(cekAlgorithm) == 0 {
-		return CipherData{}, fmt.Errorf("cek algorithm identifier must not be empty")
+		return CryptographicMaterials{}, fmt.Errorf("cek algorithm identifier must not be empty")
 	}
 
 	if _, ok := cd.MaterialDescription[kmsAWSCEKContextKey]; ok {
-		return CipherData{}, fmt.Errorf(kmsReservedKeyConflictErrMsg, kmsAWSCEKContextKey)
+		return CryptographicMaterials{}, fmt.Errorf(kmsReservedKeyConflictErrMsg, kmsAWSCEKContextKey)
 	}
 	cd.MaterialDescription[kmsAWSCEKContextKey] = cekAlgorithm
 
@@ -149,12 +149,12 @@ func (kp *kmsContextKeyHandler) GenerateCipherDataWithCEKAlg(ctx context.Context
 			KeySpec:           types.DataKeySpecAes256,
 		})
 	if err != nil {
-		return CipherData{}, err
+		return CryptographicMaterials{}, err
 	}
 
 	iv, err := generateBytes(ivSize)
 	if err != nil {
-		return CipherData{}, err
+		return CryptographicMaterials{}, err
 	}
 
 	cd.Key = out.Plaintext
@@ -166,7 +166,7 @@ func (kp *kmsContextKeyHandler) GenerateCipherDataWithCEKAlg(ctx context.Context
 
 // decryptHandler initializes a KMS keyring with a material description. This
 // is used with Decrypting kms content, due to the cmkID being in the material description.
-func (kp kmsContextKeyHandler) decryptHandler(env Envelope) (CipherDataDecrypter, error) {
+func (kp kmsContextKeyHandler) decryptHandler(env ObjectMetadata) (CipherDataDecrypter, error) {
 	if env.KeyringAlg != KMSContextKeyring {
 		return nil, fmt.Errorf("%s value `%s` did not match the expected algorithm `%s` for this handler", cekAlgorithmHeader, env.KeyringAlg, KMSContextKeyring)
 	}

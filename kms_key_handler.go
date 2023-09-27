@@ -20,7 +20,7 @@ type kmsKeyHandler struct {
 	// useProvidedCMK is toggled when using `kms` key Keyring with the client
 	useProvidedCMK bool // TODO: This needs to ALWAYS be true for key committment reasons
 
-	CipherData
+	CryptographicMaterials
 }
 
 // newKMSKeyringEntry builds returns a new KMS key provider and its decrypt handler.
@@ -87,7 +87,7 @@ func newKMSKeyHandler(apiClient KmsAPIClient) *kmsKeyHandler {
 
 // decryptHandler initializes a KMS keyprovider with a material description. This
 // is used with Decrypting kms content, due to the cmkID being in the material description.
-func (kp kmsKeyHandler) decryptHandler(env Envelope) (CipherDataDecrypter, error) {
+func (kp kmsKeyHandler) decryptHandler(env ObjectMetadata) (CipherDataDecrypter, error) {
 	m := MaterialDescription{}
 	err := m.decodeDescription([]byte(env.MatDesc))
 	if err != nil {
@@ -102,7 +102,7 @@ func (kp kmsKeyHandler) decryptHandler(env Envelope) (CipherDataDecrypter, error
 		}
 	}
 
-	kp.CipherData.MaterialDescription = m
+	kp.CryptographicMaterials.MaterialDescription = m
 	kp.KeyringAlgorithm = KMSKeyring
 
 	return &kp, nil
@@ -135,14 +135,14 @@ func (kp *kmsKeyHandler) DecryptKeyWithContext(ctx context.Context, key []byte) 
 
 // GenerateCipherData makes a call to KMS to generate a data key, Upon making
 // the call, it also sets the encrypted key.
-func (kp *kmsKeyHandler) GenerateCipherData(keySize, ivSize int) (CipherData, error) {
+func (kp *kmsKeyHandler) GenerateCipherData(keySize, ivSize int) (CryptographicMaterials, error) {
 	return kp.GenerateCipherDataWithContext(context.Background(), keySize, ivSize)
 }
 
 // GenerateCipherDataWithContext makes a call to KMS to generate a data key,
 // Upon making the call, it also sets the encrypted key.
-func (kp *kmsKeyHandler) GenerateCipherDataWithContext(ctx context.Context, keySize, ivSize int) (CipherData, error) {
-	cd := kp.CipherData.Clone()
+func (kp *kmsKeyHandler) GenerateCipherDataWithContext(ctx context.Context, keySize, ivSize int) (CryptographicMaterials, error) {
+	cd := kp.CryptographicMaterials.Clone()
 
 	out, err := kp.apiClient.GenerateDataKey(ctx,
 		&kms.GenerateDataKeyInput{
@@ -151,12 +151,12 @@ func (kp *kmsKeyHandler) GenerateCipherDataWithContext(ctx context.Context, keyS
 			KeySpec:           types.DataKeySpecAes256,
 		})
 	if err != nil {
-		return CipherData{}, err
+		return CryptographicMaterials{}, err
 	}
 
 	iv, err := generateBytes(ivSize)
 	if err != nil {
-		return CipherData{}, err
+		return CryptographicMaterials{}, err
 	}
 
 	cd.Key = out.Plaintext

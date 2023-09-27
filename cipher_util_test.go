@@ -26,7 +26,7 @@ func TestKeyringFactory(t *testing.T) {
 			AESGCMNoPadding: newAESGCMContentCipher,
 		}, map[string]Padder{}),
 	}
-	env := Envelope{
+	env := ObjectMetadata{
 		KeyringAlg: KMSKeyring,
 		MatDesc:    `{"kms_cmk_id":""}`,
 	}
@@ -55,7 +55,7 @@ func TestKeyringFactoryErrorNoKeyring(t *testing.T) {
 			AESGCMNoPadding: newAESGCMContentCipher,
 		}, map[string]Padder{}),
 	}
-	env := Envelope{
+	env := ObjectMetadata{
 		KeyringAlg: "none",
 		MatDesc:    `{"kms_cmk_id":""}`,
 	}
@@ -65,7 +65,7 @@ func TestKeyringFactoryErrorNoKeyring(t *testing.T) {
 		t.Error("expected error, but received none")
 	}
 	if keyring != nil {
-		t.Errorf("expected nil Keyring value, received %v", keyring)
+		t.Errorf("expected nil KeyringEntry value, received %v", keyring)
 	}
 }
 
@@ -81,7 +81,7 @@ func TestKeyringFactoryCustomEntry(t *testing.T) {
 			AESGCMNoPadding: newAESGCMContentCipher,
 		}, map[string]Padder{}),
 	}
-	env := Envelope{
+	env := ObjectMetadata{
 		KeyringAlg: "custom",
 		MatDesc:    `{"kms_cmk_id":""}`,
 	}
@@ -132,7 +132,7 @@ func TestCEKFactory(t *testing.T) {
 	}
 	cipherKeyB64 := base64.URLEncoding.EncodeToString(cipherKey)
 
-	env := Envelope{
+	env := ObjectMetadata{
 		KeyringAlg: KMSKeyring,
 		CEKAlg:     AESGCMNoPadding,
 		CipherKey:  cipherKeyB64,
@@ -194,7 +194,7 @@ func TestCEKFactoryNoCEK(t *testing.T) {
 	}
 	cipherKeyB64 := base64.URLEncoding.EncodeToString(cipherKey)
 
-	env := Envelope{
+	env := ObjectMetadata{
 		KeyringAlg: KMSKeyring,
 		CEKAlg:     "none",
 		CipherKey:  cipherKeyB64,
@@ -252,7 +252,7 @@ func TestCEKFactoryCustomEntry(t *testing.T) {
 	}
 	cipherKeyB64 := base64.URLEncoding.EncodeToString(cipherKey)
 
-	env := Envelope{
+	env := ObjectMetadata{
 		KeyringAlg: KMSKeyring,
 		CEKAlg:     "custom",
 		CipherKey:  cipherKeyB64,

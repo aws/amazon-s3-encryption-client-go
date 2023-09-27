@@ -13,10 +13,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-// SaveStrategyRequest represents a request sent to a SaveStrategy to save the contents of an Envelope
+// SaveStrategyRequest represents a request sent to a SaveStrategy to save the contents of an ObjectMetadata
 type SaveStrategyRequest struct {
 	// The envelope to save
-	Envelope *Envelope
+	Envelope *ObjectMetadata
 
 	// The HTTP request being built
 	HTTPRequest *http.Request
@@ -85,7 +85,7 @@ func (strat HeaderV2SaveStrategy) Save(ctx context.Context, saveReq *SaveStrateg
 	return nil
 }
 
-// LoadStrategyRequest represents a request sent to a LoadStrategy to load the contents of an Envelope
+// LoadStrategyRequest represents a request sent to a LoadStrategy to load the contents of an ObjectMetadata
 type LoadStrategyRequest struct {
 	// The HTTP response
 	HTTPResponse *http.Response
@@ -96,7 +96,7 @@ type LoadStrategyRequest struct {
 
 // LoadStrategy ...
 type LoadStrategy interface {
-	Load(context.Context, *LoadStrategyRequest) (Envelope, error)
+	Load(context.Context, *LoadStrategyRequest) (ObjectMetadata, error)
 }
 
 // S3LoadStrategy will load the instruction file from s3
@@ -106,8 +106,8 @@ type S3LoadStrategy struct {
 }
 
 // Load from a given instruction file suffix
-func (load S3LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (Envelope, error) {
-	env := Envelope{}
+func (load S3LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (ObjectMetadata, error) {
+	env := ObjectMetadata{}
 	if load.InstructionFileSuffix == "" {
 		load.InstructionFileSuffix = DefaultInstructionKeySuffix
 	}
@@ -134,8 +134,8 @@ func (load S3LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (
 type HeaderV2LoadStrategy struct{}
 
 // Load from a given object's header
-func (load HeaderV2LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (Envelope, error) {
-	env := Envelope{}
+func (load HeaderV2LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (ObjectMetadata, error) {
+	env := ObjectMetadata{}
 	env.CipherKey = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, keyV2Header}, "-"))
 	env.IV = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, ivHeader}, "-"))
 	env.MatDesc = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, matDescHeader}, "-"))
@@ -151,12 +151,12 @@ type defaultV2LoadStrategy struct {
 	suffix string
 }
 
-func (load defaultV2LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (Envelope, error) {
+func (load defaultV2LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (ObjectMetadata, error) {
 	if value := req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, keyV2Header}, "-")); value != "" {
 		strat := HeaderV2LoadStrategy{}
 		return strat.Load(ctx, req)
 	} else if value = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, keyV1Header}, "-")); value != "" {
-		return Envelope{}, &smithy.GenericAPIError{
+		return ObjectMetadata{}, &smithy.GenericAPIError{
 			Code:    "V1NotSupportedError",
 			Message: "The AWS SDK for Go does not support version 1",
 		}

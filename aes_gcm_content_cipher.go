@@ -78,7 +78,7 @@ func (builder gcmContentCipherBuilder) isAWSFixture() bool {
 	return ok && v.isAWSFixture()
 }
 
-func newAESGCMContentCipher(cd CipherData) (ContentCipher, error) {
+func newAESGCMContentCipher(cd CryptographicMaterials) (ContentCipher, error) {
 	cd.CEKAlgorithm = AESGCMNoPadding
 	cd.TagLength = "128"
 
@@ -95,7 +95,7 @@ func newAESGCMContentCipher(cd CipherData) (ContentCipher, error) {
 
 // AESGCMContentCipher will use AES GCM for the main cipher.
 type aesGCMContentCipher struct {
-	CipherData CipherData
+	CipherData CryptographicMaterials
 	Cipher     Cipher
 }
 
@@ -113,7 +113,7 @@ func (cc *aesGCMContentCipher) DecryptContents(src io.ReadCloser) (io.ReadCloser
 }
 
 // GetCipherData returns cipher data
-func (cc aesGCMContentCipher) GetCipherData() CipherData {
+func (cc aesGCMContentCipher) GetCipherData() CryptographicMaterials {
 	return cc.CipherData
 }
 

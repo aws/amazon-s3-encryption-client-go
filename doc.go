@@ -85,7 +85,7 @@ Keyring and a `CustomCEK` content encryption algorithm. You can use the Cryptogr
 
 	cr := s3crypto.NewCryptographicMaterialsManager()
 
-	// Register a custom Keyring to the CryptographicMaterialsManager
+	// Register a custom KeyringEntry to the CryptographicMaterialsManager
 	if err := cr.AddKeyring("CustomKeyring", NewCustomKeyringEntry); err != nil {
 		panic(err) // handle error
 	}
@@ -106,7 +106,7 @@ the Keyring as `CustomKeyring` then it'll use that Keyring algorithm. This is al
 For encryption adding a custom content cipher builder and keyring will allow for encryption of custom
 defined ciphers.
 
-	// Our Keyring algorithm, CustomKeyring
+	// Our KeyringEntry algorithm, CustomKeyring
 	handler := NewCustomKeyring(key, iv)
 	// Our content cipher builder, NewCustomCEKContentBuilder
 	encClient := s3crypto.NewEncryptionClientV3(s3Client, NewCustomCEKContentBuilder(handler))

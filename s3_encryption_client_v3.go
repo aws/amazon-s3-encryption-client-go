@@ -41,6 +41,9 @@ type EncryptionClientOptions struct {
 	LoadStrategy LoadStrategy
 
 	CryptographicMaterialsManager *CryptographicMaterialsManager
+
+	// TODO: expose to customers somehow
+	EnableLegacyModes bool
 }
 
 // NewS3EncryptionClientV3 creates a new S3 client which can encrypt and decrypt
@@ -54,6 +57,7 @@ func NewS3EncryptionClientV3(s3Client *s3.Client, CryptographicMaterialsManager 
 		LoadStrategy:                  defaultV2LoadStrategy{},
 		CryptographicMaterialsManager: CryptographicMaterialsManager,
 		CipherDataGeneratorWithCEKAlg: keyring,
+		EnableLegacyModes:             false,
 	}
 	for _, fn := range optFns {
 		fn(&options)

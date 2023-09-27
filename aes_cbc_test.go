@@ -447,7 +447,7 @@ func TestAESCBCEncryptDecrypt(t *testing.T) {
 	for i, testCase := range testCases {
 		key, _ := hex.DecodeString(testCase.key)
 		iv, _ := hex.DecodeString(testCase.iv)
-		cd := CipherData{
+		cd := CryptographicMaterials{
 			Key: key,
 			IV:  iv,
 		}

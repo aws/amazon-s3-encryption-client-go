@@ -19,7 +19,7 @@ type aesCBC struct {
 
 // newAESCBC creates a new AES CBC cipher. Expects keys to be of
 // the correct size.
-func newAESCBC(cd CipherData, padder Padder) (Cipher, error) {
+func newAESCBC(cd CryptographicMaterials, padder Padder) (Cipher, error) {
 	block, err := aes.NewCipher(cd.Key)
 	if err != nil {
 		return nil, err

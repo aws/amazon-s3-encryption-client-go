@@ -20,12 +20,12 @@ type aesGCM struct {
 //
 // Example:
 //
-//	cd := &s3crypto.CipherData{
+//	cd := &s3crypto.CryptographicMaterials{
 //		Key: key,
 //		"IV": iv,
 //	}
 //	cipher, err := s3crypto.newAESGCM(cd)
-func newAESGCM(cd CipherData) (Cipher, error) {
+func newAESGCM(cd CryptographicMaterials) (Cipher, error) {
 	block, err := aes.NewCipher(cd.Key)
 	if err != nil {
 		return nil, err

@@ -9,8 +9,8 @@ import (
 
 type mockGenerator struct{}
 
-func (m mockGenerator) GenerateCipherDataWithCEKAlg(ctx context.Context, keySize int, ivSize int, cekAlg string) (CipherData, error) {
-	cd := CipherData{
+func (m mockGenerator) GenerateCipherDataWithCEKAlg(ctx context.Context, keySize int, ivSize int, cekAlg string) (CryptographicMaterials, error) {
+	cd := CryptographicMaterials{
 		Key: make([]byte, keySize),
 		IV:  make([]byte, ivSize),
 	}
@@ -34,10 +34,10 @@ func (builder mockCipherBuilder) ContentCipher() (ContentCipher, error) {
 }
 
 type mockContentCipher struct {
-	cd CipherData
+	cd CryptographicMaterials
 }
 
-func (cipher *mockContentCipher) GetCipherData() CipherData {
+func (cipher *mockContentCipher) GetCipherData() CryptographicMaterials {
 	return cipher.cd
 }
 

@@ -106,7 +106,7 @@ func (k cdgWithStaticTestIV) isAWSFixture() bool {
 	return true
 }
 
-func (k cdgWithStaticTestIV) GenerateCipherDataWithCEKAlg(ctx context.Context, keySize, ivSize int, cekAlg string) (CipherData, error) {
+func (k cdgWithStaticTestIV) GenerateCipherDataWithCEKAlg(ctx context.Context, keySize, ivSize int, cekAlg string) (CryptographicMaterials, error) {
 	cipherData, err := k.CipherDataGeneratorWithCEKAlg.GenerateCipherDataWithCEKAlg(ctx, keySize, ivSize, cekAlg)
 	if err == nil {
 		cipherData.IV = k.IV
