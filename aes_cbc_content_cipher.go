@@ -4,7 +4,7 @@ import (
 	"io"
 )
 
-// RegisterAESCBCContentCipher registers the AES/CBC cipher and padder with the provided CryptographicMaterialsManager.
+// RegisterAESCBCContentCipher registers the AES/CBC cipher and padder with the provided DefaultCryptographicMaterialsManager.
 //
 // Example:
 //
@@ -14,7 +14,7 @@ import (
 //	}
 //
 // deprecated: This feature is in maintenance mode, no new updates will be released. Please see https://docs.aws.amazon.com/general/latest/gr/aws_sdk_cryptography.html for more information.
-func RegisterAESCBCContentCipher(registry *CryptographicMaterialsManager, padder Padder) error {
+func RegisterAESCBCContentCipher(registry *DefaultCryptographicMaterialsManager, padder Padder) error {
 	if registry == nil {
 		return errNilCryptographicMaterialsManager
 	}

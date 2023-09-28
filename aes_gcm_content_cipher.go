@@ -1,7 +1,6 @@
 package s3crypto
 
 import (
-	"context"
 	"fmt"
 	"io"
 )
@@ -11,17 +10,18 @@ const (
 	gcmNonceSize = 12
 )
 
+// TODO: relocate or delete
 // AESGCMContentCipherBuilder returns a new encryption only AES/GCM mode structure with a specific cipher data generator
 // that will provide keys to be used for content encryption.
 //
 // Note: This uses the Go stdlib AEAD implementation for AES/GCM. Due to this objects to be encrypted or decrypted
 // will be fully loaded into memory before encryption or decryption can occur. Caution must be taken to avoid memory
 // allocation failures.
-func AESGCMContentCipherBuilder(generator CipherDataGeneratorWithCEKAlg) ContentCipherBuilder {
-	return gcmContentCipherBuilder{generator}
-}
+//func AESGCMContentCipherBuilder(generator CipherDataGeneratorWithCEKAlg) ContentCipherBuilder {
+//	return gcmContentCipherBuilder{generator}
+//}
 
-// RegisterAESGCMContentCipher registers the AES/GCM content cipher algorithm with the provided CryptographicMaterialsManager.
+// RegisterAESGCMContentCipher registers the AES/GCM content cipher algorithm with the provided DefaultCryptographicMaterialsManager.
 //
 // Example:
 //
@@ -29,7 +29,7 @@ func AESGCMContentCipherBuilder(generator CipherDataGeneratorWithCEKAlg) Content
 //	if err := s3crypto.RegisterAESGCMContentCipher(cr); err != nil {
 //		panic(err) // handle error
 //	}
-func RegisterAESGCMContentCipher(registry *CryptographicMaterialsManager) error {
+func RegisterAESGCMContentCipher(registry *DefaultCryptographicMaterialsManager) error {
 	if registry == nil {
 		return errNilCryptographicMaterialsManager
 	}
@@ -52,31 +52,12 @@ func RegisterAESGCMContentCipher(registry *CryptographicMaterialsManager) error 
 	return nil
 }
 
-// gcmContentCipherBuilder return a new builder for encryption content using AES/GCM/NoPadding. This type is meant
-// to be used with Keyring implementations that allow the cek algorithm to be provided when calling the
-// cipher data generator.
-type gcmContentCipherBuilder struct {
-	generator CipherDataGeneratorWithCEKAlg
-}
-
-func (builder gcmContentCipherBuilder) ContentCipher() (ContentCipher, error) {
-	return builder.ContentCipherWithContext(context.Background())
-}
-
-func (builder gcmContentCipherBuilder) ContentCipherWithContext(ctx context.Context) (ContentCipher, error) {
-	cd, err := builder.generator.GenerateCipherDataWithCEKAlg(ctx, gcmKeySize, gcmNonceSize, AESGCMNoPadding)
-	if err != nil {
-		return nil, err
-	}
-
-	return newAESGCMContentCipher(cd)
-}
-
+// TODO: Relocate
 // isAWSFixture will return whether this type was constructed with an AWS provided CipherDataGenerator
-func (builder gcmContentCipherBuilder) isAWSFixture() bool {
-	v, ok := builder.generator.(awsFixture)
-	return ok && v.isAWSFixture()
-}
+//func (builder gcmContentCipherBuilder) isAWSFixture() bool {
+//	v, ok := builder.generator.(awsFixture)
+//	return ok && v.isAWSFixture()
+//}
 
 func newAESGCMContentCipher(cd CryptographicMaterials) (ContentCipher, error) {
 	cd.CEKAlgorithm = AESGCMNoPadding
@@ -117,22 +98,23 @@ func (cc aesGCMContentCipher) GetCipherData() CryptographicMaterials {
 	return cc.CipherData
 }
 
+// TODO: figure out what the point of this is, relocate if needed
 // assert ContentCipherBuilder implementations
-var (
-	_ ContentCipherBuilder = (*gcmContentCipherBuilder)(nil)
-)
-
-// assert ContentCipherBuilderWithContext implementations
-var (
-	_ ContentCipherBuilderWithContext = (*gcmContentCipherBuilder)(nil)
-)
+//var (
+//	_ ContentCipherBuilder = (*gcmContentCipherBuilder)(nil)
+//)
+//
+//// assert ContentCipherBuilderWithContext implementations
+//var (
+//	_ ContentCipherBuilderWithContext = (*gcmContentCipherBuilder)(nil)
+//)
 
 // assert ContentCipher implementations
 var (
 	_ ContentCipher = (*aesGCMContentCipher)(nil)
 )
 
-// assert awsFixture implementations
-var (
-	_ awsFixture = (*gcmContentCipherBuilder)(nil)
-)
+//// assert awsFixture implementations
+//var (
+//	_ awsFixture = (*gcmContentCipherBuilder)(nil)
+//)

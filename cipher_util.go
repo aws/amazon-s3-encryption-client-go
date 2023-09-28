@@ -37,18 +37,6 @@ func encodeMeta(reader lengthReader, cd CryptographicMaterials) (ObjectMetadata,
 	}, nil
 }
 
-func keyringFromEnvelope(options EncryptionClientOptions, env ObjectMetadata) (CipherDataDecrypter, error) {
-	f, ok := options.CryptographicMaterialsManager.GetKeyring(env.KeyringAlg)
-	if !ok || f == nil {
-		return nil, &smithy.GenericAPIError{
-			Code:    "InvalidKeyringAlgorithmError",
-			Message: "KeyringEntry algorithm isn't supported, " + env.KeyringAlg,
-			Fault:   smithy.FaultClient,
-		}
-	}
-	return f(env)
-}
-
 func cekFromEnvelope(ctx context.Context, options EncryptionClientOptions, env ObjectMetadata, decrypter CipherDataDecrypter) (ContentCipher, error) {
 	registeredCek, ok := options.CryptographicMaterialsManager.GetCEK(env.CEKAlg)
 	if !ok || registeredCek == nil {

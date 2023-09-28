@@ -73,7 +73,6 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 	}
 
 	var alias = LoadAwsKmsAlias()
-	var handlerWithCek s3crypto.CipherDataGeneratorWithCEKAlg
 	arn, err := getAliasArn(alias, region, accountId)
 	if err != nil {
 		t.Fatalf("failed to get fixture alias info for %s, %v", alias, err)
@@ -88,16 +87,14 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 
 	kmsClient := kms.NewFromConfig(cfg)
 	var matDesc s3crypto.MaterialDescription
-	handlerWithCek = s3crypto.NewKMSContextKeyGenerator(kmsClient, arn, matDesc)
+	// TODO: use this for negative testing
 	//cr, err := s3crypto.NewCryptographicMaterialsManager(&handlerWithCek, s3crypto.NewKmsDecryptOnlyKeyring(kmsClient, arn, matDesc))
-	cr, err := s3crypto.NewCryptographicMaterialsManager(&handlerWithCek, s3crypto.NewKmsContextKeyring(kmsClient, arn, matDesc))
+	cmm, err := s3crypto.NewCryptographicMaterialsManager(s3crypto.NewKmsContextKeyring(kmsClient, arn, matDesc))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
-	s3crypto.RegisterAESGCMContentCipher(cr)
-	s3crypto.RegisterKMSContextKeyringWithAnyCMK(cr, kmsClient)
 
-	s3EncryptionClient, err := s3crypto.NewS3EncryptionClientV3(s3Client, cr, handlerWithCek)
+	s3EncryptionClient, err := s3crypto.NewS3EncryptionClientV3(s3Client, cmm)
 	_, err = s3EncryptionClient.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),

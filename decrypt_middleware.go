@@ -70,8 +70,8 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 	// Currently, this returns ContentCipher which is basically mats + content crypto
 	// it decrypts the data key anaw
 	// instead, or within, we want to instead call functions on the CMM
-	//var cekAlgGen = *m.client.options.CryptographicMaterialsManager.GeneratorWithCEKAlg
-	//*m.client.options.CryptographicMaterialsManager.
+	//var cekAlgGen = *m.client.options.DefaultCryptographicMaterialsManager.GeneratorWithCEKAlg
+	//*m.client.options.DefaultCryptographicMaterialsManager.
 	//	// there should be a func on the CMM to shell out to keyring instead
 	//	cekAlgGen.GenerateCipherDataWithCEKAlg(ctx, 256, len(objectMetadata.IV), objectMetadata.CEKAlg)
 	materials, err := m.client.options.CryptographicMaterialsManager.decryptMaterials(ctx, objectMetadata)

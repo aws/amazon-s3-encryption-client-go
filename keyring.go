@@ -3,6 +3,7 @@ package s3crypto
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 )
 
 //	type EncryptionMaterials struct {
@@ -23,10 +24,9 @@ import (
 //		}
 //	}
 type DecryptionMaterials struct {
-	DataKey          []byte //base64 decoded ciphertext data key
-	ContentIV        []byte //base64 decoded content IV
-	PlaintextDataKey DataKey
-	//ContentAlgorithm    ContentCipher
+	DataKey             []byte //base64 decoded ciphertext data key
+	ContentIV           []byte //base64 decoded content IV
+	PlaintextDataKey    DataKey
 	MaterialDescription MaterialDescription
 	ContentAlgorithm    string // TODO: maybe make this an enum? if those exist in Go..
 }
@@ -43,6 +43,13 @@ func NewDecryptionMaterials(encodedDataKey string, encodedContentIV string, enco
 	}
 	materialDescription := MaterialDescription{}
 	err = materialDescription.decodeDescription([]byte(encodedMatDesc))
+
+	if v, ok := materialDescription[kmsAWSCEKContextKey]; !ok {
+		return nil, fmt.Errorf("required key %v is missing from encryption context", kmsAWSCEKContextKey)
+	} else if v != cekAlg {
+		return nil, fmt.Errorf(kmsMismatchCEKAlg)
+	}
+
 	if err != nil {
 		return nil, err
 	}

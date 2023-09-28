@@ -25,9 +25,9 @@ type CipherDataGeneratorWithContext interface {
 // content cipher. CipherDataGenerator will also encrypt the key and store it in
 // the CryptographicMaterials.
 // IMPLEMENTED BY: kms_context_key_handler.go -> kmsContextKeyHandler
-type CipherDataGeneratorWithCEKAlg interface {
-	GenerateCipherDataWithCEKAlg(ctx context.Context, keySize, ivSize int, cekAlgorithm string) (CryptographicMaterials, error)
-}
+//type CipherDataGeneratorWithCEKAlg interface {
+//	GenerateCipherDataWithCEKAlg(ctx context.Context, keySize, ivSize int, cekAlgorithm string) (CryptographicMaterials, error)
+//}
 
 // CipherDataDecrypter is a handler to decrypt keys from the envelope.
 type CipherDataDecrypter interface {

@@ -74,8 +74,8 @@ func (m *encryptMiddleware) HandleSerialize(
 	}
 
 	materials := m.ec.options.CryptographicMaterialsManager.getEncryptionMaterials()
-	keyring := *m.ec.options.CryptographicMaterialsManager.Keyring
-	cryptoMaterials, err := keyring.OnEncrypt(ctx, materials)
+	cmm := m.ec.options.CryptographicMaterialsManager
+	cryptoMaterials, err := cmm.GetKeyring().OnEncrypt(ctx, materials)
 	if err != nil {
 		return out, metadata, err
 	}
