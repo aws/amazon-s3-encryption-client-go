@@ -22,7 +22,7 @@ func TestNewEncryptionClientV3_NonDefaults(t *testing.T) {
 	tClient := s3.NewFromConfig(tConfig)
 
 	var mcmm = mockCMM{}
-	v3, _ := NewS3EncryptionClientV3(tClient, mcmm, nil, func(clientOptions *EncryptionClientOptions) {
+	v3, _ := NewS3EncryptionClientV3(tClient, mcmm, func(clientOptions *EncryptionClientOptions) {
 		clientOptions.CryptographicMaterialsManager = mcmm
 		clientOptions.TempFolderPath = "/mock/path"
 		clientOptions.MinFileSize = 42

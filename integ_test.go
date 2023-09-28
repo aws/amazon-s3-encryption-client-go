@@ -249,7 +249,7 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 
 			var decClient *s3crypto.S3EncryptionClientV3
 			if c.CEKAlg == "aes_cbc" {
-				decClient, err = s3crypto.NewS3EncryptionClientV3(s3Client, cmm, nil, func(clientOptions *s3crypto.EncryptionClientOptions) {
+				decClient, err = s3crypto.NewS3EncryptionClientV3(s3Client, cmm, func(clientOptions *s3crypto.EncryptionClientOptions) {
 					clientOptions.EnableLegacyModes = true
 				})
 				if err != nil {

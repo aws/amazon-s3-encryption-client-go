@@ -99,6 +99,9 @@ func (k *KmsContextKeyring) OnEncrypt(ctx context.Context, materials *Encryption
 	if _, ok := k.matDesc[kmsAWSCEKContextKey]; ok {
 		return nil, fmt.Errorf(kmsReservedKeyConflictErrMsg, kmsAWSCEKContextKey)
 	}
+	if k.matDesc == nil {
+		k.matDesc = map[string]string{}
+	}
 	k.matDesc[kmsAWSCEKContextKey] = materials.algorithm
 
 	out, err := k.kmsClient.GenerateDataKey(ctx,
