@@ -75,6 +75,9 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 	//	// there should be a func on the CMM to shell out to keyring instead
 	//	cekAlgGen.GenerateCipherDataWithCEKAlg(ctx, 256, len(objectMetadata.IV), objectMetadata.CEKAlg)
 	materials, err := m.client.options.CryptographicMaterialsManager.decryptMaterials(ctx, objectMetadata)
+	if err != nil {
+		return out, metadata, fmt.Errorf("error while decrypting materials: %v", err)
+	}
 
 	// TODO: not sure if this is the best place to put this, maybe instead where it's parsed? as early as possible?
 	// TODO: make sure this check is even correct lol, it's a very weak string match prob not
@@ -82,8 +85,15 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 		return out, metadata, fmt.Errorf("configure client with enable legacy modes set to true to decrypt with %s", materials.CEKAlgorithm)
 	}
 
-	cek, ok := m.client.options.CryptographicMaterialsManager.GetCEK(materials.CEKAlgorithm)
-	cipher, err := cek(*materials)
+	var cekFunc CEKEntry
+	switch materials.CEKAlgorithm {
+	case AESGCMNoPadding:
+		cekFunc = newAESGCMContentCipher
+	case AESCBC:
+		cekFunc = newAESCBCContentCipher
+	}
+
+	cipher, err := cekFunc(*materials)
 	cipher.DecryptContents(result.Body)
 	reader, err := cipher.DecryptContents(result.Body)
 	if err != nil {
