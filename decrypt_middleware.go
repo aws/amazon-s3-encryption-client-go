@@ -7,6 +7,7 @@ import (
 	"github.com/aws/smithy-go"
 	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
+	"strings"
 )
 
 // GetObjectAPIClient is a client that implements the GetObject operation
@@ -79,18 +80,17 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 		return out, metadata, fmt.Errorf("error while decrypting materials: %v", err)
 	}
 
-	// TODO: not sure if this is the best place to put this, maybe instead where it's parsed? as early as possible?
-	// TODO: make sure this check is even correct lol, it's a very weak string match prob not
-	if m.client.options.EnableLegacyModes && materials.CEKAlgorithm == AESCBC {
-		return out, metadata, fmt.Errorf("configure client with enable legacy modes set to true to decrypt with %s", materials.CEKAlgorithm)
-	}
-
+	// determine the content algorithm
 	var cekFunc CEKEntry
-	switch materials.CEKAlgorithm {
-	case AESGCMNoPadding:
+	if materials.CEKAlgorithm == AESGCMNoPadding {
 		cekFunc = newAESGCMContentCipher
-	case AESCBC:
+	} else if strings.Contains(materials.CEKAlgorithm, "AES/CBC") {
+		if !m.client.options.EnableLegacyModes {
+			return out, metadata, fmt.Errorf("configure client with enable legacy modes set to true to decrypt with %s", materials.CEKAlgorithm)
+		}
 		cekFunc = newAESCBCContentCipher
+	} else {
+		return out, metadata, fmt.Errorf("invalid content encryption algorithm found in metadata: %s", materials.CEKAlgorithm)
 	}
 
 	cipher, err := cekFunc(*materials)

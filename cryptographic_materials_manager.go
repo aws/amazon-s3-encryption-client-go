@@ -12,9 +12,6 @@ type CEKEntry func(CryptographicMaterials) (ContentCipher, error)
 type CryptographicMaterialsManager interface {
 	getEncryptionMaterials() *EncryptionMaterials
 	decryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error)
-	AddCEK(name string, entry CEKEntry) error
-	GetCEK(name string) (CEKEntry, bool)
-	RemoveCEK(name string) (CEKEntry, bool)
 	GetKeyring() Keyring
 	AddPadder(name string, entry Padder) error
 	GetPadder(name string) (Padder, bool)
@@ -44,56 +41,12 @@ func NewCryptographicMaterialsManager(keyring Keyring) (*DefaultCryptographicMat
 		}
 	}
 
-	err := cmm.AddCEK(AESGCMNoPadding, newAESGCMContentCipher)
-	if err != nil {
-		return nil, err
-	}
-
 	return cmm, nil
 }
 
 // GetKeyring returns the KeyringEntry identified by the given name. Returns false if the entry is not registered.
 func (cmm DefaultCryptographicMaterialsManager) GetKeyring() Keyring {
 	return *cmm.Keyring
-}
-
-// GetCEK returns the CEKEntry identified by the given name. Returns false if the entry is not registered.
-func (cmm DefaultCryptographicMaterialsManager) GetCEK(name string) (CEKEntry, bool) {
-	if cmm.cek == nil {
-		return nil, false
-	}
-	entry, ok := cmm.cek[name]
-	return entry, ok
-}
-
-// AddCEK registers CEKEntry under the given name, returns an error if a CEKEntry is already present for the given name.
-//
-// This method should only be used if you need to register custom content encryption algorithms. Please see the following methods
-// for helpers to register AWS provided algorithms:
-//
-//	RegisterAESGCMContentCipher (AES/GCM)
-//	RegisterAESCBCContentCipher (AES/CBC)
-func (cmm *DefaultCryptographicMaterialsManager) AddCEK(name string, entry CEKEntry) error {
-	if entry == nil {
-		return errNilCEKEntry
-	}
-	if _, ok := cmm.cek[name]; ok {
-		return newErrDuplicateCEKEntry(name)
-	}
-	cmm.cek[name] = entry
-	return nil
-}
-
-// RemoveCEK removes the CEKEntry identified by name. If the entry is not present returns false.
-func (cmm *DefaultCryptographicMaterialsManager) RemoveCEK(name string) (CEKEntry, bool) {
-	if cmm.cek == nil {
-		return nil, false
-	}
-	entry, ok := cmm.cek[name]
-	if ok {
-		delete(cmm.cek, name)
-	}
-	return entry, ok
 }
 
 // GetPadder returns the Padder identified by name. If the Padder is not present, returns false.

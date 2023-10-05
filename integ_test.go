@@ -106,7 +106,7 @@ func TestParameterMalleabilityRemoval(t *testing.T) {
 			// First write some object using enc client
 			_, err = s3Ec.PutObject(ctx, &s3.PutObjectInput{
 				Bucket: aws.String(bucket),
-				Key:    aws.String(c.TestName),
+				Key:    aws.String(c.TestName + "-oneoff"),
 				Body:   bytes.NewReader([]byte(plaintext)),
 			})
 			if err != nil {
@@ -241,15 +241,17 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 		t.Run(c.CEKAlg+"-"+c.Lang, func(t *testing.T) {
 			s3Client := s3.NewFromConfig(cfg)
 			kmsClient := kms.NewFromConfig(cfg)
-			keyring := s3crypto.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient)
-			cmm, err := s3crypto.NewCryptographicMaterialsManager(keyring)
+			keyringWithContext := s3crypto.NewKmsContextAnyKeyKeyring(kmsClient)
+			cmm, err := s3crypto.NewCryptographicMaterialsManager(keyringWithContext)
 			if err != nil {
 				t.Fatalf("failed to create new CMM")
 			}
 
 			var decClient *s3crypto.S3EncryptionClientV3
 			if c.CEKAlg == "aes_cbc" {
-				decClient, err = s3crypto.NewS3EncryptionClientV3(s3Client, cmm, func(clientOptions *s3crypto.EncryptionClientOptions) {
+				keyring := s3crypto.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient)
+				cmmCbc, err := s3crypto.NewCryptographicMaterialsManager(keyring)
+				decClient, err = s3crypto.NewS3EncryptionClientV3(s3Client, cmmCbc, func(clientOptions *s3crypto.EncryptionClientOptions) {
 					clientOptions.EnableLegacyModes = true
 				})
 				if err != nil {

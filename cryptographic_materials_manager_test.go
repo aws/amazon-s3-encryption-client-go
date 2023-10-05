@@ -41,46 +41,6 @@ package s3crypto
 //	}
 //}
 //
-//func TestCryptographicMaterialsManager_CEK(t *testing.T) {
-//	cr := NewCryptographicMaterialsManager()
-//
-//	mockEntry := CEKEntry(func(data CryptographicMaterials) (ContentCipher, error) {
-//		return nil, nil
-//	})
-//
-//	if _, ok := cr.GetCEK("foo"); ok {
-//		t.Errorf("expected KeyringEntry to not be present")
-//	}
-//
-//	if _, ok := cr.RemoveCEK("foo"); ok {
-//		t.Errorf("expected KeyringEntry to not have been removed")
-//	}
-//
-//	if err := cr.AddCEK("foo", nil); err == nil {
-//		t.Errorf("expected error, got none")
-//	}
-//
-//	if err := cr.AddCEK("foo", mockEntry); err != nil {
-//		t.Errorf("expected no error, got %v", err)
-//	}
-//
-//	if err := cr.AddCEK("foo", mockEntry); err == nil {
-//		t.Error("expected error, got none")
-//	}
-//
-//	if v, ok := cr.GetCEK("foo"); !ok || v == nil {
-//		t.Error("expected KeyringEntry to be present and not nil")
-//	}
-//
-//	if v, ok := cr.RemoveCEK("foo"); !ok || v == nil {
-//		t.Error("expected KeyringEntry to have been removed and not nil")
-//	}
-//
-//	if _, ok := cr.GetCEK("foo"); ok {
-//		t.Error("expected KeyringEntry to have been removed and not nil")
-//	}
-//}
-//
 //func TestCryptographicMaterialsManager_Padder(t *testing.T) {
 //	cr := NewCryptographicMaterialsManager()
 //

@@ -37,8 +37,8 @@ type KmsContextKeyring struct {
 	matDesc   MaterialDescription
 }
 
-// KmsDecryptOnlyAnyKeyKeyring is decrypt-only
-type KmsDecryptOnlyAnyKeyKeyring struct {
+// KmsAnyKeyKeyring is decrypt-only
+type KmsAnyKeyKeyring struct {
 	kmsClient KmsAPIClient
 	matDesc   MaterialDescription
 }
@@ -62,29 +62,7 @@ func (k *KmsDecryptOnlyKeyring) OnEncrypt(ctx context.Context, materials *Encryp
 
 // TODO: Refactor to reuse implementation, no context is a single case of any context
 func (k *KmsDecryptOnlyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey []byte) (*CryptographicMaterials, error) {
-	in := &kms.DecryptInput{
-		// TODO: can the customer put _anything_ here?
-		EncryptionContext: materials.MaterialDescription,
-		CiphertextBlob:    encryptedDataKey,
-	}
-
-	out, err := k.kmsClient.Decrypt(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-
-	materials.PlaintextDataKey.KeyMaterial = out.Plaintext
-	cryptoMaterials := &CryptographicMaterials{
-		Key:                 out.Plaintext,
-		IV:                  materials.ContentIV,
-		KeyringAlgorithm:    "", // todo hardcoded (also who cares lol)
-		CEKAlgorithm:        materials.ContentAlgorithm,
-		TagLength:           "128", // todo hardcoded
-		MaterialDescription: materials.MaterialDescription,
-		EncryptedKey:        materials.DataKey,
-		Padder:              nil, // todo hardcoded
-	}
-	return cryptoMaterials, nil
+	return commonDecrypt(ctx, materials, encryptedDataKey, &k.KmsKeyId, nil, k.kmsClient)
 }
 
 func NewKmsContextKeyring(apiClient KmsAPIClient, cmkId string, matdesc MaterialDescription) *KmsContextKeyring {
@@ -96,17 +74,20 @@ func NewKmsContextKeyring(apiClient KmsAPIClient, cmkId string, matdesc Material
 }
 
 func (k *KmsContextKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
+	// TODO: matDesc MUST be set per-request, not per-Keyring instance
 	if _, ok := k.matDesc[kmsAWSCEKContextKey]; ok {
 		return nil, fmt.Errorf(kmsReservedKeyConflictErrMsg, kmsAWSCEKContextKey)
 	}
 	if k.matDesc == nil {
 		k.matDesc = map[string]string{}
 	}
-	k.matDesc[kmsAWSCEKContextKey] = materials.algorithm
+
+	requestMatDesc := k.matDesc.Clone()
+	requestMatDesc[kmsAWSCEKContextKey] = AESGCMNoPadding
 
 	out, err := k.kmsClient.GenerateDataKey(ctx,
 		&kms.GenerateDataKeyInput{
-			EncryptionContext: k.matDesc,
+			EncryptionContext: requestMatDesc,
 			KeyId:             &k.KmsKeyId,
 			KeySpec:           types.DataKeySpecAes256,
 		})
@@ -124,7 +105,7 @@ func (k *KmsContextKeyring) OnEncrypt(ctx context.Context, materials *Encryption
 		KeyringAlgorithm:    KMSContextKeyring,
 		CEKAlgorithm:        materials.algorithm,
 		TagLength:           "", // TODO: Is this used anywhere?
-		MaterialDescription: k.matDesc,
+		MaterialDescription: requestMatDesc,
 		EncryptedKey:        out.CiphertextBlob,
 		Padder:              nil, // TODO: deal with padder stuff
 	}
@@ -132,53 +113,62 @@ func (k *KmsContextKeyring) OnEncrypt(ctx context.Context, materials *Encryption
 	return cryptoMaterials, nil
 }
 
-// TODO: Refactor to reuse implementation, no context is a single case of any context
 func (k *KmsContextKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey []byte) (*CryptographicMaterials, error) {
-	in := &kms.DecryptInput{
-		EncryptionContext: materials.MaterialDescription,
-		CiphertextBlob:    encryptedDataKey,
-		KeyId:             &k.KmsKeyId,
-	}
-
-	out, err := k.kmsClient.Decrypt(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-
-	materials.PlaintextDataKey.KeyMaterial = out.Plaintext
-	cryptoMaterials := &CryptographicMaterials{
-		Key:                 out.Plaintext,
-		IV:                  materials.ContentIV,
-		KeyringAlgorithm:    "", // todo hardcoded (also who cares lol)
-		CEKAlgorithm:        materials.ContentAlgorithm,
-		TagLength:           "128", // todo hardcoded
-		MaterialDescription: materials.MaterialDescription,
-		EncryptedKey:        materials.DataKey,
-		Padder:              nil, // todo hardcoded
-	}
-	return cryptoMaterials, nil
+	return commonDecrypt(ctx, materials, encryptedDataKey, &k.KmsKeyId, materials.MaterialDescription, k.kmsClient)
 }
 
-func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient) *KmsDecryptOnlyAnyKeyKeyring {
-	return &KmsDecryptOnlyAnyKeyKeyring{
+func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient) *KmsAnyKeyKeyring {
+	return &KmsAnyKeyKeyring{
 		kmsClient: apiClient,
 	}
 }
 
-func (k *KmsDecryptOnlyAnyKeyKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
-	return nil, fmt.Errorf("KmsDecryptOnlyAnyKeyKeyring MUST NOT be used to encrypt new data")
+func (k *KmsAnyKeyKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
+	return nil, fmt.Errorf("KmsAnyKeyKeyring MUST NOT be used to encrypt new data")
 }
 
-// TODO: Refactor to reuse implementation, no context is a single case of any context
-func (k *KmsDecryptOnlyAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey []byte) (*CryptographicMaterials, error) {
+func (k *KmsAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey []byte) (*CryptographicMaterials, error) {
+	return commonDecrypt(ctx, materials, encryptedDataKey, nil, nil, k.kmsClient)
+}
+
+func NewKmsContextAnyKeyKeyring(apiClient KmsAPIClient) *KmsContextAnyKeyKeyring {
+	return &KmsContextAnyKeyKeyring{
+		kmsClient: apiClient,
+	}
+}
+
+func (k *KmsContextAnyKeyKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
+	return nil, fmt.Errorf("KmsContextAnyKeyKeyring MUST NOT be used to encrypt new data")
+}
+
+func (k *KmsContextAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey []byte) (*CryptographicMaterials, error) {
+	return commonDecrypt(ctx, materials, encryptedDataKey, nil, materials.MaterialDescription, k.kmsClient)
+}
+
+func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey []byte, kmsKeyId *string, matDesc MaterialDescription, kmsClient KmsAPIClient) (*CryptographicMaterials, error) {
+	if matDesc != nil {
+		if v, ok := matDesc[kmsAWSCEKContextKey]; !ok {
+			return nil, fmt.Errorf("required key %v is missing from encryption context", kmsAWSCEKContextKey)
+		} else if v != materials.ContentAlgorithm {
+			return nil, fmt.Errorf(kmsMismatchCEKAlg)
+		}
+	}
+
 	in := &kms.DecryptInput{
 		EncryptionContext: materials.MaterialDescription,
 		CiphertextBlob:    encryptedDataKey,
+		KeyId:             kmsKeyId, // TODO possible nil pointer?
 	}
 
-	out, err := k.kmsClient.Decrypt(ctx, in)
+	out, err := kmsClient.Decrypt(ctx, in)
 	if err != nil {
 		return nil, err
+	}
+
+	// TODO: This should probably be determined earlier
+	var padder Padder
+	if materials.ContentAlgorithm == "AES/CBC/PKCS5Padding" {
+		padder = aescbcPadding
 	}
 
 	materials.PlaintextDataKey.KeyMaterial = out.Plaintext
@@ -190,7 +180,7 @@ func (k *KmsDecryptOnlyAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *
 		TagLength:           "128", // todo hardcoded
 		MaterialDescription: materials.MaterialDescription,
 		EncryptedKey:        materials.DataKey,
-		Padder:              nil, // todo hardcoded
+		Padder:              padder,
 	}
 	return cryptoMaterials, nil
 }

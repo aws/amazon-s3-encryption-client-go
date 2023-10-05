@@ -1,7 +1,6 @@
 package s3crypto
 
 import (
-	"fmt"
 	"io"
 )
 
@@ -20,38 +19,6 @@ const (
 //func AESGCMContentCipherBuilder(generator CipherDataGeneratorWithCEKAlg) ContentCipherBuilder {
 //	return gcmContentCipherBuilder{generator}
 //}
-
-// RegisterAESGCMContentCipher registers the AES/GCM content cipher algorithm with the provided DefaultCryptographicMaterialsManager.
-//
-// Example:
-//
-//	cr := s3crypto.NewCryptographicMaterialsManager()
-//	if err := s3crypto.RegisterAESGCMContentCipher(cr); err != nil {
-//		panic(err) // handle error
-//	}
-func RegisterAESGCMContentCipher(registry *DefaultCryptographicMaterialsManager) error {
-	if registry == nil {
-		return errNilCryptographicMaterialsManager
-	}
-
-	err := registry.AddCEK(AESGCMNoPadding, newAESGCMContentCipher)
-	if err != nil {
-		return err
-	}
-
-	// NoPadder is generic but required by this algorithm, so if it is already registered and is the expected implementation
-	// don't error.
-	padderName := NoPadder.Name()
-	if v, ok := registry.GetPadder(padderName); !ok {
-		if err := registry.AddPadder(padderName, NoPadder); err != nil {
-			return err
-		}
-	} else if _, ok := v.(noPadder); !ok {
-		return fmt.Errorf("%s is already registred but does not match expected type %T", padderName, NoPadder)
-	}
-	return nil
-}
-
 // TODO: Relocate
 // isAWSFixture will return whether this type was constructed with an AWS provided CipherDataGenerator
 //func (builder gcmContentCipherBuilder) isAWSFixture() bool {

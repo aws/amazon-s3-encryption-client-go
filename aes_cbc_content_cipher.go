@@ -4,31 +4,6 @@ import (
 	"io"
 )
 
-// RegisterAESCBCContentCipher registers the AES/CBC cipher and padder with the provided DefaultCryptographicMaterialsManager.
-//
-// Example:
-//
-//	cr := s3crypto.NewCryptographicMaterialsManager()
-//	if err := s3crypto.RegisterAESCBCContentCipher(cr, s3crypto.AESCBCPadder); err != nil {
-//		panic(err) // handle error
-//	}
-//
-// deprecated: This feature is in maintenance mode, no new updates will be released. Please see https://docs.aws.amazon.com/general/latest/gr/aws_sdk_cryptography.html for more information.
-func RegisterAESCBCContentCipher(registry *DefaultCryptographicMaterialsManager, padder Padder) error {
-	if registry == nil {
-		return errNilCryptographicMaterialsManager
-	}
-	name := AESCBC + "/" + padder.Name()
-	err := registry.AddCEK(name, newAESCBCContentCipher)
-	if err != nil {
-		return err
-	}
-	if err := registry.AddPadder(name, padder); err != nil {
-		return err
-	}
-	return nil
-}
-
 // newAESCBCContentCipher will create a new aes cbc content cipher. If the cipher data's
 // will set the cek algorithm if it hasn't been set.
 func newAESCBCContentCipher(cd CryptographicMaterials) (ContentCipher, error) {
