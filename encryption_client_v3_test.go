@@ -75,7 +75,6 @@ func (k keyringWithStaticTestIV) OnEncrypt(ctx context.Context, materials *Encry
 	return cryptoMaterials, err
 }
 
-// TEST-MOCK
 func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		fmt.Fprintln(writer, `{"CiphertextBlob":"8gSzlk7giyfFbLPUVgoVjvQebI1827jp8lDkO+n2chsiSoegx1sjm8NdPk0Bl70I","KeyId":"test-key-id","Plaintext":"lP6AbIQTmptyb/+WQq+ubDw+w7na0T1LGSByZGuaono="}`)

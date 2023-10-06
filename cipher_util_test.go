@@ -1,11 +1,13 @@
 package s3crypto
 
-//
+// TODO: Update to use new funcs
+// TODO: keyringFromEnvelope becomes decryptMaterials
 //func TestKeyringFactory(t *testing.T) {
 //	tConfig := awstesting.Config()
 //	kmsClient := kms.NewFromConfig(tConfig)
 //
 //	o := EncryptionClientOptions{
+//		// TODO: Just create a new cmm
 //		CryptographicMaterialsManager: initCryptographicMaterialsManagerFrom(map[string]KeyringEntry{
 //			KMSKeyring: (kmsKeyHandler{
 //				apiClient: kmsClient,

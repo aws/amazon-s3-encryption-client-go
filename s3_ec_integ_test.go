@@ -14,6 +14,7 @@ import (
 	"testing"
 )
 
+// TODO: Remove once ready for PR
 const defaultBucket = "s3-encryption-client-v3-go-justplaz-us-west-2"
 const bucketEnvvar = "BUCKET"
 const defaultRegion = "us-west-2"
@@ -285,6 +286,7 @@ func TestIntegKmsContextDecryptAny(t *testing.T) {
 
 // TODO: Fix this test, it needs to use the old client
 // TODO: to generate the ciphertext to decrypt
+// TODO: Probably leave this to the test vector package
 //func TestIntegKms(t *testing.T) {
 //	var bucket = LoadBucket()
 //	var region = LoadRegion()

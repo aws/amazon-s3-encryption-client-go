@@ -66,16 +66,6 @@ func (m mockCMM) decryptMaterials(ctx context.Context, objectMetadata ObjectMeta
 	}, nil
 }
 
-func (m mockCMM) AddCEK(name string, entry CEKEntry) error {
-	return nil
-}
-
-func (m mockCMM) GetCEK(name string) (CEKEntry, bool) {
-	return nil, false
-}
-func (m mockCMM) RemoveCEK(name string) (CEKEntry, bool) {
-	return nil, false
-}
 func (m mockCMM) GetKeyring() Keyring {
 	return nil
 }
@@ -88,7 +78,6 @@ func (m mockCMM) GetPadder(name string) (Padder, bool) {
 }
 func (m mockCMM) RemovePadder(name string) (Padder, bool) {
 	return nil, false
-
 }
 
 type mockContentCipher struct {

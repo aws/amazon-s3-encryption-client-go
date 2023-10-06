@@ -1,6 +1,6 @@
 package s3crypto
 
-//
+// TODO: These are mildly helpful unit tests, rewrite against new CMM
 //func TestCryptographicMaterialsManager_Keyring(t *testing.T) {
 //	cr := NewCryptographicMaterialsManager()
 //

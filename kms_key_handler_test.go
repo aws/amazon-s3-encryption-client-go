@@ -1,5 +1,6 @@
 package s3crypto
 
+// TODO: Rewrite the whole thing to use Keyring
 //
 //func TestKmsKeyHandler_DecryptKey(t *testing.T) {
 //	key, _ := hex.DecodeString("31bdadd96698c204aa9ce1448ea94ae1fb4a9a0b3c9d773b51bb1822666b8f22")
