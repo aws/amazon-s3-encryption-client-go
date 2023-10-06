@@ -37,8 +37,9 @@ func TestKmsContextKeyHandler_GenerateCipherDataWithCEKAlg(t *testing.T) {
 			return
 		}
 
+		// default EncryptionContext
 		exEncContext := map[string]interface{}{
-			"aws:" + cekAlgorithmHeader: "cekAlgValue",
+			"aws:" + cekAlgorithmHeader: AESGCMNoPadding,
 		}
 
 		if e, a := exEncContext, md; !reflect.DeepEqual(e, a) {
@@ -58,9 +59,74 @@ func TestKmsContextKeyHandler_GenerateCipherDataWithCEKAlg(t *testing.T) {
 	svc := kms.NewFromConfig(tConfig)
 
 	keySize := 32
-	ivSize := 16
+	ivSize := 12
 
 	keyring := NewKmsContextKeyring(svc, "testid", nil)
+	cmm, err := NewCryptographicMaterialsManager(keyring)
+	if err != nil {
+		t.Fatalf("failed to create new CMM")
+	}
+	materials := cmm.getEncryptionMaterials()
+	// TODO: This is actually calling KMS, which is almost certainly wrong
+	// TODO: Debug the old test to see how it was mocked
+	cd, err := keyring.OnEncrypt(context.Background(), materials)
+	if err != nil {
+		t.Errorf("expected no error, but received %v", err)
+	}
+	if keySize != len(cd.Key) {
+		t.Errorf("expected %d, but received %d", keySize, len(cd.Key))
+	}
+	if ivSize != len(cd.IV) {
+		t.Errorf("expected %d, but received %d", ivSize, len(cd.IV))
+	}
+}
+
+// TODO: Custom EC
+func TestKmsContextKeyHandler_GenerateCipherDataWithCEKAlg_CustomEncryptionContext(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		bodyBytes, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(500)
+			return
+		}
+		var body map[string]interface{}
+		err = json.Unmarshal(bodyBytes, &body)
+		if err != nil {
+			w.WriteHeader(500)
+			return
+		}
+
+		md, ok := body["EncryptionContext"].(map[string]interface{})
+		if !ok {
+			w.WriteHeader(500)
+			return
+		}
+
+		exEncContext := map[string]interface{}{
+			"aws:" + cekAlgorithmHeader: AESGCMNoPadding,
+			"custom-key":                "custom-value",
+		}
+
+		if e, a := exEncContext, md; !reflect.DeepEqual(e, a) {
+			w.WriteHeader(500)
+			t.Errorf("expected %v, got %v", e, a)
+			return
+		}
+
+		fmt.Fprintln(w, `{"CiphertextBlob":"AQEDAHhqBCCY1MSimw8gOGcUma79cn4ANvTtQyv9iuBdbcEF1QAAAH4wfAYJKoZIhvcNAQcGoG8wbQIBADBoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDJ6IcN5E4wVbk38MNAIBEIA7oF1E3lS7FY9DkoxPc/UmJsEwHzL82zMqoLwXIvi8LQHr8If4Lv6zKqY8u0+JRgSVoqCvZDx3p8Cn6nM=","KeyId":"arn:aws:kms:us-west-2:042062605278:key/c80a5cdb-8d09-4f9f-89ee-df01b2e3870a","Plaintext":"6tmyz9JLBE2yIuU7iXpArqpDVle172WSmxjcO6GNT7E="}`)
+	}))
+	defer ts.Close()
+
+	tConfig := awstesting.Config()
+	tConfig.Region = "us-west-2"
+	tConfig.RetryMaxAttempts = 0
+	tConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
+	svc := kms.NewFromConfig(tConfig)
+
+	keySize := 32
+	ivSize := 12
+
+	keyring := NewKmsContextKeyring(svc, "testid", MaterialDescription{"custom-key": "custom-value"})
 	cmm, err := NewCryptographicMaterialsManager(keyring)
 	if err != nil {
 		t.Fatalf("failed to create new CMM")
@@ -207,7 +273,7 @@ func TestKmsContextKeyHandler_decryptHandler_MismatchKeyring(t *testing.T) {
 		t.Fatal("expected error, but got none")
 	}
 
-	if e, a := "x-amz-cek-alg value `kms` did not match the expected algorithm `kms+context` for this handler", err.Error(); !strings.Contains(a, e) {
+	if e, a := "x-amz-cek-alg value `kms` did not match the expected algorithm `kms+context` for this keyring", err.Error(); !strings.Contains(a, e) {
 		t.Errorf("expected error to contain %v, got %v", e, a)
 	}
 }

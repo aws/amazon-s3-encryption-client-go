@@ -28,7 +28,7 @@ func (m mockKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMateria
 
 // OnDecrypt decrypts the encryptedDataKeys and returns them in materials
 // for use with content decryption
-func (m mockKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey []byte) (*CryptographicMaterials, error) {
+func (m mockKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
 	// TODO: I guess fill this oot
 	return &CryptographicMaterials{
 		Key:                 nil,

@@ -60,8 +60,10 @@ func (k *KmsDecryptOnlyKeyring) OnEncrypt(ctx context.Context, materials *Encryp
 	return nil, fmt.Errorf("KmsDecryptOnlyKeyring MUST NOT be used to encrypt new data")
 }
 
-// TODO: Refactor to reuse implementation, no context is a single case of any context
-func (k *KmsDecryptOnlyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey []byte) (*CryptographicMaterials, error) {
+func (k *KmsDecryptOnlyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
+	if materials.DataKey.DataKeyAlgorithm != KMSKeyring {
+		return nil, fmt.Errorf("x-amz-cek-alg value `%s` did not match the expected algorithm `%s` for this keyring", materials.DataKey.DataKeyAlgorithm, KMSKeyring)
+	}
 	return commonDecrypt(ctx, materials, encryptedDataKey, &k.KmsKeyId, nil, k.kmsClient)
 }
 
@@ -113,7 +115,10 @@ func (k *KmsContextKeyring) OnEncrypt(ctx context.Context, materials *Encryption
 	return cryptoMaterials, nil
 }
 
-func (k *KmsContextKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey []byte) (*CryptographicMaterials, error) {
+func (k *KmsContextKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
+	if materials.DataKey.DataKeyAlgorithm != KMSContextKeyring {
+		return nil, fmt.Errorf("x-amz-cek-alg value `%s` did not match the expected algorithm `%s` for this keyring", materials.DataKey.DataKeyAlgorithm, KMSContextKeyring)
+	}
 	return commonDecrypt(ctx, materials, encryptedDataKey, &k.KmsKeyId, materials.MaterialDescription, k.kmsClient)
 }
 
@@ -127,7 +132,10 @@ func (k *KmsAnyKeyKeyring) OnEncrypt(ctx context.Context, materials *EncryptionM
 	return nil, fmt.Errorf("KmsAnyKeyKeyring MUST NOT be used to encrypt new data")
 }
 
-func (k *KmsAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey []byte) (*CryptographicMaterials, error) {
+func (k *KmsAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
+	if materials.DataKey.DataKeyAlgorithm != KMSKeyring {
+		return nil, fmt.Errorf("x-amz-cek-alg value `%s` did not match the expected algorithm `%s` for this keyring", materials.DataKey.DataKeyAlgorithm, KMSKeyring)
+	}
 	return commonDecrypt(ctx, materials, encryptedDataKey, nil, nil, k.kmsClient)
 }
 
@@ -141,11 +149,14 @@ func (k *KmsContextAnyKeyKeyring) OnEncrypt(ctx context.Context, materials *Encr
 	return nil, fmt.Errorf("KmsContextAnyKeyKeyring MUST NOT be used to encrypt new data")
 }
 
-func (k *KmsContextAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey []byte) (*CryptographicMaterials, error) {
+func (k *KmsContextAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
+	if materials.DataKey.DataKeyAlgorithm != KMSContextKeyring {
+		return nil, fmt.Errorf("x-amz-cek-alg value `%s` did not match the expected algorithm `%s` for this keyring", materials.DataKey.DataKeyAlgorithm, KMSContextKeyring)
+	}
 	return commonDecrypt(ctx, materials, encryptedDataKey, nil, materials.MaterialDescription, k.kmsClient)
 }
 
-func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey []byte, kmsKeyId *string, matDesc MaterialDescription, kmsClient KmsAPIClient) (*CryptographicMaterials, error) {
+func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey, kmsKeyId *string, matDesc MaterialDescription, kmsClient KmsAPIClient) (*CryptographicMaterials, error) {
 	if matDesc != nil {
 		if v, ok := matDesc[kmsAWSCEKContextKey]; !ok {
 			return nil, fmt.Errorf("required key %v is missing from encryption context", kmsAWSCEKContextKey)
@@ -156,7 +167,7 @@ func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encrypte
 
 	in := &kms.DecryptInput{
 		EncryptionContext: materials.MaterialDescription,
-		CiphertextBlob:    encryptedDataKey,
+		CiphertextBlob:    encryptedDataKey.EncryptedDataKey,
 		KeyId:             kmsKeyId, // TODO possible nil pointer?
 	}
 
@@ -171,7 +182,7 @@ func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encrypte
 		padder = aescbcPadding
 	}
 
-	materials.PlaintextDataKey.KeyMaterial = out.Plaintext
+	materials.DataKey.KeyMaterial = out.Plaintext
 	cryptoMaterials := &CryptographicMaterials{
 		Key:                 out.Plaintext,
 		IV:                  materials.ContentIV,
@@ -179,7 +190,7 @@ func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encrypte
 		CEKAlgorithm:        materials.ContentAlgorithm,
 		TagLength:           "128", // todo hardcoded
 		MaterialDescription: materials.MaterialDescription,
-		EncryptedKey:        materials.DataKey,
+		EncryptedKey:        materials.DataKey.EncryptedDataKey,
 		Padder:              padder,
 	}
 	return cryptoMaterials, nil

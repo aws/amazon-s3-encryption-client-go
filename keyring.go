@@ -23,14 +23,14 @@ import (
 //		}
 //	}
 type DecryptionMaterials struct {
-	DataKey             []byte //base64 decoded ciphertext data key
+	DataKey             DataKey
 	ContentIV           []byte //base64 decoded content IV
-	PlaintextDataKey    DataKey
 	MaterialDescription MaterialDescription
 	ContentAlgorithm    string // TODO: maybe make this an enum? if those exist in Go..
 }
 
-func NewDecryptionMaterials(encodedDataKey string, encodedContentIV string, encodedMatDesc string, cekAlg string) (*DecryptionMaterials, error) {
+// TODO: Prefer this taking ObjectMetadata instead of its fields as parameters
+func NewDecryptionMaterials(encodedDataKey string, encodedContentIV string, encodedMatDesc string, cekAlg string, dataKeyAlg string) (*DecryptionMaterials, error) {
 	// TODO: Move decoding into ObjectMetadata
 	key, err := base64.StdEncoding.DecodeString(encodedDataKey)
 	if err != nil {
@@ -43,22 +43,27 @@ func NewDecryptionMaterials(encodedDataKey string, encodedContentIV string, enco
 	materialDescription := MaterialDescription{}
 	err = materialDescription.decodeDescription([]byte(encodedMatDesc))
 
+	dataKey := DataKey{
+		KeyMaterial:      nil,
+		EncryptedDataKey: key,
+		DataKeyAlgorithm: dataKeyAlg,
+	}
+
 	if err != nil {
 		return nil, err
 	}
 	return &DecryptionMaterials{
-		DataKey:             key,
+		DataKey:             dataKey,
 		ContentIV:           iv,
 		MaterialDescription: materialDescription,
 		ContentAlgorithm:    cekAlg,
 	}, nil
 }
 
-// TODO: if this is just byte array, what's the point?
-// consider making this a bit more useful? maybe algorithm?
-// TODO: I regret this, remove it
 type DataKey struct {
-	KeyMaterial []byte
+	KeyMaterial      []byte
+	EncryptedDataKey []byte
+	DataKeyAlgorithm string
 }
 
 // Keyring implementations are responsible for encrypting/decrypting data keys
@@ -70,5 +75,5 @@ type Keyring interface {
 	OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error)
 	// OnDecrypt decrypts the encryptedDataKeys and returns them in materials
 	// for use with content decryption
-	OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey []byte) (*CryptographicMaterials, error)
+	OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error)
 }
