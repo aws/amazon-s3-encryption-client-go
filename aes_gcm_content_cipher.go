@@ -16,9 +16,11 @@ const (
 // Note: This uses the Go stdlib AEAD implementation for AES/GCM. Due to this objects to be encrypted or decrypted
 // will be fully loaded into memory before encryption or decryption can occur. Caution must be taken to avoid memory
 // allocation failures.
-//func AESGCMContentCipherBuilder(generator CipherDataGeneratorWithCEKAlg) ContentCipherBuilder {
-//	return gcmContentCipherBuilder{generator}
-//}
+//
+//	func AESGCMContentCipherBuilder(generator CipherDataGeneratorWithCEKAlg) ContentCipherBuilder {
+//		return gcmContentCipherBuilder{generator}
+//	}
+//
 // TODO: Relocate
 // isAWSFixture will return whether this type was constructed with an AWS provided CipherDataGenerator
 //func (builder gcmContentCipherBuilder) isAWSFixture() bool {

@@ -67,6 +67,10 @@ func (k *KmsDecryptOnlyKeyring) OnDecrypt(ctx context.Context, materials *Decryp
 	return commonDecrypt(ctx, materials, encryptedDataKey, &k.KmsKeyId, nil, k.kmsClient)
 }
 
+func (k *KmsDecryptOnlyKeyring) isAWSFixture() bool {
+	return true
+}
+
 func NewKmsContextKeyring(apiClient KmsAPIClient, cmkId string, matdesc MaterialDescription) *KmsContextKeyring {
 	return &KmsContextKeyring{
 		kmsClient: apiClient,
@@ -122,6 +126,10 @@ func (k *KmsContextKeyring) OnDecrypt(ctx context.Context, materials *Decryption
 	return commonDecrypt(ctx, materials, encryptedDataKey, &k.KmsKeyId, materials.MaterialDescription, k.kmsClient)
 }
 
+func (k *KmsContextKeyring) isAWSFixture() bool {
+	return true
+}
+
 func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient) *KmsAnyKeyKeyring {
 	return &KmsAnyKeyKeyring{
 		kmsClient: apiClient,
@@ -139,6 +147,10 @@ func (k *KmsAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionM
 	return commonDecrypt(ctx, materials, encryptedDataKey, nil, nil, k.kmsClient)
 }
 
+func (k *KmsAnyKeyKeyring) isAWSFixture() bool {
+	return true
+}
+
 func NewKmsContextAnyKeyKeyring(apiClient KmsAPIClient) *KmsContextAnyKeyKeyring {
 	return &KmsContextAnyKeyKeyring{
 		kmsClient: apiClient,
@@ -154,6 +166,10 @@ func (k *KmsContextAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *Decr
 		return nil, fmt.Errorf("x-amz-cek-alg value `%s` did not match the expected algorithm `%s` for this keyring", materials.DataKey.DataKeyAlgorithm, KMSContextKeyring)
 	}
 	return commonDecrypt(ctx, materials, encryptedDataKey, nil, materials.MaterialDescription, k.kmsClient)
+}
+
+func (k *KmsContextAnyKeyKeyring) isAWSFixture() bool {
+	return true
 }
 
 func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey, kmsKeyId *string, matDesc MaterialDescription, kmsClient KmsAPIClient) (*CryptographicMaterials, error) {
@@ -177,6 +193,7 @@ func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encrypte
 	}
 
 	// TODO: This should probably be determined earlier
+	// TODO: Also SHOULD be able to be customized at CMM level
 	var padder Padder
 	if materials.ContentAlgorithm == "AES/CBC/PKCS5Padding" {
 		padder = aescbcPadding
@@ -186,7 +203,7 @@ func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encrypte
 	cryptoMaterials := &CryptographicMaterials{
 		Key:                 out.Plaintext,
 		IV:                  materials.ContentIV,
-		KeyringAlgorithm:    "", // todo hardcoded (also who cares lol)
+		KeyringAlgorithm:    materials.DataKey.DataKeyAlgorithm,
 		CEKAlgorithm:        materials.ContentAlgorithm,
 		TagLength:           "128", // todo hardcoded
 		MaterialDescription: materials.MaterialDescription,

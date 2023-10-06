@@ -105,7 +105,7 @@ func (cmm *DefaultCryptographicMaterialsManager) getEncryptionMaterials() *Encry
 func (cmm *DefaultCryptographicMaterialsManager) decryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error) {
 	keyring := *cmm.Keyring
 
-	materials, err := NewDecryptionMaterials(objectMetadata.CipherKey, objectMetadata.IV, objectMetadata.MatDesc, objectMetadata.CEKAlg, objectMetadata.KeyringAlg)
+	materials, err := NewDecryptionMaterials(objectMetadata, cmm.padder)
 	if err != nil {
 		return nil, err
 	}

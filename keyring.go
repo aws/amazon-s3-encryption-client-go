@@ -26,27 +26,36 @@ type DecryptionMaterials struct {
 	DataKey             DataKey
 	ContentIV           []byte //base64 decoded content IV
 	MaterialDescription MaterialDescription
-	ContentAlgorithm    string // TODO: maybe make this an enum? if those exist in Go..
+	ContentAlgorithm    string
+	Padder              Padder
 }
 
-// TODO: Prefer this taking ObjectMetadata instead of its fields as parameters
-func NewDecryptionMaterials(encodedDataKey string, encodedContentIV string, encodedMatDesc string, cekAlg string, dataKeyAlg string) (*DecryptionMaterials, error) {
+func NewDecryptionMaterials(md ObjectMetadata, padderMap map[string]Padder) (*DecryptionMaterials, error) {
 	// TODO: Move decoding into ObjectMetadata
-	key, err := base64.StdEncoding.DecodeString(encodedDataKey)
+	key, err := base64.StdEncoding.DecodeString(md.CipherKey)
 	if err != nil {
 		return nil, err
 	}
-	iv, err := base64.StdEncoding.DecodeString(encodedContentIV)
+	iv, err := base64.StdEncoding.DecodeString(md.IV)
 	if err != nil {
 		return nil, err
 	}
 	materialDescription := MaterialDescription{}
-	err = materialDescription.decodeDescription([]byte(encodedMatDesc))
+	err = materialDescription.decodeDescription([]byte(md.MatDesc))
 
 	dataKey := DataKey{
 		KeyMaterial:      nil,
 		EncryptedDataKey: key,
-		DataKeyAlgorithm: dataKeyAlg,
+		DataKeyAlgorithm: md.KeyringAlg,
+	}
+
+	var padder Padder
+	if padderMap[md.KeyringAlg] != nil {
+		// prefer custom padder, if registered
+		padder = padderMap[md.CEKAlg]
+	} else if md.CEKAlg == "AES/CBC/PKCS5Padding" {
+		// else use default CBC padding
+		padder = aescbcPadding
 	}
 
 	if err != nil {
@@ -56,7 +65,8 @@ func NewDecryptionMaterials(encodedDataKey string, encodedContentIV string, enco
 		DataKey:             dataKey,
 		ContentIV:           iv,
 		MaterialDescription: materialDescription,
-		ContentAlgorithm:    cekAlg,
+		ContentAlgorithm:    md.CEKAlg,
+		Padder:              padder,
 	}, nil
 }
 
