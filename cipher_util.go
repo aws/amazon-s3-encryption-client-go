@@ -5,13 +5,6 @@ import (
 	"strconv"
 )
 
-// AESGCMNoPadding is the constant value that is used to specify
-// AES GCM with no padding as the cek algorithm
-const AESGCMNoPadding = "AES/GCM/NoPadding"
-
-// AESCBC is the string constant that signifies the AES CBC algorithm cipher.
-const AESCBC = "AES/CBC"
-
 // TODO: relocate this and above constants
 func encodeMeta(reader lengthReader, cd CryptographicMaterials) (ObjectMetadata, error) {
 	iv := base64.StdEncoding.EncodeToString(cd.IV)

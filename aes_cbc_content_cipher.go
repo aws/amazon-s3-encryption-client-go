@@ -4,6 +4,11 @@ import (
 	"io"
 )
 
+const (
+	AESCBC             = "AES/CBC"
+	AESCBCPKCS5Padding = "AES/CBC/PKCS5Padding"
+)
+
 // newAESCBCContentCipher will create a new aes cbc content cipher. If the cipher data's
 // will set the cek algorithm if it hasn't been set.
 func newAESCBCContentCipher(cd CryptographicMaterials) (ContentCipher, error) {

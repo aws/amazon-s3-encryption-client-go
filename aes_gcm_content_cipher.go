@@ -5,29 +5,17 @@ import (
 )
 
 const (
-	gcmKeySize   = 32
-	gcmNonceSize = 12
+	gcmKeySize      = 32
+	gcmNonceSize    = 12
+	AESGCMNoPadding = "AES/GCM/NoPadding"
 )
 
-// TODO: relocate or delete
 // AESGCMContentCipherBuilder returns a new encryption only AES/GCM mode structure with a specific cipher data generator
 // that will provide keys to be used for content encryption.
 //
 // Note: This uses the Go stdlib AEAD implementation for AES/GCM. Due to this objects to be encrypted or decrypted
 // will be fully loaded into memory before encryption or decryption can occur. Caution must be taken to avoid memory
 // allocation failures.
-//
-//	func AESGCMContentCipherBuilder(generator CipherDataGeneratorWithCEKAlg) ContentCipherBuilder {
-//		return gcmContentCipherBuilder{generator}
-//	}
-//
-// TODO: Relocate
-// isAWSFixture will return whether this type was constructed with an AWS provided CipherDataGenerator
-//func (builder gcmContentCipherBuilder) isAWSFixture() bool {
-//	v, ok := builder.generator.(awsFixture)
-//	return ok && v.isAWSFixture()
-//}
-
 func newAESGCMContentCipher(cd CryptographicMaterials) (ContentCipher, error) {
 	cd.CEKAlgorithm = AESGCMNoPadding
 	cd.TagLength = "128"

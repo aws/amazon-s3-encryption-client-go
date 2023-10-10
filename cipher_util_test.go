@@ -2,6 +2,7 @@ package s3crypto
 
 // TODO: Update to use new funcs
 // TODO: keyringFromEnvelope becomes decryptMaterials
+// TODO: Most likely, these tests don't make sense anymore, and can be replaced with more sensible unit tests
 //func TestKeyringFactory(t *testing.T) {
 //	tConfig := awstesting.Config()
 //	kmsClient := kms.NewFromConfig(tConfig)

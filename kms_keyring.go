@@ -192,13 +192,6 @@ func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encrypte
 		return nil, err
 	}
 
-	// TODO: This should probably be determined earlier
-	// TODO: Also SHOULD be able to be customized at CMM level
-	var padder Padder
-	if materials.ContentAlgorithm == "AES/CBC/PKCS5Padding" {
-		padder = aescbcPadding
-	}
-
 	materials.DataKey.KeyMaterial = out.Plaintext
 	cryptoMaterials := &CryptographicMaterials{
 		Key:                 out.Plaintext,
@@ -208,7 +201,7 @@ func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encrypte
 		TagLength:           "128", // todo hardcoded
 		MaterialDescription: materials.MaterialDescription,
 		EncryptedKey:        materials.DataKey.EncryptedDataKey,
-		Padder:              padder,
+		Padder:              materials.Padder,
 	}
 	return cryptoMaterials, nil
 }
