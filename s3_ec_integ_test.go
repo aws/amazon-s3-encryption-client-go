@@ -3,66 +3,19 @@ package s3crypto_test
 import (
 	"bytes"
 	"context"
-	"fmt"
 	s3crypto "github.com/aws/amazon-s3-encryption-client-go"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"io"
-	"os"
 	"testing"
 )
-
-// TODO: Remove once ready for PR
-const defaultBucket = "s3-encryption-client-v3-go-justplaz-us-west-2"
-const bucketEnvvar = "BUCKET"
-const defaultRegion = "us-west-2"
-const regionEnvvar = "AWS_REGION"
-const defaultAwsKmsAlias = "s3-encryption-client-v3-go-justplaz-us-west-2"
-const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
-const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
-
-func getAliasArn(shortAlias string, region string, accountId string) (string, error) {
-	arnFormat := "arn:aws:kms:%s:%s:alias/%s"
-	return fmt.Sprintf(arnFormat, region, accountId, shortAlias), nil
-}
-
-func LoadBucket() string {
-	if len(os.Getenv(bucketEnvvar)) > 0 {
-		return os.Getenv(bucketEnvvar)
-	} else {
-		return defaultBucket
-	}
-}
-
-func LoadRegion() string {
-	if len(os.Getenv(regionEnvvar)) > 0 {
-		return os.Getenv(regionEnvvar)
-	} else {
-		return defaultRegion
-	}
-}
-
-func LoadAwsKmsAlias() string {
-	if len(os.Getenv(awsKmsAliasEnvvar)) > 0 {
-		return os.Getenv(awsKmsAliasEnvvar)
-	} else {
-		return defaultAwsKmsAlias
-	}
-}
-
-func LoadAwsAccountId() string {
-	// TODO revert
-	return "657301468084"
-	//return os.Getenv(awsAccountIdEnvvar)
-}
 
 func TestIntegS3ECHeadObject(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
-	var accountId = "657301468084"
-	//var accountId = LoadAwsAccountId()
+	var accountId = LoadAwsAccountId()
 	var key = "single-round-trip-test"
 	var plaintext = "this is some plaintext to encrypt!"
 
@@ -134,8 +87,7 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 func TestIntegKmsContext(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
-	var accountId = "657301468084"
-	//var accountId = LoadAwsAccountId()
+	var accountId = LoadAwsAccountId()
 	var key = "single-round-trip-test-kms-context"
 	var plaintext = "this is some plaintext to encrypt!"
 

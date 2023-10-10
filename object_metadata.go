@@ -20,7 +20,6 @@ const (
 	cekAlgorithmHeader             = "x-amz-cek-alg"
 	KeyringAlgorithmHeader         = "x-amz-wrap-alg"
 	tagLengthHeader                = "x-amz-tag-len"
-	unencryptedMD5Header           = "x-amz-unencrypted-content-md5"
 	unencryptedContentLengthHeader = "x-amz-unencrypted-content-length"
 )
 

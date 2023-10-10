@@ -1,6 +1,7 @@
 package s3crypto
 
-//
+// TODO these are actually useful...so fix em
+
 //func TestNewS3EncryptionClientV3(t *testing.T) {
 //	tConfig := awstesting.Config()
 //	tClient := s3.NewFromConfig(tConfig)

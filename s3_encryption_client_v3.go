@@ -38,8 +38,18 @@ type EncryptionClientOptions struct {
 
 	CryptographicMaterialsManager CryptographicMaterialsManager
 
-	// TODO: expose to customers somehow
+	// EnableLegacyModes MUST be set to true in order to decrypt objects encrypted
+	//using legacy (unauthenticated) modes such as AES/CBC
 	EnableLegacyModes bool
+}
+
+// awsFixture is an unexported interface to expose whether a given fixture is an aws provided fixture, and whether that
+// fixtures dependencies were constructed using aws types.
+//
+// This interface is used to warn users if they are using custom implementations of CryptographicMaterialsManager
+// or Keyring.
+type awsFixture interface {
+	isAWSFixture() bool
 }
 
 // NewS3EncryptionClientV3 creates a new S3 client which can encrypt and decrypt

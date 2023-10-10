@@ -12,162 +12,54 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"io"
+	"os"
 	"strings"
 	"testing"
 )
 
 const version = "v3"
 
-// TODO: Revert once done local testing/ready for PR
-// const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
-// const bucketEnvvar = "BUCKET"
-// const defaultRegion = "us-west-2"
-// const regionEnvvar = "AWS_REGION"
-// const defaultAwsKmsAlias = "s3-encryption-client-v3-go-us-west-2"
-// const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
-// const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
-//
-//	func LoadBucket() string {
-//		if len(os.Getenv(bucketEnvvar)) > 0 {
-//			return os.Getenv(bucketEnvvar)
-//		} else {
-//			return defaultBucket
-//		}
-//	}
-//
-//	func LoadRegion() string {
-//		if len(os.Getenv(regionEnvvar)) > 0 {
-//			return os.Getenv(regionEnvvar)
-//		} else {
-//			return defaultRegion
-//		}
-//	}
-//
-//	func LoadAwsKmsAlias() string {
-//		if len(os.Getenv(awsKmsAliasEnvvar)) > 0 {
-//			return os.Getenv(awsKmsAliasEnvvar)
-//		} else {
-//			return defaultAwsKmsAlias
-//		}
-//	}
-//
-//	func LoadAwsAccountId() string {
-//		return os.Getenv(awsAccountIdEnvvar)
-//	}
-//
-//func getAliasArn(shortAlias string, region string, accountId string) (string, error) {
-//	arnFormat := "arn:aws:kms:%s:%s:alias/%s"
-//	return fmt.Sprintf(arnFormat, region, accountId, shortAlias), nil
-//}
+const defaultBucket = "s3-encryption-client-v3-go-justplaz-us-west-2"
+const bucketEnvvar = "BUCKET"
+const defaultRegion = "us-west-2"
+const regionEnvvar = "AWS_REGION"
+const defaultAwsKmsAlias = "s3-encryption-client-v3-go-justplaz-us-west-2"
+const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
+const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
 
-// TODO: Replace with an actually useful test, this assumes AES
-//
-//	func TestParameterMalleabilityRemoval(t *testing.T) {
-//		var bucket = LoadBucket()
-//		var region = LoadRegion()
-//		var alias = LoadAwsKmsAlias()
-//		var accountId = LoadAwsAccountId()
-//
-//		ctx := context.Background()
-//		cfg, err := config.LoadDefaultConfig(ctx,
-//			config.WithRegion(region),
-//		)
-//
-//		if err != nil {
-//			t.Fatalf("failed to load cfg: %v", err)
-//		}
-//
-//		arn, err := getAliasArn(alias, region, accountId)
-//		if err != nil {
-//			t.Fatalf("failed to get fixture alias info for %s, %v", alias, err)
-//		}
-//
-//		kmsClient := kms.NewFromConfig(cfg)
-//		var matDesc s3crypto.MaterialDescription
-//
-//		keyring := s3crypto.NewKmsContextKeyring(kmsClient, arn, matDesc)
-//		cmm, err := s3crypto.NewCryptographicMaterialsManager(keyring)
-//		if err != nil {
-//			t.Fatalf("failed to create new CMM")
-//		}
-//
-//		plaintext := "this is a test of the S3 Encryption Client"
-//
-//		cases := []struct {
-//			TestName, MetadataKey, Action string
-//			NewMetadataKey                string
-//		}{
-//			{TestName: "content-encryption-downgrade", MetadataKey: "x-amz-cek-alg", Action: "delete"},
-//			{TestName: "key-wrap-downgrade-delete", MetadataKey: "x-amz-wrap-alg", Action: "delete"},
-//			{TestName: "key-wrap-downgrade-aes-wrap", MetadataKey: "x-amz-wrap-alg", Action: "update", NewMetadataKey: "AESWrap"},
-//			{TestName: "key-wrap-downgrade-aes", MetadataKey: "x-amz-wrap-alg", Action: "update", NewMetadataKey: "AES"},
-//		}
-//
-//		for _, c := range cases {
-//			t.Run(c.TestName, func(t *testing.T) {
-//				s3Client := s3.NewFromConfig(cfg)
-//				s3Ec, _ := s3crypto.NewS3EncryptionClientV3(s3Client, cmm)
-//
-//				if err != nil {
-//					t.Fatalf("failed to create decryption client: %v", err)
-//				}
-//
-//				// First write some object using enc client
-//				_, err = s3Ec.PutObject(ctx, &s3.PutObjectInput{
-//					Bucket: aws.String(bucket),
-//					Key:    aws.String(c.TestName + "-oneoff"),
-//					Body:   bytes.NewReader([]byte(plaintext)),
-//				})
-//				if err != nil {
-//					t.Fatalf("failed to upload encrypted fixture, %v", err)
-//				}
-//
-//				// Next get ciphertext using default client
-//				getOutput, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
-//					Bucket: aws.String(bucket),
-//					Key:    aws.String(c.TestName),
-//				})
-//				if err != nil {
-//					t.Fatalf("failed to download encrypted fixture, %v", err)
-//				}
-//
-//				ciphertext, err := io.ReadAll(getOutput.Body)
-//				if err != nil {
-//					t.Fatalf("failed to read ciphertext from getObject output, %v", err)
-//				}
-//
-//				// Modify metadata
-//				metadata := getOutput.Metadata
-//				switch c.Action {
-//				case "delete":
-//					delete(metadata, c.MetadataKey)
-//				case "update":
-//					metadata[c.MetadataKey] = c.NewMetadataKey
-//				}
-//
-//				// Put (with modified metadata) using default client
-//				_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
-//					Bucket:   aws.String(bucket),
-//					Key:      aws.String(c.TestName),
-//					Body:     bytes.NewReader(ciphertext), // does work
-//					Metadata: metadata,
-//				})
-//				if err != nil {
-//					t.Fatalf("failed to upload tampered fixture, %v", err)
-//				}
-//
-//				// Attempt to get using dec client
-//				_, err = s3Ec.GetObject(ctx, &s3.GetObjectInput{
-//					Bucket: aws.String(bucket),
-//					Key:    aws.String(c.TestName),
-//				})
-//				if err == nil {
-//					t.Fatalf("expected error, but err is nil!, %v", err)
-//				}
-//			})
-//
-//		}
-//	}
+func LoadBucket() string {
+	if len(os.Getenv(bucketEnvvar)) > 0 {
+		return os.Getenv(bucketEnvvar)
+	} else {
+		return defaultBucket
+	}
+}
+
+func LoadRegion() string {
+	if len(os.Getenv(regionEnvvar)) > 0 {
+		return os.Getenv(regionEnvvar)
+	} else {
+		return defaultRegion
+	}
+}
+
+func LoadAwsKmsAlias() string {
+	if len(os.Getenv(awsKmsAliasEnvvar)) > 0 {
+		return os.Getenv(awsKmsAliasEnvvar)
+	} else {
+		return defaultAwsKmsAlias
+	}
+}
+
+func LoadAwsAccountId() string {
+	return os.Getenv(awsAccountIdEnvvar)
+}
+
+func getAliasArn(shortAlias string, region string, accountId string) (string, error) {
+	arnFormat := "arn:aws:kms:%s:%s:alias/%s"
+	return fmt.Sprintf(arnFormat, region, accountId, shortAlias), nil
+}
+
 func TestInteg_EncryptFixtures(t *testing.T) {
 	var region = LoadRegion()
 	ctx := context.Background()

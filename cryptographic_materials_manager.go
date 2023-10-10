@@ -84,20 +84,6 @@ func (cmm *DefaultCryptographicMaterialsManager) RemovePadder(name string) (Padd
 	return padder, ok
 }
 
-type EncryptionMaterials struct {
-	gcmKeySize   int
-	gcmNonceSize int
-	algorithm    string
-}
-
-func NewEncryptionMaterials() *EncryptionMaterials {
-	return &EncryptionMaterials{
-		gcmKeySize:   gcmKeySize,
-		gcmNonceSize: gcmNonceSize,
-		algorithm:    AESGCMNoPadding,
-	}
-}
-
 func (cmm *DefaultCryptographicMaterialsManager) getEncryptionMaterials() *EncryptionMaterials {
 	return NewEncryptionMaterials()
 }
