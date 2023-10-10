@@ -2,11 +2,13 @@ package s3crypto
 
 import (
 	"io"
+	"strconv"
 )
 
 const (
 	gcmKeySize      = 32
 	gcmNonceSize    = 12
+	gcmTagSizeBits  = 128
 	AESGCMNoPadding = "AES/GCM/NoPadding"
 )
 
@@ -18,7 +20,7 @@ const (
 // allocation failures.
 func newAESGCMContentCipher(cd CryptographicMaterials) (ContentCipher, error) {
 	cd.CEKAlgorithm = AESGCMNoPadding
-	cd.TagLength = "128"
+	cd.TagLength = strconv.Itoa(gcmTagSizeBits)
 
 	cipher, err := newAESGCM(cd)
 	if err != nil {
@@ -26,15 +28,15 @@ func newAESGCMContentCipher(cd CryptographicMaterials) (ContentCipher, error) {
 	}
 
 	return &aesGCMContentCipher{
-		CipherData: cd,
-		Cipher:     cipher,
+		CryptographicMaterials: cd,
+		Cipher:                 cipher,
 	}, nil
 }
 
 // AESGCMContentCipher will use AES GCM for the main cipher.
 type aesGCMContentCipher struct {
-	CipherData CryptographicMaterials
-	Cipher     Cipher
+	CryptographicMaterials CryptographicMaterials
+	Cipher                 Cipher
 }
 
 // EncryptContents will generate a random key and iv and encrypt the data using cbc
@@ -52,26 +54,10 @@ func (cc *aesGCMContentCipher) DecryptContents(src io.ReadCloser) (io.ReadCloser
 
 // GetCipherData returns cipher data
 func (cc aesGCMContentCipher) GetCipherData() CryptographicMaterials {
-	return cc.CipherData
+	return cc.CryptographicMaterials
 }
-
-// TODO: figure out what the point of this is, relocate if needed
-// assert ContentCipherBuilder implementations
-//var (
-//	_ ContentCipherBuilder = (*gcmContentCipherBuilder)(nil)
-//)
-//
-//// assert ContentCipherBuilderWithContext implementations
-//var (
-//	_ ContentCipherBuilderWithContext = (*gcmContentCipherBuilder)(nil)
-//)
 
 // assert ContentCipher implementations
 var (
 	_ ContentCipher = (*aesGCMContentCipher)(nil)
 )
-
-//// assert awsFixture implementations
-//var (
-//	_ awsFixture = (*gcmContentCipherBuilder)(nil)
-//)

@@ -7,11 +7,13 @@ import (
 const (
 	AESCBC             = "AES/CBC"
 	AESCBCPKCS5Padding = "AES/CBC/PKCS5Padding"
+	aesCbcTagSizeBits  = "0"
 )
 
 // newAESCBCContentCipher will create a new aes cbc content cipher. If the cipher data's
 // will set the cek algorithm if it hasn't been set.
 func newAESCBCContentCipher(cd CryptographicMaterials) (ContentCipher, error) {
+	cd.TagLength = aesCbcTagSizeBits
 	if len(cd.CEKAlgorithm) == 0 {
 		cd.CEKAlgorithm = AESCBC + "/" + cd.Padder.Name()
 	}
@@ -21,15 +23,15 @@ func newAESCBCContentCipher(cd CryptographicMaterials) (ContentCipher, error) {
 	}
 
 	return &aesCBCContentCipher{
-		CipherData: cd,
-		Cipher:     cipher,
+		CryptographicMaterials: cd,
+		Cipher:                 cipher,
 	}, nil
 }
 
 // aesCBCContentCipher will use AES CBC for the main cipher.
 type aesCBCContentCipher struct {
-	CipherData CryptographicMaterials
-	Cipher     Cipher
+	CryptographicMaterials CryptographicMaterials
+	Cipher                 Cipher
 }
 
 // EncryptContents will generate a random key and iv and encrypt the data using cbc
@@ -47,7 +49,7 @@ func (cc *aesCBCContentCipher) DecryptContents(src io.ReadCloser) (io.ReadCloser
 
 // GetCipherData returns cipher data
 func (cc aesCBCContentCipher) GetCipherData() CryptographicMaterials {
-	return cc.CipherData
+	return cc.CryptographicMaterials
 }
 
 var (
