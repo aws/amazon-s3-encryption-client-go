@@ -4,18 +4,14 @@ import (
 	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
-	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 )
 
 const (
-	// KMSContextKeyring is a constant used during decryption to build a kms+context key handler
-	KMSContextKeyring = "kms+context"
 	// KMSKeyring is a constant used during decryption to build a KMS key handler.
 	KMSKeyring = "kms"
 
-	kmsAWSCEKContextKey          = "aws:" + cekAlgorithmHeader
-	kmsMismatchCEKAlg            = "the content encryption algorithm used at encryption time does not match the algorithm stored for decryption time. The object may be altered or corrupted"
-	kmsReservedKeyConflictErrMsg = "conflict in reserved KMS Encryption Context key %s. This value is reserved for the S3 Encryption Client and cannot be set by the user"
+	kmsAWSCEKContextKey = "aws:" + cekAlgorithmHeader
+	kmsMismatchCEKAlg   = "the content encryption algorithm used at encryption time does not match the algorithm stored for decryption time. The object may be altered or corrupted"
 )
 
 // KmsAPIClient is a client that implements the GenerateDataKey and Decrypt operations
@@ -31,20 +27,8 @@ type KmsDecryptOnlyKeyring struct {
 	matDesc   MaterialDescription
 }
 
-type KmsContextKeyring struct {
-	kmsClient KmsAPIClient
-	KmsKeyId  string
-	matDesc   MaterialDescription
-}
-
 // KmsAnyKeyKeyring is decrypt-only
 type KmsAnyKeyKeyring struct {
-	kmsClient KmsAPIClient
-	matDesc   MaterialDescription
-}
-
-// KmsContextAnyKeyKeyring is decrypt-only
-type KmsContextAnyKeyKeyring struct {
 	kmsClient KmsAPIClient
 	matDesc   MaterialDescription
 }
@@ -70,66 +54,6 @@ func (k *KmsDecryptOnlyKeyring) OnDecrypt(ctx context.Context, materials *Decryp
 func (k *KmsDecryptOnlyKeyring) isAWSFixture() bool {
 	return true
 }
-
-func NewKmsContextKeyring(apiClient KmsAPIClient, cmkId string, matdesc MaterialDescription) *KmsContextKeyring {
-	return &KmsContextKeyring{
-		kmsClient: apiClient,
-		KmsKeyId:  cmkId,
-		matDesc:   matdesc,
-	}
-}
-
-func (k *KmsContextKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
-	// TODO: matDesc MUST be set per-request, not per-Keyring instance
-	if _, ok := k.matDesc[kmsAWSCEKContextKey]; ok {
-		return nil, fmt.Errorf(kmsReservedKeyConflictErrMsg, kmsAWSCEKContextKey)
-	}
-	if k.matDesc == nil {
-		k.matDesc = map[string]string{}
-	}
-
-	requestMatDesc := k.matDesc.Clone()
-	requestMatDesc[kmsAWSCEKContextKey] = AESGCMNoPadding
-
-	out, err := k.kmsClient.GenerateDataKey(ctx,
-		&kms.GenerateDataKeyInput{
-			EncryptionContext: requestMatDesc,
-			KeyId:             &k.KmsKeyId,
-			KeySpec:           types.DataKeySpecAes256,
-		})
-	if err != nil {
-		return &CryptographicMaterials{}, err
-	}
-	iv, err := generateBytes(materials.gcmNonceSize)
-	if err != nil {
-		return &CryptographicMaterials{}, err
-	}
-
-	cryptoMaterials := &CryptographicMaterials{
-		Key:                 out.Plaintext,
-		IV:                  iv,
-		KeyringAlgorithm:    KMSContextKeyring,
-		CEKAlgorithm:        materials.algorithm,
-		TagLength:           "", // TODO: Is this used anywhere?
-		MaterialDescription: requestMatDesc,
-		EncryptedKey:        out.CiphertextBlob,
-		Padder:              nil, // TODO: deal with padder stuff
-	}
-
-	return cryptoMaterials, nil
-}
-
-func (k *KmsContextKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
-	if materials.DataKey.DataKeyAlgorithm != KMSContextKeyring {
-		return nil, fmt.Errorf("x-amz-cek-alg value `%s` did not match the expected algorithm `%s` for this keyring", materials.DataKey.DataKeyAlgorithm, KMSContextKeyring)
-	}
-	return commonDecrypt(ctx, materials, encryptedDataKey, &k.KmsKeyId, materials.MaterialDescription, k.kmsClient)
-}
-
-func (k *KmsContextKeyring) isAWSFixture() bool {
-	return true
-}
-
 func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient) *KmsAnyKeyKeyring {
 	return &KmsAnyKeyKeyring{
 		kmsClient: apiClient,
@@ -150,28 +74,6 @@ func (k *KmsAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionM
 func (k *KmsAnyKeyKeyring) isAWSFixture() bool {
 	return true
 }
-
-func NewKmsContextAnyKeyKeyring(apiClient KmsAPIClient) *KmsContextAnyKeyKeyring {
-	return &KmsContextAnyKeyKeyring{
-		kmsClient: apiClient,
-	}
-}
-
-func (k *KmsContextAnyKeyKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
-	return nil, fmt.Errorf("KmsContextAnyKeyKeyring MUST NOT be used to encrypt new data")
-}
-
-func (k *KmsContextAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
-	if materials.DataKey.DataKeyAlgorithm != KMSContextKeyring {
-		return nil, fmt.Errorf("x-amz-cek-alg value `%s` did not match the expected algorithm `%s` for this keyring", materials.DataKey.DataKeyAlgorithm, KMSContextKeyring)
-	}
-	return commonDecrypt(ctx, materials, encryptedDataKey, nil, materials.MaterialDescription, k.kmsClient)
-}
-
-func (k *KmsContextAnyKeyKeyring) isAWSFixture() bool {
-	return true
-}
-
 func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey, kmsKeyId *string, matDesc MaterialDescription, kmsClient KmsAPIClient) (*CryptographicMaterials, error) {
 	if matDesc != nil {
 		if v, ok := matDesc[kmsAWSCEKContextKey]; !ok {

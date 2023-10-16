@@ -2,13 +2,12 @@ package s3crypto
 
 import (
 	"io"
-	"strconv"
 )
 
 const (
 	gcmKeySize      = 32
 	gcmNonceSize    = 12
-	gcmTagSizeBits  = 128
+	gcmTagSizeBits  = "128"
 	AESGCMNoPadding = "AES/GCM/NoPadding"
 )
 
@@ -20,7 +19,7 @@ const (
 // allocation failures.
 func newAESGCMContentCipher(cd CryptographicMaterials) (ContentCipher, error) {
 	cd.CEKAlgorithm = AESGCMNoPadding
-	cd.TagLength = strconv.Itoa(gcmTagSizeBits)
+	cd.TagLength = gcmTagSizeBits
 
 	cipher, err := newAESGCM(cd)
 	if err != nil {
