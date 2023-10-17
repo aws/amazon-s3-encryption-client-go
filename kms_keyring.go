@@ -100,7 +100,7 @@ func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encrypte
 		IV:                  materials.ContentIV,
 		KeyringAlgorithm:    materials.DataKey.DataKeyAlgorithm,
 		CEKAlgorithm:        materials.ContentAlgorithm,
-		TagLength:           "128", // todo hardcoded
+		TagLength:           materials.TagLength,
 		MaterialDescription: materials.MaterialDescription,
 		EncryptedKey:        materials.DataKey.EncryptedDataKey,
 		Padder:              materials.Padder,

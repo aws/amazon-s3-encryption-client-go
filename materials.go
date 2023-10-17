@@ -8,6 +8,7 @@ type DecryptionMaterials struct {
 	MaterialDescription MaterialDescription
 	ContentAlgorithm    string
 	Padder              Padder
+	TagLength           string
 }
 
 func NewDecryptionMaterials(md ObjectMetadata, padderMap map[string]Padder) (*DecryptionMaterials, error) {
@@ -47,6 +48,7 @@ func NewDecryptionMaterials(md ObjectMetadata, padderMap map[string]Padder) (*De
 		MaterialDescription: materialDescription,
 		ContentAlgorithm:    md.CEKAlg,
 		Padder:              padder,
+		TagLength:           md.TagLen,
 	}, nil
 }
 
