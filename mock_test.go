@@ -13,7 +13,7 @@ type mockCMM struct{}
 
 // OnEncrypt generates/encrypts a data key for use with content encryption
 func (m mockKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
-	// TODO: I guess fill this oot
+	// TODO: make this mock more useful
 	return &CryptographicMaterials{
 		Key:                 nil,
 		IV:                  nil,
@@ -29,7 +29,7 @@ func (m mockKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMateria
 // OnDecrypt decrypts the encryptedDataKeys and returns them in materials
 // for use with content decryption
 func (m mockKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
-	// TODO: I guess fill this oot
+	// TODO: make this mock more useful
 	return &CryptographicMaterials{
 		Key:                 nil,
 		IV:                  nil,
@@ -44,7 +44,7 @@ func (m mockKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMateria
 }
 
 func (m mockCMM) getEncryptionMaterials() *EncryptionMaterials {
-	// TODO: fill this out
+	// TODO: make this mock more useful
 	return &EncryptionMaterials{
 		gcmKeySize:   0,
 		gcmNonceSize: 0,
@@ -53,7 +53,7 @@ func (m mockCMM) getEncryptionMaterials() *EncryptionMaterials {
 }
 
 func (m mockCMM) decryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error) {
-	// TODO: fill this out
+	// TODO: make this mock more useful
 	return &CryptographicMaterials{
 		Key:                 nil,
 		IV:                  nil,

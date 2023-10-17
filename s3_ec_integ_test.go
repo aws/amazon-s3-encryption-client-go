@@ -159,8 +159,7 @@ func TestIntegKmsContext(t *testing.T) {
 func TestIntegKmsContextDecryptAny(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
-	var accountId = "657301468084"
-	//var accountId = LoadAwsAccountId()
+	var accountId = LoadAwsAccountId()
 	var key = "single-round-trip-test-context-decrypt-any"
 	var plaintext = "this is some plaintext to encrypt!"
 
@@ -242,8 +241,7 @@ func TestIntegKmsContextDecryptAny(t *testing.T) {
 //func TestIntegKms(t *testing.T) {
 //	var bucket = LoadBucket()
 //	var region = LoadRegion()
-//	var accountId = "657301468084"
-//	//var accountId = LoadAwsAccountId()
+//	var accountId = LoadAwsAccountId()
 //	var key = "single-round-trip-test"
 //	var plaintext = "this is some plaintext to encrypt!"
 //
@@ -314,8 +312,7 @@ func TestIntegKmsContextDecryptAny(t *testing.T) {
 //func TestIntegKmsDecryptAny(t *testing.T) {
 //	var bucket = LoadBucket()
 //	var region = LoadRegion()
-//	var accountId = "657301468084"
-//	//var accountId = LoadAwsAccountId()
+//	var accountId = LoadAwsAccountId()
 //	var key = "single-round-trip-test-decrypt-any"
 //	var plaintext = "this is some plaintext to encrypt!"
 //
