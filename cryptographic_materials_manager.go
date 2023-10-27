@@ -10,9 +10,8 @@ import (
 type CEKEntry func(CryptographicMaterials) (ContentCipher, error)
 
 type CryptographicMaterialsManager interface {
-	getEncryptionMaterials() *EncryptionMaterials
+	getEncryptionMaterials() (*CryptographicMaterials, error)
 	decryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error)
-	GetKeyring() Keyring
 }
 
 // DefaultCryptographicMaterialsManager is a collection of registries for configuring a encryption client with different Keyring algorithms,
@@ -39,13 +38,9 @@ func NewCryptographicMaterialsManager(keyring Keyring) (*DefaultCryptographicMat
 	return cmm, nil
 }
 
-// GetKeyring returns the KeyringEntry identified by the given name. Returns false if the entry is not registered.
-func (cmm DefaultCryptographicMaterialsManager) GetKeyring() Keyring {
-	return *cmm.Keyring
-}
-
-func (cmm *DefaultCryptographicMaterialsManager) getEncryptionMaterials() *EncryptionMaterials {
-	return NewEncryptionMaterials()
+func (cmm *DefaultCryptographicMaterialsManager) getEncryptionMaterials(ctx context.Context) (*CryptographicMaterials, error) {
+	keyring := *cmm.Keyring
+	return keyring.OnEncrypt(ctx, NewEncryptionMaterials())
 }
 
 func (cmm *DefaultCryptographicMaterialsManager) decryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error) {
