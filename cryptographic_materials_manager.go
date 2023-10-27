@@ -19,7 +19,6 @@ type CryptographicMaterialsManager interface {
 // content encryption algorithms, and padders.
 type DefaultCryptographicMaterialsManager struct {
 	cek     map[string]CEKEntry
-	padder  map[string]Padder
 	Keyring *Keyring
 }
 
@@ -28,7 +27,6 @@ type DefaultCryptographicMaterialsManager struct {
 func NewCryptographicMaterialsManager(keyring Keyring) (*DefaultCryptographicMaterialsManager, error) {
 	cmm := &DefaultCryptographicMaterialsManager{
 		cek:     map[string]CEKEntry{},
-		padder:  map[string]Padder{},
 		Keyring: &keyring,
 	}
 	if keyring != nil {
@@ -53,7 +51,7 @@ func (cmm *DefaultCryptographicMaterialsManager) getEncryptionMaterials() *Encry
 func (cmm *DefaultCryptographicMaterialsManager) decryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error) {
 	keyring := *cmm.Keyring
 
-	materials, err := NewDecryptionMaterials(objectMetadata, cmm.padder)
+	materials, err := NewDecryptionMaterials(objectMetadata)
 	if err != nil {
 		return nil, err
 	}
