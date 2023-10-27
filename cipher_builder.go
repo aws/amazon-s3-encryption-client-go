@@ -39,8 +39,8 @@ type CryptographicMaterials struct {
 }
 
 // Clone returns a new copy of CryptographicMaterials
-func (cd CryptographicMaterials) Clone() (v CryptographicMaterials) {
-	v = cd
-	v.MaterialDescription = cd.MaterialDescription.Clone()
+func (cm CryptographicMaterials) Clone() (v CryptographicMaterials) {
+	v = cm
+	v.MaterialDescription = cm.MaterialDescription.Clone()
 	return v
 }

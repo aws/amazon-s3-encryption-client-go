@@ -67,25 +67,25 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 		return out, metadata, fmt.Errorf("failed to load objectMetadata: bucket=%v; key=%v; err=%w", m.input.Bucket, m.input.Key, err)
 	}
 
-	materials, err := m.client.options.CryptographicMaterialsManager.decryptMaterials(ctx, objectMetadata)
+	decryptMaterials, err := m.client.options.CryptographicMaterialsManager.decryptMaterials(ctx, objectMetadata)
 	if err != nil {
 		return out, metadata, fmt.Errorf("error while decrypting materials: %v", err)
 	}
 
 	// determine the content algorithm from metadata
 	var cekFunc CEKEntry
-	if materials.CEKAlgorithm == AESGCMNoPadding {
+	if decryptMaterials.CEKAlgorithm == AESGCMNoPadding {
 		cekFunc = newAESGCMContentCipher
-	} else if strings.Contains(materials.CEKAlgorithm, "AES/CBC") {
+	} else if strings.Contains(decryptMaterials.CEKAlgorithm, "AES/CBC") {
 		if !m.client.options.EnableLegacyModes {
-			return out, metadata, fmt.Errorf("configure client with enable legacy modes set to true to decrypt with %s", materials.CEKAlgorithm)
+			return out, metadata, fmt.Errorf("configure client with enable legacy modes set to true to decrypt with %s", decryptMaterials.CEKAlgorithm)
 		}
 		cekFunc = newAESCBCContentCipher
 	} else {
-		return out, metadata, fmt.Errorf("invalid content encryption algorithm found in metadata: %s", materials.CEKAlgorithm)
+		return out, metadata, fmt.Errorf("invalid content encryption algorithm found in metadata: %s", decryptMaterials.CEKAlgorithm)
 	}
 
-	cipher, err := cekFunc(*materials)
+	cipher, err := cekFunc(*decryptMaterials)
 	cipher.DecryptContents(result.Body)
 	reader, err := cipher.DecryptContents(result.Body)
 	if err != nil {

@@ -13,9 +13,6 @@ type CryptographicMaterialsManager interface {
 	getEncryptionMaterials() *EncryptionMaterials
 	decryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error)
 	GetKeyring() Keyring
-	AddPadder(name string, entry Padder) error
-	GetPadder(name string) (Padder, bool)
-	RemovePadder(name string) (Padder, bool)
 }
 
 // DefaultCryptographicMaterialsManager is a collection of registries for configuring a encryption client with different Keyring algorithms,
@@ -47,41 +44,6 @@ func NewCryptographicMaterialsManager(keyring Keyring) (*DefaultCryptographicMat
 // GetKeyring returns the KeyringEntry identified by the given name. Returns false if the entry is not registered.
 func (cmm DefaultCryptographicMaterialsManager) GetKeyring() Keyring {
 	return *cmm.Keyring
-}
-
-// GetPadder returns the Padder identified by name. If the Padder is not present, returns false.
-func (cmm *DefaultCryptographicMaterialsManager) GetPadder(name string) (Padder, bool) {
-	if cmm.padder == nil {
-		return nil, false
-	}
-	entry, ok := cmm.padder[name]
-	return entry, ok
-}
-
-// AddPadder registers Padder under the given name, returns an error if a Padder is already present for the given name.
-//
-// This method should only be used to register custom padder implementations not provided by AWS.
-func (cmm *DefaultCryptographicMaterialsManager) AddPadder(name string, padder Padder) error {
-	if padder == nil {
-		return errNilPadder
-	}
-	if _, ok := cmm.padder[name]; ok {
-		return newErrDuplicatePadderEntry(name)
-	}
-	cmm.padder[name] = padder
-	return nil
-}
-
-// RemovePadder removes the Padder identified by name. If the entry is not present returns false.
-func (cmm *DefaultCryptographicMaterialsManager) RemovePadder(name string) (Padder, bool) {
-	if cmm.padder == nil {
-		return nil, false
-	}
-	padder, ok := cmm.padder[name]
-	if ok {
-		delete(cmm.padder, name)
-	}
-	return padder, ok
 }
 
 func (cmm *DefaultCryptographicMaterialsManager) getEncryptionMaterials() *EncryptionMaterials {

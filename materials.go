@@ -23,6 +23,9 @@ func NewDecryptionMaterials(md ObjectMetadata, padderMap map[string]Padder) (*De
 	}
 	materialDescription := MaterialDescription{}
 	err = materialDescription.decodeDescription([]byte(md.MatDesc))
+	if err != nil {
+		return nil, err
+	}
 
 	dataKey := DataKey{
 		KeyMaterial:      nil,
@@ -39,9 +42,6 @@ func NewDecryptionMaterials(md ObjectMetadata, padderMap map[string]Padder) (*De
 		padder = aescbcPadding
 	}
 
-	if err != nil {
-		return nil, err
-	}
 	return &DecryptionMaterials{
 		DataKey:             dataKey,
 		ContentIV:           iv,
