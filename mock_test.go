@@ -43,13 +43,13 @@ func (m mockKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMateria
 
 }
 
-func (m mockCMM) getEncryptionMaterials() *EncryptionMaterials {
+func (m mockCMM) getEncryptionMaterials(ctx context.Context) (*CryptographicMaterials, error) {
 	// TODO: make this mock more useful
-	return &EncryptionMaterials{
-		gcmKeySize:   0,
-		gcmNonceSize: 0,
-		algorithm:    "",
-	}
+	return &CryptographicMaterials{
+		Key:          nil,
+		IV:           nil,
+		CEKAlgorithm: AESGCMNoPadding,
+	}, nil
 }
 
 func (m mockCMM) decryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error) {

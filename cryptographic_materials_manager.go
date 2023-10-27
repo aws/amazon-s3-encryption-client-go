@@ -10,7 +10,7 @@ import (
 type CEKEntry func(CryptographicMaterials) (ContentCipher, error)
 
 type CryptographicMaterialsManager interface {
-	getEncryptionMaterials() (*CryptographicMaterials, error)
+	getEncryptionMaterials(ctx context.Context) (*CryptographicMaterials, error)
 	decryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error)
 }
 
