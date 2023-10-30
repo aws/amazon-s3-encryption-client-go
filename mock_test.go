@@ -43,7 +43,7 @@ func (m mockKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMateria
 
 }
 
-func (m mockCMM) getEncryptionMaterials(ctx context.Context) (*CryptographicMaterials, error) {
+func (m mockCMM) GetEncryptionMaterials(ctx context.Context) (*CryptographicMaterials, error) {
 	// TODO: make this mock more useful
 	return &CryptographicMaterials{
 		Key:          nil,
@@ -52,7 +52,7 @@ func (m mockCMM) getEncryptionMaterials(ctx context.Context) (*CryptographicMate
 	}, nil
 }
 
-func (m mockCMM) decryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error) {
+func (m mockCMM) DecryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error) {
 	// TODO: make this mock more useful
 	return &CryptographicMaterials{
 		Key:                 nil,

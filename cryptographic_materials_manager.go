@@ -10,14 +10,13 @@ import (
 type CEKEntry func(CryptographicMaterials) (ContentCipher, error)
 
 type CryptographicMaterialsManager interface {
-	getEncryptionMaterials(ctx context.Context) (*CryptographicMaterials, error)
-	decryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error)
+	GetEncryptionMaterials(ctx context.Context) (*CryptographicMaterials, error)
+	DecryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error)
 }
 
 // DefaultCryptographicMaterialsManager is a collection of registries for configuring a encryption client with different Keyring algorithms,
 // content encryption algorithms, and padders.
 type DefaultCryptographicMaterialsManager struct {
-	cek     map[string]CEKEntry
 	Keyring *Keyring
 }
 
@@ -25,7 +24,6 @@ type DefaultCryptographicMaterialsManager struct {
 // padders can be registered for use with the S3EncryptionClientV3.
 func NewCryptographicMaterialsManager(keyring Keyring) (*DefaultCryptographicMaterialsManager, error) {
 	cmm := &DefaultCryptographicMaterialsManager{
-		cek:     map[string]CEKEntry{},
 		Keyring: &keyring,
 	}
 	if keyring != nil {
@@ -33,17 +31,20 @@ func NewCryptographicMaterialsManager(keyring Keyring) (*DefaultCryptographicMat
 		if fixture, ok := keyring.(awsFixture); !ok || !fixture.isAWSFixture() {
 			log.Default().Println(customTypeWarningMessage)
 		}
+	} else {
+		// keyring MUST NOT be nil
+		return nil, fmt.Errorf("keyring provided to new cryptographic materials manager MUST NOT be nil")
 	}
 
 	return cmm, nil
 }
 
-func (cmm *DefaultCryptographicMaterialsManager) getEncryptionMaterials(ctx context.Context) (*CryptographicMaterials, error) {
+func (cmm *DefaultCryptographicMaterialsManager) GetEncryptionMaterials(ctx context.Context) (*CryptographicMaterials, error) {
 	keyring := *cmm.Keyring
 	return keyring.OnEncrypt(ctx, NewEncryptionMaterials())
 }
 
-func (cmm *DefaultCryptographicMaterialsManager) decryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error) {
+func (cmm *DefaultCryptographicMaterialsManager) DecryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error) {
 	keyring := *cmm.Keyring
 
 	materials, err := NewDecryptionMaterials(objectMetadata)
@@ -51,11 +52,4 @@ func (cmm *DefaultCryptographicMaterialsManager) decryptMaterials(ctx context.Co
 		return nil, err
 	}
 	return keyring.OnDecrypt(ctx, materials, materials.DataKey)
-}
-
-func (cmm DefaultCryptographicMaterialsManager) valid() error {
-	if len(cmm.cek) == 0 {
-		return fmt.Errorf("at least one content decryption algorithms must be provided")
-	}
-	return nil
 }
