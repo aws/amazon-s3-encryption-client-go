@@ -19,14 +19,14 @@ type aesCBC struct {
 
 // newAESCBC creates a new AES CBC cipher. Expects keys to be of
 // the correct size.
-func newAESCBC(cd CryptographicMaterials, padder Padder) (Cipher, error) {
-	block, err := aes.NewCipher(cd.Key)
+func newAESCBC(materials CryptographicMaterials, padder Padder) (Cipher, error) {
+	block, err := aes.NewCipher(materials.Key)
 	if err != nil {
 		return nil, err
 	}
 
-	encrypter := cipher.NewCBCEncrypter(block, cd.IV)
-	decrypter := cipher.NewCBCDecrypter(block, cd.IV)
+	encrypter := cipher.NewCBCEncrypter(block, materials.IV)
+	decrypter := cipher.NewCBCDecrypter(block, materials.IV)
 
 	return &aesCBC{encrypter, decrypter, padder}, nil
 }

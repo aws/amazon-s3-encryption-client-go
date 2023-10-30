@@ -81,11 +81,11 @@ func (m mockCMM) RemovePadder(name string) (Padder, bool) {
 }
 
 type mockContentCipher struct {
-	cd CryptographicMaterials
+	materials CryptographicMaterials
 }
 
 func (cipher *mockContentCipher) GetCipherData() CryptographicMaterials {
-	return cipher.cd
+	return cipher.materials
 }
 
 func (cipher *mockContentCipher) EncryptContents(src io.Reader) (io.Reader, error) {

@@ -12,18 +12,18 @@ const (
 
 // newAESCBCContentCipher will create a new aes cbc content cipher. If the cipher data's
 // will set the cek algorithm if it hasn't been set.
-func newAESCBCContentCipher(cd CryptographicMaterials) (ContentCipher, error) {
-	cd.TagLength = aesCbcTagSizeBits
-	if len(cd.CEKAlgorithm) == 0 {
-		cd.CEKAlgorithm = AESCBC + "/" + cd.Padder.Name()
+func newAESCBCContentCipher(materials CryptographicMaterials) (ContentCipher, error) {
+	materials.TagLength = aesCbcTagSizeBits
+	if len(materials.CEKAlgorithm) == 0 {
+		materials.CEKAlgorithm = AESCBC + "/" + materials.Padder.Name()
 	}
-	cipher, err := newAESCBC(cd, cd.Padder)
+	cipher, err := newAESCBC(materials, materials.Padder)
 	if err != nil {
 		return nil, err
 	}
 
 	return &aesCBCContentCipher{
-		CryptographicMaterials: cd,
+		CryptographicMaterials: materials,
 		Cipher:                 cipher,
 	}, nil
 }
