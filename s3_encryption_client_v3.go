@@ -2,8 +2,9 @@ package s3crypto
 
 import (
 	"context"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"log"
+
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 const customTypeWarningMessage = "WARNING: The S3 Encryption Client is configured to write encrypted objects using types not provided by AWS. Security and compatibility with these types can not be guaranteed."
@@ -14,11 +15,6 @@ type S3EncryptionClientV3 struct {
 }
 
 type EncryptionClientOptions struct {
-	// SaveStrategy will dictate where the envelope is saved.
-	//
-	// Defaults to the object's metadata
-	SaveStrategy SaveStrategy
-
 	// TempFolderPath is used to store temp files when calling PutObject.
 	// Temporary files are needed to compute the X-Amz-Content-Sha256 header.
 	TempFolderPath string
@@ -29,12 +25,6 @@ type EncryptionClientOptions struct {
 
 	// The logger to write logging messages to.
 	Logger *log.Logger
-
-	// LoadStrategy is used to load the metadata either from the metadata of the object
-	// or from a separate file in s3.
-	//
-	// Defaults to our default load strategy.
-	LoadStrategy LoadStrategy
 
 	CryptographicMaterialsManager CryptographicMaterialsManager
 
@@ -57,10 +47,8 @@ func NewS3EncryptionClientV3(s3Client *s3.Client, CryptographicMaterialsManager 
 	wrappedClient := s3Client
 	// default options
 	options := EncryptionClientOptions{
-		SaveStrategy:                  HeaderV2SaveStrategy{},
 		MinFileSize:                   DefaultMinFileSize,
 		Logger:                        log.Default(),
-		LoadStrategy:                  defaultV2LoadStrategy{},
 		CryptographicMaterialsManager: CryptographicMaterialsManager,
 		EnableLegacyModes:             false,
 	}
