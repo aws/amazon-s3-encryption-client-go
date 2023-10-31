@@ -40,7 +40,6 @@ func (m mockKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMateria
 		EncryptedKey:        nil,
 		Padder:              nil,
 	}, nil
-
 }
 
 func (m mockCMM) GetEncryptionMaterials(ctx context.Context) (*CryptographicMaterials, error) {
@@ -74,7 +73,6 @@ func (m mockCMM) AddPadder(name string, entry Padder) error {
 }
 func (m mockCMM) GetPadder(name string) (Padder, bool) {
 	return nil, false
-
 }
 func (m mockCMM) RemovePadder(name string) (Padder, bool) {
 	return nil, false

@@ -23,6 +23,7 @@ func NewDecryptionMaterials(md ObjectMetadata) (*DecryptionMaterials, error) {
 	}
 	materialDescription := MaterialDescription{}
 	err = materialDescription.decodeDescription([]byte(md.MatDesc))
+
 	if err != nil {
 		return nil, err
 	}
@@ -34,6 +35,7 @@ func NewDecryptionMaterials(md ObjectMetadata) (*DecryptionMaterials, error) {
 	}
 
 	var padder Padder
+
 	if md.CEKAlg == "AES/CBC/PKCS5Padding" {
 		// use default CBC padding
 		padder = aescbcPadding
