@@ -7,38 +7,85 @@ import (
 	"io/ioutil"
 )
 
-type mockGenerator struct{}
+type mockKeyring struct{}
 
-func (m mockGenerator) GenerateCipherDataWithCEKAlg(ctx context.Context, keySize int, ivSize int, cekAlg string) (CipherData, error) {
-	cd := CipherData{
-		Key: make([]byte, keySize),
-		IV:  make([]byte, ivSize),
-	}
-	return cd, nil
+type mockCMM struct{}
+
+// OnEncrypt generates/encrypts a data key for use with content encryption
+func (m mockKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
+	// TODO: make this mock more useful
+	return &CryptographicMaterials{
+		Key:                 nil,
+		IV:                  nil,
+		KeyringAlgorithm:    "",
+		CEKAlgorithm:        "",
+		TagLength:           "",
+		MaterialDescription: nil,
+		EncryptedKey:        nil,
+		Padder:              nil,
+	}, nil
 }
 
-func (m mockGenerator) DecryptKey(key []byte) ([]byte, error) {
-	return make([]byte, 16), nil
+// OnDecrypt decrypts the encryptedDataKeys and returns them in materials
+// for use with content decryption
+func (m mockKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
+	// TODO: make this mock more useful
+	return &CryptographicMaterials{
+		Key:                 nil,
+		IV:                  nil,
+		KeyringAlgorithm:    "",
+		CEKAlgorithm:        "",
+		TagLength:           "",
+		MaterialDescription: nil,
+		EncryptedKey:        nil,
+		Padder:              nil,
+	}, nil
+
 }
 
-type mockCipherBuilder struct {
-	generator CipherDataGeneratorWithCEKAlg
+func (m mockCMM) GetEncryptionMaterials(ctx context.Context) (*CryptographicMaterials, error) {
+	// TODO: make this mock more useful
+	return &CryptographicMaterials{
+		Key:          nil,
+		IV:           nil,
+		CEKAlgorithm: AESGCMNoPadding,
+	}, nil
 }
 
-func (builder mockCipherBuilder) ContentCipher() (ContentCipher, error) {
-	cd, err := builder.generator.GenerateCipherDataWithCEKAlg(context.Background(), 32, 16, "mock-cek-alg")
-	if err != nil {
-		return nil, err
-	}
-	return &mockContentCipher{cd}, nil
+func (m mockCMM) DecryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error) {
+	// TODO: make this mock more useful
+	return &CryptographicMaterials{
+		Key:                 nil,
+		IV:                  nil,
+		KeyringAlgorithm:    "",
+		CEKAlgorithm:        "",
+		TagLength:           "",
+		MaterialDescription: nil,
+		EncryptedKey:        nil,
+		Padder:              nil,
+	}, nil
+}
+
+func (m mockCMM) GetKeyring() Keyring {
+	return nil
+}
+func (m mockCMM) AddPadder(name string, entry Padder) error {
+	return nil
+}
+func (m mockCMM) GetPadder(name string) (Padder, bool) {
+	return nil, false
+
+}
+func (m mockCMM) RemovePadder(name string) (Padder, bool) {
+	return nil, false
 }
 
 type mockContentCipher struct {
-	cd CipherData
+	materials CryptographicMaterials
 }
 
-func (cipher *mockContentCipher) GetCipherData() CipherData {
-	return cipher.cd
+func (cipher *mockContentCipher) GetCipherData() CryptographicMaterials {
+	return cipher.materials
 }
 
 func (cipher *mockContentCipher) EncryptContents(src io.Reader) (io.Reader, error) {

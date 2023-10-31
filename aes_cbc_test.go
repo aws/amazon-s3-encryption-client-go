@@ -447,12 +447,12 @@ func TestAESCBCEncryptDecrypt(t *testing.T) {
 	for i, testCase := range testCases {
 		key, _ := hex.DecodeString(testCase.key)
 		iv, _ := hex.DecodeString(testCase.iv)
-		cd := CipherData{
+		materials := CryptographicMaterials{
 			Key: key,
 			IV:  iv,
 		}
 
-		cbc, err := newAESCBC(cd, testCase.padder)
+		cbc, err := newAESCBC(materials, testCase.padder)
 		if err != nil {
 			t.Fatal(fmt.Sprintf("Case %d: Expected no error for cipher creation, but received: %v", i, err.Error()))
 		}

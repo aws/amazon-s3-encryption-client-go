@@ -1,6 +1,7 @@
 package s3crypto
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -19,16 +20,15 @@ const (
 	cekAlgorithmHeader             = "x-amz-cek-alg"
 	KeyringAlgorithmHeader         = "x-amz-wrap-alg"
 	tagLengthHeader                = "x-amz-tag-len"
-	unencryptedMD5Header           = "x-amz-unencrypted-content-md5"
 	unencryptedContentLengthHeader = "x-amz-unencrypted-content-length"
 )
 
-// Envelope encryption starts off by generating a random symmetric key using
+// ObjectMetadata encryption starts off by generating a random symmetric key using
 // AES GCM. The SDK generates a random IV based off the encryption cipher
 // chosen. The master key that was provided, whether by the user or KMS, will be used
 // to encrypt the randomly generated symmetric key and base64 encode the iv. This will
 // allow for decryption of that same data later.
-type Envelope struct {
+type ObjectMetadata struct {
 	// IV is the randomly generated IV base64 encoded.
 	IV string `json:"x-amz-iv"`
 	// CipherKey is the randomly generated cipher key.
@@ -41,9 +41,9 @@ type Envelope struct {
 	UnencryptedContentLen string `json:"x-amz-unencrypted-content-length"`
 }
 
-// UnmarshalJSON unmarshalls the given JSON bytes into Envelope
-func (e *Envelope) UnmarshalJSON(value []byte) error {
-	type StrictEnvelope Envelope
+// UnmarshalJSON unmarshalls the given JSON bytes into ObjectMetadata
+func (e *ObjectMetadata) UnmarshalJSON(value []byte) error {
+	type StrictEnvelope ObjectMetadata
 	type LaxEnvelope struct {
 		StrictEnvelope
 		TagLen                json.RawMessage `json:"x-amz-tag-len"`
@@ -55,7 +55,7 @@ func (e *Envelope) UnmarshalJSON(value []byte) error {
 	if err != nil {
 		return err
 	}
-	*e = Envelope(inner.StrictEnvelope)
+	*e = ObjectMetadata(inner.StrictEnvelope)
 
 	e.TagLen, err = getJSONNumberAsString(inner.TagLen)
 	if err != nil {
@@ -95,4 +95,26 @@ func getJSONNumberAsString(data []byte) (string, error) {
 	}
 
 	return "", fmt.Errorf("failed to parse as JSON Number")
+}
+
+func encodeMeta(reader lengthReader, materials CryptographicMaterials) (ObjectMetadata, error) {
+	iv := base64.StdEncoding.EncodeToString(materials.IV)
+	key := base64.StdEncoding.EncodeToString(materials.EncryptedKey)
+
+	contentLength := reader.GetContentLength()
+
+	matdesc, err := materials.MaterialDescription.encodeDescription()
+	if err != nil {
+		return ObjectMetadata{}, err
+	}
+
+	return ObjectMetadata{
+		CipherKey:             key,
+		IV:                    iv,
+		MatDesc:               string(matdesc),
+		KeyringAlg:            materials.KeyringAlgorithm,
+		CEKAlg:                materials.CEKAlgorithm,
+		TagLen:                materials.TagLength,
+		UnencryptedContentLen: strconv.FormatInt(contentLength, 10),
+	}, nil
 }

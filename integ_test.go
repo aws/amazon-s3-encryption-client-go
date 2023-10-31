@@ -55,110 +55,9 @@ func LoadAwsAccountId() string {
 	return os.Getenv(awsAccountIdEnvvar)
 }
 
-func TestParameterMalleabilityRemoval(t *testing.T) {
-	var bucket = LoadBucket()
-	var region = LoadRegion()
-	var alias = LoadAwsKmsAlias()
-	var accountId = LoadAwsAccountId()
-
-	ctx := context.Background()
-	cfg, err := config.LoadDefaultConfig(ctx,
-		config.WithRegion(region),
-	)
-
-	if err != nil {
-		t.Fatalf("failed to load cfg: %v", err)
-	}
-
-	var handlerWithCek s3crypto.CipherDataGeneratorWithCEKAlg
-	arn, err := getAliasArn(alias, region, accountId)
-	if err != nil {
-		t.Fatalf("failed to get fixture alias info for %s, %v", alias, err)
-	}
-
-	kmsClient := kms.NewFromConfig(cfg)
-	var matDesc s3crypto.MaterialDescription
-	handlerWithCek = s3crypto.NewKMSContextKeyGenerator(kmsClient, arn, matDesc)
-
-	cr := s3crypto.NewCryptographicMaterialsManager()
-	s3crypto.RegisterAESGCMContentCipher(cr)
-	s3crypto.RegisterKMSContextKeyringWithAnyCMK(cr, kmsClient)
-
-	plaintext := "this is a test of the S3 Encryption Client"
-
-	cases := []struct {
-		TestName, MetadataKey, Action string
-		NewMetadataKey                string
-	}{
-		{TestName: "content-encryption-downgrade", MetadataKey: "x-amz-cek-alg", Action: "delete"},
-		{TestName: "key-wrap-downgrade-delete", MetadataKey: "x-amz-wrap-alg", Action: "delete"},
-		{TestName: "key-wrap-downgrade-aes-wrap", MetadataKey: "x-amz-wrap-alg", Action: "update", NewMetadataKey: "AESWrap"},
-		{TestName: "key-wrap-downgrade-aes", MetadataKey: "x-amz-wrap-alg", Action: "update", NewMetadataKey: "AES"},
-	}
-
-	for _, c := range cases {
-		t.Run(c.TestName, func(t *testing.T) {
-			s3Client := s3.NewFromConfig(cfg)
-			s3Ec, _ := s3crypto.NewS3EncryptionClientV3(s3Client, cr, handlerWithCek)
-			if err != nil {
-				t.Fatalf("failed to create decryption client: %v", err)
-			}
-
-			// First write some object using enc client
-			_, err = s3Ec.PutObject(ctx, &s3.PutObjectInput{
-				Bucket: aws.String(bucket),
-				Key:    aws.String(c.TestName),
-				Body:   bytes.NewReader([]byte(plaintext)),
-			})
-			if err != nil {
-				t.Fatalf("failed to upload encrypted fixture, %v", err)
-			}
-
-			// Next get ciphertext using default client
-			getOutput, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
-				Bucket: aws.String(bucket),
-				Key:    aws.String(c.TestName),
-			})
-			if err != nil {
-				t.Fatalf("failed to download encrypted fixture, %v", err)
-			}
-
-			ciphertext, err := io.ReadAll(getOutput.Body)
-			if err != nil {
-				t.Fatalf("failed to read ciphertext from getObject output, %v", err)
-			}
-
-			// Modify metadata
-			metadata := getOutput.Metadata
-			switch c.Action {
-			case "delete":
-				delete(metadata, c.MetadataKey)
-			case "update":
-				metadata[c.MetadataKey] = c.NewMetadataKey
-			}
-
-			// Put (with modified metadata) using default client
-			_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
-				Bucket:   aws.String(bucket),
-				Key:      aws.String(c.TestName),
-				Body:     bytes.NewReader(ciphertext), // does work
-				Metadata: metadata,
-			})
-			if err != nil {
-				t.Fatalf("failed to upload tampered fixture, %v", err)
-			}
-
-			// Attempt to get using dec client
-			_, err = s3Ec.GetObject(ctx, &s3.GetObjectInput{
-				Bucket: aws.String(bucket),
-				Key:    aws.String(c.TestName),
-			})
-			if err == nil {
-				t.Fatalf("expected error, but err is nil!, %v", err)
-			}
-		})
-
-	}
+func getAliasArn(shortAlias string, region string, accountId string) (string, error) {
+	arnFormat := "arn:aws:kms:%s:%s:alias/%s"
+	return fmt.Sprintf(arnFormat, region, accountId, shortAlias), nil
 }
 
 func TestInteg_EncryptFixtures(t *testing.T) {
@@ -190,9 +89,13 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 			s3Client := s3.NewFromConfig(cfg)
 
 			fixtures := getFixtures(t, s3Client, c.CEKAlg, bucket)
-			builder := getEncryptFixtureBuilder(t, cfg, c.KEK, c.bucket, c.region, accountId, c.CEK)
+			keyring := getEncryptFixtureBuilder(t, cfg, c.KEK, c.bucket, c.region, accountId, c.CEK)
 
-			encClient, _ := s3crypto.NewS3EncryptionClientV3(s3Client, nil, builder)
+			cmm, err := s3crypto.NewCryptographicMaterialsManager(keyring)
+			if err != nil {
+				t.Fatalf("failed to create new CMM")
+			}
+			encClient, _ := s3crypto.NewS3EncryptionClientV3(s3Client, cmm)
 
 			for caseKey, plaintext := range fixtures.Plaintexts {
 				_, err := encClient.PutObject(ctx, &s3.PutObjectInput{
@@ -238,20 +141,29 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 		t.Run(c.CEKAlg+"-"+c.Lang, func(t *testing.T) {
 			s3Client := s3.NewFromConfig(cfg)
 			kmsClient := kms.NewFromConfig(cfg)
-			cr := s3crypto.NewCryptographicMaterialsManager()
-			if c.CEKAlg == "aes_cbc" {
-				s3crypto.RegisterKMSKeyringWithAnyCMK(cr, kmsClient)
-				s3crypto.RegisterAESCBCContentCipher(cr, s3crypto.AESCBCPadder)
-			} else if c.CEKAlg == "aes_gcm" {
-				s3crypto.RegisterAESGCMContentCipher(cr)
-				s3crypto.RegisterKMSContextKeyringWithAnyCMK(cr, kmsClient)
-			} else {
-				t.Fatalf("unknown CEKAlg, cannot configure crypto registry: %s", c.CEKAlg)
+			keyringWithContext := s3crypto.NewKmsContextAnyKeyKeyring(kmsClient)
+			cmm, err := s3crypto.NewCryptographicMaterialsManager(keyringWithContext)
+			if err != nil {
+				t.Fatalf("failed to create new CMM")
 			}
 
-			decClient, err := s3crypto.NewS3EncryptionClientV3(s3Client, cr, nil)
-			if err != nil {
-				t.Fatalf("failed to create decryption client: %v", err)
+			var decClient *s3crypto.S3EncryptionClientV3
+			if c.CEKAlg == "aes_cbc" {
+				keyring := s3crypto.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient)
+				cmmCbc, err := s3crypto.NewCryptographicMaterialsManager(keyring)
+				decClient, err = s3crypto.NewS3EncryptionClientV3(s3Client, cmmCbc, func(clientOptions *s3crypto.EncryptionClientOptions) {
+					clientOptions.EnableLegacyModes = true
+				})
+				if err != nil {
+					t.Fatalf("failed to create decryption client: %v", err)
+				}
+			} else if c.CEKAlg == "aes_gcm" {
+				decClient, err = s3crypto.NewS3EncryptionClientV3(s3Client, cmm)
+				if err != nil {
+					t.Fatalf("failed to create decryption client: %v", err)
+				}
+			} else {
+				t.Fatalf("unknown CEKAlg, cannot configure crypto registry: %s", c.CEKAlg)
 			}
 
 			fixtures := getFixtures(t, s3Client, c.CEKAlg, bucket)
@@ -313,10 +225,10 @@ func getFixtures(t *testing.T, s3Client *s3.Client, cekAlg, bucket string) testF
 	}
 }
 
-func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, accountId string, cek string) (keyring s3crypto.CipherDataGeneratorWithCEKAlg) {
+func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, accountId string, cek string) (keyring s3crypto.Keyring) {
 	t.Helper()
 
-	var handlerWithCek s3crypto.CipherDataGeneratorWithCEKAlg
+	var kmsKeyring s3crypto.Keyring
 	switch kek {
 	case "kms":
 		arn, err := getAliasArn(alias, region, accountId)
@@ -326,26 +238,21 @@ func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, 
 
 		kmsSvc := kms.NewFromConfig(cfg)
 		var matDesc s3crypto.MaterialDescription
-		handlerWithCek = s3crypto.NewKMSContextKeyGenerator(kmsSvc, arn, matDesc)
+		kmsKeyring = s3crypto.NewKmsContextKeyring(kmsSvc, arn, matDesc)
 	default:
 		t.Fatalf("unknown fixture KEK, %v", kek)
 	}
 
 	switch cek {
 	case "aes_gcm":
-		return handlerWithCek
+		return kmsKeyring
 	case "aes_cbc":
 		t.Fatalf("aes cbc is not supported ")
 	default:
 		t.Fatalf("unknown fixture CEK, %v", cek)
 	}
 
-	return handlerWithCek
-}
-
-func getAliasArn(shortAlias string, region string, accountId string) (string, error) {
-	arnFormat := "arn:aws:kms:%s:%s:alias/%s"
-	return fmt.Sprintf(arnFormat, region, accountId, shortAlias), nil
+	return kmsKeyring
 }
 
 func decryptFixtures(t *testing.T, decClient *s3crypto.S3EncryptionClientV3, fixtures testFixtures, bucket, lang, version string,

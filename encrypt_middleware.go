@@ -73,16 +73,19 @@ func (m *encryptMiddleware) HandleSerialize(
 		return out, metadata, err
 	}
 
-	// in V3, AES GCM is the only supported content cipher
-	var encryptor, _ = AESGCMContentCipherBuilder(m.ec.options.CipherDataGeneratorWithCEKAlg).ContentCipher()
-
+	cmm := m.ec.options.CryptographicMaterialsManager
+	cryptoMaterials, err := cmm.GetEncryptionMaterials(ctx)
+	if err != nil {
+		return out, metadata, err
+	}
+	cipher, err := newAESGCMContentCipher(*cryptoMaterials)
 	if err != nil {
 		return out, metadata, err
 	}
 
 	stream := reqCopy.GetStream()
 	lengthReader := newContentLengthReader(stream)
-	reader, err := encryptor.EncryptContents(lengthReader)
+	reader, err := cipher.EncryptContents(lengthReader)
 	if err != nil {
 		return out, metadata, err
 	}
@@ -92,7 +95,7 @@ func (m *encryptMiddleware) HandleSerialize(
 		return out, metadata, err
 	}
 
-	data := encryptor.GetCipherData()
+	data := cipher.GetCipherData()
 	envelope, err := encodeMeta(lengthReader, data)
 	if err != nil {
 		return out, metadata, err

@@ -2,13 +2,13 @@ package s3crypto
 
 import "fmt"
 
-var errNilCryptographicMaterialsManager = fmt.Errorf("provided CryptographicMaterialsManager must not be nil")
+var errNilCryptographicMaterialsManager = fmt.Errorf("provided DefaultCryptographicMaterialsManager must not be nil")
 var errNilKeyringEntry = fmt.Errorf("keyring entry must not be nil")
 var errNilCEKEntry = fmt.Errorf("cek entry must not be nil")
 var errNilPadder = fmt.Errorf("padder must not be nil")
 
 func newErrDuplicateKeyringEntry(name string) error {
-	return newErrDuplicateRegistryEntry("Keyring", name)
+	return newErrDuplicateRegistryEntry("KeyringEntry", name)
 }
 
 func newErrDuplicateCEKEntry(name string) error {

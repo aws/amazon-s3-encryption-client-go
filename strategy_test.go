@@ -15,11 +15,11 @@ import (
 
 func TestHeaderV2SaveStrategy(t *testing.T) {
 	cases := []struct {
-		env      s3crypto.Envelope
+		env      s3crypto.ObjectMetadata
 		expected map[string]string
 	}{
 		{
-			s3crypto.Envelope{
+			s3crypto.ObjectMetadata{
 				CipherKey:             "Foo",
 				IV:                    "Bar",
 				MatDesc:               "{}",
@@ -39,7 +39,7 @@ func TestHeaderV2SaveStrategy(t *testing.T) {
 			},
 		},
 		{
-			s3crypto.Envelope{
+			s3crypto.ObjectMetadata{
 				CipherKey:             "Foo",
 				IV:                    "Bar",
 				MatDesc:               "{}",
@@ -89,11 +89,11 @@ func (m *mockPutObjectClient) PutObject(ctx context.Context, input *s3.PutObject
 
 func TestS3SaveStrategy(t *testing.T) {
 	cases := []struct {
-		env      s3crypto.Envelope
-		expected s3crypto.Envelope
+		env      s3crypto.ObjectMetadata
+		expected s3crypto.ObjectMetadata
 	}{
 		{
-			s3crypto.Envelope{
+			s3crypto.ObjectMetadata{
 				CipherKey:             "Foo",
 				IV:                    "Bar",
 				MatDesc:               "{}",
@@ -102,7 +102,7 @@ func TestS3SaveStrategy(t *testing.T) {
 				TagLen:                "128",
 				UnencryptedContentLen: "0",
 			},
-			s3crypto.Envelope{
+			s3crypto.ObjectMetadata{
 				CipherKey:             "Foo",
 				IV:                    "Bar",
 				MatDesc:               "{}",
@@ -113,7 +113,7 @@ func TestS3SaveStrategy(t *testing.T) {
 			},
 		},
 		{
-			s3crypto.Envelope{
+			s3crypto.ObjectMetadata{
 				CipherKey:             "Foo",
 				IV:                    "Bar",
 				MatDesc:               "{}",
@@ -121,7 +121,7 @@ func TestS3SaveStrategy(t *testing.T) {
 				CEKAlg:                s3crypto.AESGCMNoPadding,
 				UnencryptedContentLen: "0",
 			},
-			s3crypto.Envelope{
+			s3crypto.ObjectMetadata{
 				CipherKey:             "Foo",
 				IV:                    "Bar",
 				MatDesc:               "{}",
@@ -164,7 +164,7 @@ func TestS3SaveStrategy(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to read http body")
 		}
-		var actual s3crypto.Envelope
+		var actual s3crypto.ObjectMetadata
 		err = json.Unmarshal(bodyBytes, &actual)
 		if err != nil {
 			t.Errorf("failed to unmarshal envelope")

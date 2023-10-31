@@ -162,11 +162,11 @@ func TestGCMDecryptReader_DecrypterOpenError(t *testing.T) {
 func aesgcmTest(t *testing.T, iv, key, plaintext, expected, tag []byte) {
 	t.Helper()
 	const gcmTagSize = 16
-	cd := CipherData{
+	materials := CryptographicMaterials{
 		Key: key,
 		IV:  iv,
 	}
-	gcm, err := newAESGCM(cd)
+	gcm, err := newAESGCM(materials)
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
 	}

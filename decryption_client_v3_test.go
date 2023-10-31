@@ -6,37 +6,15 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/aws/amazon-s3-encryption-client-go/internal/awstesting"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/kms"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
-
-func TestNewS3EncryptionClientV3(t *testing.T) {
-	tConfig := awstesting.Config()
-	tClient := s3.NewFromConfig(tConfig)
-	kmsClient := kms.NewFromConfig(tConfig)
-
-	cr := NewCryptographicMaterialsManager()
-	RegisterAESGCMContentCipher(cr)
-	RegisterKMSContextKeyringWithAnyCMK(cr, kmsClient)
-	v3, _ := NewS3EncryptionClientV3(tClient, cr, nil)
-
-	if v3 == nil {
-		t.Fatal("expected client to not be nil")
-	}
-
-	// most importantly,
-	// contentCipherBuilder MUST be nil
-	if v3.options.CipherDataGeneratorWithCEKAlg != nil {
-		t.Fatal("expected ContentCipherBuilder to be nil")
-	}
-}
 
 func TestDecryptionClientV3_GetObject(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -50,12 +28,10 @@ func TestDecryptionClientV3_GetObject(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	cr := NewCryptographicMaterialsManager()
-	if err := RegisterKMSContextKeyringWithAnyCMK(cr, kmsClient); err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if err := RegisterAESGCMContentCipher(cr); err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	keyring := NewKmsContextAnyKeyKeyring(kmsClient)
+	cmm, err := NewCryptographicMaterialsManager(keyring)
+	if err != nil {
+		t.Errorf("expected no error, but received %v", err)
 	}
 
 	b, err := hex.DecodeString("6b134eb7a353131de92faff64f594b2794e3544e31776cca26fe3bbeeffc68742d1007234f11c6670522602326868e29f37e9d2678f1614ec1a2418009b9772100929aadbed9a21a")
@@ -80,7 +56,7 @@ func TestDecryptionClientV3_GetObject(t *testing.T) {
 	tConfig.HTTPClient = tHttpClient
 	s3Client := s3.NewFromConfig(tConfig)
 
-	client, err := NewS3EncryptionClientV3(s3Client, cr, nil)
+	client, err := NewS3EncryptionClientV3(s3Client, cmm)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -119,12 +95,10 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	cr := NewCryptographicMaterialsManager()
-	if err := RegisterKMSKeyringWithAnyCMK(cr, kmsClient); err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if err := RegisterAESCBCContentCipher(cr, AESCBCPadder); err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient)
+	cmm, err := NewCryptographicMaterialsManager(keyring)
+	if err != nil {
+		t.Errorf("expected no error, but received %v", err)
 	}
 
 	b, err := hex.DecodeString("6f4f413a357a3c3a12289442fb835c5e4ecc8db1d86d3d1eab906ce07e1ad772180b2e9ec49c3fc667d8aceea8c46da6bb9738251a8e36241a473ad820f99c701906bac1f48578d5392e928889bbb1d9")
@@ -148,7 +122,9 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
 	tConfig.HTTPClient = tHttpClient
 	s3Client := s3.NewFromConfig(tConfig)
 
-	client, err := NewS3EncryptionClientV3(s3Client, cr, nil)
+	client, err := NewS3EncryptionClientV3(s3Client, cmm, func(clientOptions *EncryptionClientOptions) {
+		clientOptions.EnableLegacyModes = true
+	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -190,12 +166,10 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESGCM(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	cr := NewCryptographicMaterialsManager()
-	if err := RegisterKMSKeyringWithAnyCMK(cr, kmsClient); err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if err := RegisterAESGCMContentCipher(cr); err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient)
+	cmm, err := NewCryptographicMaterialsManager(keyring)
+	if err != nil {
+		t.Errorf("expected no error, but received %v", err)
 	}
 
 	b, err := hex.DecodeString("6370a90b9a118301c2160c23a90d96146761276acdcfa92e6cbcb783abdc2e1813891506d6850754ef87ed2ac3bf570dd5c9da9492b7769ae1e639d073d688bd284815404ce2648a")
@@ -219,7 +193,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESGCM(t *testing.T) {
 	tConfig.HTTPClient = tHttpClient
 	s3Client := s3.NewFromConfig(tConfig)
 
-	client, err := NewS3EncryptionClientV3(s3Client, cr, nil)
+	client, err := NewS3EncryptionClientV3(s3Client, cmm)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -275,49 +249,43 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 		Client  *S3EncryptionClientV3
 		WantErr string
 	}{
-		"unsupported Keyring": {
+		"unsupported KeyringEntry": {
 			Client: func() *S3EncryptionClientV3 {
-				cr := NewCryptographicMaterialsManager()
-
-				if err := RegisterKMSContextKeyringWithAnyCMK(cr, kms.NewFromConfig(awstesting.Config())); err != nil {
-					t.Fatalf("expected no error, got %v", err)
-				}
-				if err := RegisterAESGCMContentCipher(cr); err != nil {
-					t.Fatalf("expected no error, got %v", err)
-				}
+				keyring := NewKmsContextAnyKeyKeyring(kms.NewFromConfig(awstesting.Config()))
+				cmm, err := NewCryptographicMaterialsManager(keyring)
 
 				tConfig := awstesting.Config()
 				tConfig.HTTPClient = httpClientFactory()
 				s3Client := s3.NewFromConfig(tConfig)
 
-				client, err := NewS3EncryptionClientV3(s3Client, cr, nil)
+				client, err := NewS3EncryptionClientV3(s3Client, cmm, func(clientOptions *EncryptionClientOptions) {
+					clientOptions.EnableLegacyModes = true
+				})
 				if err != nil {
 					t.Fatalf("expected no error, got %v", err)
 				}
 				return client
 			}(),
-			WantErr: "Keyring algorithm isn't supported, kms",
+			WantErr: "operation error S3: GetObject, error while decrypting materials: x-amz-cek-alg value `kms` did not match the expected algorithm `kms+context` for this keyring",
 		},
 		"unsupported cek": {
 			Client: func() *S3EncryptionClientV3 {
-				cr := NewCryptographicMaterialsManager()
-				if err := RegisterKMSKeyringWithAnyCMK(cr, kms.NewFromConfig(awstesting.Config())); err != nil {
-					t.Fatalf("expected no error, got %v", err)
-				}
-				if err := RegisterAESGCMContentCipher(cr); err != nil {
+				keyring := NewKmsDecryptOnlyAnyKeyKeyring(kms.NewFromConfig(awstesting.Config()))
+				cmm, err := NewCryptographicMaterialsManager(keyring)
+				if err != nil {
 					t.Fatalf("expected no error, got %v", err)
 				}
 				tConfig := awstesting.Config()
 				tConfig.HTTPClient = httpClientFactory()
 				s3Client := s3.NewFromConfig(tConfig)
 
-				client, err := NewS3EncryptionClientV3(s3Client, cr, nil)
+				client, err := NewS3EncryptionClientV3(s3Client, cmm)
 				if err != nil {
 					t.Fatalf("expected no error, got %v", err)
 				}
 				return client
 			}(),
-			WantErr: "cek algorithm isn't supported, AES/CBC/PKCS5Padding",
+			WantErr: "operation error S3: GetObject, configure client with enable legacy modes set to true to decrypt with AES/CBC/PKCS5Padding",
 		},
 	}
 
@@ -343,12 +311,8 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 }
 
 func TestDecryptionClientV3_CheckValidCryptographicMaterialsManager(t *testing.T) {
-	cr := NewCryptographicMaterialsManager()
-	_, err := NewS3EncryptionClientV3(nil, cr, nil)
+	_, err := NewCryptographicMaterialsManager(nil)
 	if err == nil {
 		t.Fatal("expected error, got none")
-	}
-	if e, a := "at least one Keyring must be provided", err.Error(); !strings.Contains(a, e) {
-		t.Fatalf("expected %v, got %v", e, a)
 	}
 }

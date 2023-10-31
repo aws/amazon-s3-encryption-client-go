@@ -7,6 +7,7 @@ import (
 	"github.com/aws/smithy-go"
 	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
+	"strings"
 )
 
 // GetObjectAPIClient is a client that implements the GetObject operation
@@ -60,16 +61,34 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 		Input:        m.input,
 	}
 
-	envelope, err := m.client.options.LoadStrategy.Load(ctx, loadReq)
+	// decode metadata
+	objectMetadata, err := m.client.options.LoadStrategy.Load(ctx, loadReq)
 	if err != nil {
-		return out, metadata, fmt.Errorf("failed to load envelope: bucket=%v; key=%v; err=%w", m.input.Bucket, m.input.Key, err)
+		return out, metadata, fmt.Errorf("failed to load objectMetadata: bucket=%v; key=%v; err=%w", m.input.Bucket, m.input.Key, err)
 	}
 
-	cipher, err := contentCipherFromEnvelope(ctx, m.client.options, envelope)
-	if err != nil {
-		return out, metadata, err
+	// determine the content algorithm from metadata
+	// this is purposefully done before attempting to
+	// decrypt the materials
+	var cekFunc CEKEntry
+	if objectMetadata.CEKAlg == AESGCMNoPadding {
+		cekFunc = newAESGCMContentCipher
+	} else if strings.Contains(objectMetadata.CEKAlg, "AES/CBC") {
+		if !m.client.options.EnableLegacyModes {
+			return out, metadata, fmt.Errorf("configure client with enable legacy modes set to true to decrypt with %s", objectMetadata.CEKAlg)
+		}
+		cekFunc = newAESCBCContentCipher
+	} else {
+		return out, metadata, fmt.Errorf("invalid content encryption algorithm found in metadata: %s", objectMetadata.CEKAlg)
 	}
 
+	decryptMaterials, err := m.client.options.CryptographicMaterialsManager.DecryptMaterials(ctx, objectMetadata)
+	if err != nil {
+		return out, metadata, fmt.Errorf("error while decrypting materials: %v", err)
+	}
+
+	cipher, err := cekFunc(*decryptMaterials)
+	cipher.DecryptContents(result.Body)
 	reader, err := cipher.DecryptContents(result.Body)
 	if err != nil {
 		return out, metadata, err

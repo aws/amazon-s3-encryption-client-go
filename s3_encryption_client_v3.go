@@ -14,10 +14,6 @@ type S3EncryptionClientV3 struct {
 }
 
 type EncryptionClientOptions struct {
-	// Keyring for encryption/decryption
-	// TODO: Fully refactor away in favor of CMM
-	CipherDataGeneratorWithCEKAlg CipherDataGeneratorWithCEKAlg
-
 	// SaveStrategy will dictate where the envelope is saved.
 	//
 	// Defaults to the object's metadata
@@ -40,11 +36,24 @@ type EncryptionClientOptions struct {
 	// Defaults to our default load strategy.
 	LoadStrategy LoadStrategy
 
-	CryptographicMaterialsManager *CryptographicMaterialsManager
+	CryptographicMaterialsManager CryptographicMaterialsManager
+
+	// EnableLegacyModes MUST be set to true in order to decrypt objects encrypted
+	//using legacy (unauthenticated) modes such as AES/CBC
+	EnableLegacyModes bool
+}
+
+// awsFixture is an unexported interface to expose whether a given fixture is an aws provided fixture, and whether that
+// fixtures dependencies were constructed using aws types.
+//
+// This interface is used to warn users if they are using custom implementations of CryptographicMaterialsManager
+// or Keyring.
+type awsFixture interface {
+	isAWSFixture() bool
 }
 
 // NewS3EncryptionClientV3 creates a new S3 client which can encrypt and decrypt
-func NewS3EncryptionClientV3(s3Client *s3.Client, CryptographicMaterialsManager *CryptographicMaterialsManager, keyring CipherDataGeneratorWithCEKAlg, optFns ...func(options *EncryptionClientOptions)) (*S3EncryptionClientV3, error) {
+func NewS3EncryptionClientV3(s3Client *s3.Client, CryptographicMaterialsManager CryptographicMaterialsManager, optFns ...func(options *EncryptionClientOptions)) (*S3EncryptionClientV3, error) {
 	wrappedClient := s3Client
 	// default options
 	options := EncryptionClientOptions{
@@ -53,29 +62,10 @@ func NewS3EncryptionClientV3(s3Client *s3.Client, CryptographicMaterialsManager 
 		Logger:                        log.Default(),
 		LoadStrategy:                  defaultV2LoadStrategy{},
 		CryptographicMaterialsManager: CryptographicMaterialsManager,
-		CipherDataGeneratorWithCEKAlg: keyring,
+		EnableLegacyModes:             false,
 	}
 	for _, fn := range optFns {
 		fn(&options)
-	}
-
-	// keyring MAY be nil,
-	// in which case the client
-	// becomes "decrypt-only".
-	if keyring != nil {
-		// Check if the passed in type is a fixture, if not log a warning message to the user
-		if fixture, ok := keyring.(awsFixture); !ok || !fixture.isAWSFixture() {
-			options.Logger.Println(customTypeWarningMessage)
-		}
-	}
-
-	// CryptographicMaterialsManager MAY be nil,
-	// in which case the client
-	// becomes "encrypt-only".
-	if CryptographicMaterialsManager != nil {
-		if err := CryptographicMaterialsManager.valid(); err != nil {
-			return nil, err
-		}
 	}
 
 	// use the given wrappedClient for the promoted anon fields

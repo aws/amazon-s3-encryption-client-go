@@ -4,52 +4,34 @@ import (
 	"io"
 )
 
-// RegisterAESCBCContentCipher registers the AES/CBC cipher and padder with the provided CryptographicMaterialsManager.
-//
-// Example:
-//
-//	cr := s3crypto.NewCryptographicMaterialsManager()
-//	if err := s3crypto.RegisterAESCBCContentCipher(cr, s3crypto.AESCBCPadder); err != nil {
-//		panic(err) // handle error
-//	}
-//
-// deprecated: This feature is in maintenance mode, no new updates will be released. Please see https://docs.aws.amazon.com/general/latest/gr/aws_sdk_cryptography.html for more information.
-func RegisterAESCBCContentCipher(registry *CryptographicMaterialsManager, padder Padder) error {
-	if registry == nil {
-		return errNilCryptographicMaterialsManager
-	}
-	name := AESCBC + "/" + padder.Name()
-	err := registry.AddCEK(name, newAESCBCContentCipher)
-	if err != nil {
-		return err
-	}
-	if err := registry.AddPadder(name, padder); err != nil {
-		return err
-	}
-	return nil
-}
+const (
+	AESCBC             = "AES/CBC"
+	AESCBCPKCS5Padding = "AES/CBC/PKCS5Padding"
+	aesCbcTagSizeBits  = "0"
+)
 
 // newAESCBCContentCipher will create a new aes cbc content cipher. If the cipher data's
 // will set the cek algorithm if it hasn't been set.
-func newAESCBCContentCipher(cd CipherData) (ContentCipher, error) {
-	if len(cd.CEKAlgorithm) == 0 {
-		cd.CEKAlgorithm = AESCBC + "/" + cd.Padder.Name()
+func newAESCBCContentCipher(materials CryptographicMaterials) (ContentCipher, error) {
+	materials.TagLength = aesCbcTagSizeBits
+	if len(materials.CEKAlgorithm) == 0 {
+		materials.CEKAlgorithm = AESCBC + "/" + materials.Padder.Name()
 	}
-	cipher, err := newAESCBC(cd, cd.Padder)
+	cipher, err := newAESCBC(materials, materials.Padder)
 	if err != nil {
 		return nil, err
 	}
 
 	return &aesCBCContentCipher{
-		CipherData: cd,
-		Cipher:     cipher,
+		CryptographicMaterials: materials,
+		Cipher:                 cipher,
 	}, nil
 }
 
 // aesCBCContentCipher will use AES CBC for the main cipher.
 type aesCBCContentCipher struct {
-	CipherData CipherData
-	Cipher     Cipher
+	CryptographicMaterials CryptographicMaterials
+	Cipher                 Cipher
 }
 
 // EncryptContents will generate a random key and iv and encrypt the data using cbc
@@ -66,8 +48,8 @@ func (cc *aesCBCContentCipher) DecryptContents(src io.ReadCloser) (io.ReadCloser
 }
 
 // GetCipherData returns cipher data
-func (cc aesCBCContentCipher) GetCipherData() CipherData {
-	return cc.CipherData
+func (cc aesCBCContentCipher) GetCipherData() CryptographicMaterials {
+	return cc.CryptographicMaterials
 }
 
 var (

@@ -32,7 +32,7 @@ Creating an S3 cryptography client
 	// We need to pass the S3 client to use, any decryption that occurs will use the KMS client.
 	encClient := s3crypto.NewEncryptionClientV3(sess, s3crypto.AESGCMContentCipherBuilder(handler))
 
-	// Create a CryptographicMaterialsManager and register the algorithms you wish to use for decryption
+	// Create a DefaultCryptographicMaterialsManager and register the algorithms you wish to use for decryption
 	cr := s3crypto.NewCryptographicMaterialsManager()
 
 	if err := s3crypto.RegisterAESGCMContentCipher(cr); err != nil {
@@ -81,16 +81,16 @@ configure the DecryptionClientV3 to use the matching S3LoadStrategy LoadStrategy
 
 Registration of custom key Keyring or content encryption algorithms not provided by AWS is allowed by the SDK, but
 security and compatibility with custom types can not be guaranteed. For example if you want to support a `CustomKeyring`
-Keyring and a `CustomCEK` content encryption algorithm. You can use the CryptographicMaterialsManager to register these types.
+Keyring and a `CustomCEK` content encryption algorithm. You can use the DefaultCryptographicMaterialsManager to register these types.
 
 	cr := s3crypto.NewCryptographicMaterialsManager()
 
-	// Register a custom Keyring to the CryptographicMaterialsManager
+	// Register a custom KeyringEntry to the DefaultCryptographicMaterialsManager
 	if err := cr.AddKeyring("CustomKeyring", NewCustomKeyringEntry); err != nil {
 		panic(err) // handle error
 	}
 
-	// Register a custom content encryption algorithm to the CryptographicMaterialsManager
+	// Register a custom content encryption algorithm to the DefaultCryptographicMaterialsManager
 	if err := cr.AddCEK("CustomCEK", NewCustomCEKEntry); err != nil {
 		panic(err) // handle error
 	}
@@ -106,7 +106,7 @@ the Keyring as `CustomKeyring` then it'll use that Keyring algorithm. This is al
 For encryption adding a custom content cipher builder and keyring will allow for encryption of custom
 defined ciphers.
 
-	// Our Keyring algorithm, CustomKeyring
+	// Our KeyringEntry algorithm, CustomKeyring
 	handler := NewCustomKeyring(key, iv)
 	// Our content cipher builder, NewCustomCEKContentBuilder
 	encClient := s3crypto.NewEncryptionClientV3(s3Client, NewCustomCEKContentBuilder(handler))

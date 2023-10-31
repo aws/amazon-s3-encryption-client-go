@@ -21,12 +21,12 @@ type ContentCipherBuilderWithContext interface {
 type ContentCipher interface {
 	EncryptContents(io.Reader) (io.Reader, error)
 	DecryptContents(io.ReadCloser) (io.ReadCloser, error)
-	GetCipherData() CipherData
+	GetCipherData() CryptographicMaterials
 }
 
-// CipherData is used for content encryption. It is used for storing the
+// CryptographicMaterials is used for content encryption. It is used for storing the
 // metadata of the encrypted content.
-type CipherData struct {
+type CryptographicMaterials struct {
 	Key                 []byte
 	IV                  []byte
 	KeyringAlgorithm    string
@@ -38,9 +38,9 @@ type CipherData struct {
 	Padder       Padder
 }
 
-// Clone returns a new copy of CipherData
-func (cd CipherData) Clone() (v CipherData) {
-	v = cd
-	v.MaterialDescription = cd.MaterialDescription.Clone()
+// Clone returns a new copy of CryptographicMaterials
+func (cm CryptographicMaterials) Clone() (v CryptographicMaterials) {
+	v = cm
+	v.MaterialDescription = cm.MaterialDescription.Clone()
 	return v
 }

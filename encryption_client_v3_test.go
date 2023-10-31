@@ -17,52 +17,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 )
 
-// TEST-UNIT
-func TestNewS3EncryptionOnlyClientV3(t *testing.T) {
-	tConfig := awstesting.Config()
-	tClient := s3.NewFromConfig(tConfig)
-
-	mcb := NewKMSContextKeyGenerator(nil, "id", nil)
-	v3, _ := NewS3EncryptionClientV3(tClient, nil, mcb)
-	if v3 == nil {
-		t.Fatal("expected client to not be nil")
-	}
-
-	if !reflect.DeepEqual(mcb, v3.options.CipherDataGeneratorWithCEKAlg) {
-		t.Errorf("content cipher builder did not match provided value")
-	}
-
-	_, ok := v3.options.SaveStrategy.(HeaderV2SaveStrategy)
-	if !ok {
-		t.Errorf("expected default save strategy to be s3 header strategy")
-	}
-
-	if v3.Client == nil {
-		t.Errorf("expected s3 client to be nil")
-	}
-
-	if e, a := DefaultMinFileSize, v3.options.MinFileSize; int64(e) != a {
-		t.Errorf("expected %v, got %v", e, a)
-	}
-
-	if e, a := "", v3.options.TempFolderPath; e != a {
-		t.Errorf("expected %v, got %v", e, a)
-	}
-
-	// most importantly,
-	// CryptographicMaterialsManager MUST be nil
-	if v3.options.CryptographicMaterialsManager != nil {
-		t.Errorf("expected CryptographicMaterialsManager to be nil")
-	}
-}
-
 func TestNewEncryptionClientV3_NonDefaults(t *testing.T) {
 	tConfig := awstesting.Config()
 	tClient := s3.NewFromConfig(tConfig)
 
-	mcb := mockGenerator{}
-	v3, _ := NewS3EncryptionClientV3(tClient, nil, nil, func(clientOptions *EncryptionClientOptions) {
-		clientOptions.CipherDataGeneratorWithCEKAlg = mcb
+	var mcmm = mockCMM{}
+	v3, _ := NewS3EncryptionClientV3(tClient, mcmm, func(clientOptions *EncryptionClientOptions) {
+		clientOptions.CryptographicMaterialsManager = mcmm
 		clientOptions.TempFolderPath = "/mock/path"
 		clientOptions.MinFileSize = 42
 		clientOptions.SaveStrategy = S3SaveStrategy{}
@@ -72,8 +33,8 @@ func TestNewEncryptionClientV3_NonDefaults(t *testing.T) {
 		t.Fatal("expected client to not be nil")
 	}
 
-	if !reflect.DeepEqual(mcb, v3.options.CipherDataGeneratorWithCEKAlg) {
-		t.Errorf("content cipher builder did not match provided value")
+	if !reflect.DeepEqual(mcmm, v3.options.CryptographicMaterialsManager) {
+		t.Errorf("CMM did not match provided value")
 	}
 
 	_, ok := v3.options.SaveStrategy.(S3SaveStrategy)
@@ -94,27 +55,26 @@ func TestNewEncryptionClientV3_NonDefaults(t *testing.T) {
 	}
 }
 
-// cdgWithStaticTestIV is a test structure that wraps a CipherDataGeneratorWithCEKAlg and stubs in a static IV
+// keyringWithStaticTestIV is a test structure that wraps a CipherDataGeneratorWithCEKAlg and stubs in a static IV
 // so that encryption tests can be guaranteed to be consistent.
-type cdgWithStaticTestIV struct {
+type keyringWithStaticTestIV struct {
 	IV []byte
-	CipherDataGeneratorWithCEKAlg
+	Keyring
 }
 
 // isAWSFixture will avoid the warning log message when doing tests that need to mock the IV
-func (k cdgWithStaticTestIV) isAWSFixture() bool {
+func (k keyringWithStaticTestIV) isAWSFixture() bool {
 	return true
 }
 
-func (k cdgWithStaticTestIV) GenerateCipherDataWithCEKAlg(ctx context.Context, keySize, ivSize int, cekAlg string) (CipherData, error) {
-	cipherData, err := k.CipherDataGeneratorWithCEKAlg.GenerateCipherDataWithCEKAlg(ctx, keySize, ivSize, cekAlg)
+func (k keyringWithStaticTestIV) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
+	cryptoMaterials, err := k.Keyring.OnEncrypt(ctx, materials)
 	if err == nil {
-		cipherData.IV = k.IV
+		cryptoMaterials.IV = k.IV
 	}
-	return cipherData, err
+	return cryptoMaterials, err
 }
 
-// TEST-MOCK
 func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		fmt.Fprintln(writer, `{"CiphertextBlob":"8gSzlk7giyfFbLPUVgoVjvQebI1827jp8lDkO+n2chsiSoegx1sjm8NdPk0Bl70I","KeyId":"test-key-id","Plaintext":"lP6AbIQTmptyb/+WQq+ubDw+w7na0T1LGSByZGuaono="}`)
@@ -128,9 +88,9 @@ func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 
 	var md MaterialDescription
 	iv, _ := hex.DecodeString("ae325acae2bfd5b9c3d0b813")
-	kmsWithStaticIV := cdgWithStaticTestIV{
-		IV:                            iv,
-		CipherDataGeneratorWithCEKAlg: NewKMSContextKeyGenerator(kmsClient, "test-key-id", md),
+	kmsWithStaticIV := keyringWithStaticTestIV{
+		IV:      iv,
+		Keyring: NewKmsContextKeyring(kmsClient, "test-key-id", md),
 	}
 
 	tConfig := awstesting.Config()
@@ -144,9 +104,13 @@ func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 	tConfig.HTTPClient = tHttpClient
 	s3Client := s3.NewFromConfig(tConfig)
 
-	client, _ := NewS3EncryptionClientV3(s3Client, nil, kmsWithStaticIV)
+	cmm, err := NewCryptographicMaterialsManager(kmsWithStaticIV)
+	if err != nil {
+		t.Fatalf("error while trying to create new CMM: %v", err)
+	}
+	client, _ := NewS3EncryptionClientV3(s3Client, cmm)
 
-	_, err := client.PutObject(context.Background(), &s3.PutObjectInput{
+	_, err = client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket: aws.String("test-bucket"),
 		Key:    aws.String("test-key"),
 		Body: func() io.ReadSeeker {
