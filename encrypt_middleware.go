@@ -117,7 +117,8 @@ func (m *encryptMiddleware) HandleSerialize(
 	}
 
 	// this saves the required crypto params (IV, tag length, etc.)
-	if err = m.ec.options.SaveStrategy.Save(ctx, saveReq); err != nil {
+	strat := ObjectMetadataSaveStrategy{}
+	if err = strat.Save(ctx, saveReq); err != nil {
 		return out, metadata, err
 	}
 
