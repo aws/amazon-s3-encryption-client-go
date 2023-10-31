@@ -97,13 +97,13 @@ func getJSONNumberAsString(data []byte) (string, error) {
 	return "", fmt.Errorf("failed to parse as JSON Number")
 }
 
-func encodeMeta(reader lengthReader, cd CryptographicMaterials) (ObjectMetadata, error) {
-	iv := base64.StdEncoding.EncodeToString(cd.IV)
-	key := base64.StdEncoding.EncodeToString(cd.EncryptedKey)
+func encodeMeta(reader lengthReader, materials CryptographicMaterials) (ObjectMetadata, error) {
+	iv := base64.StdEncoding.EncodeToString(materials.IV)
+	key := base64.StdEncoding.EncodeToString(materials.EncryptedKey)
 
 	contentLength := reader.GetContentLength()
 
-	matdesc, err := cd.MaterialDescription.encodeDescription()
+	matdesc, err := materials.MaterialDescription.encodeDescription()
 	if err != nil {
 		return ObjectMetadata{}, err
 	}
@@ -112,9 +112,9 @@ func encodeMeta(reader lengthReader, cd CryptographicMaterials) (ObjectMetadata,
 		CipherKey:             key,
 		IV:                    iv,
 		MatDesc:               string(matdesc),
-		KeyringAlg:            cd.KeyringAlgorithm,
-		CEKAlg:                cd.CEKAlgorithm,
-		TagLen:                cd.TagLength,
+		KeyringAlg:            materials.KeyringAlgorithm,
+		CEKAlg:                materials.CEKAlgorithm,
+		TagLen:                materials.TagLength,
 		UnencryptedContentLen: strconv.FormatInt(contentLength, 10),
 	}, nil
 }

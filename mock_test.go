@@ -40,19 +40,24 @@ func (m mockKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMateria
 		EncryptedKey:        nil,
 		Padder:              nil,
 	}, nil
-
 }
 
-func (m mockCMM) getEncryptionMaterials() *EncryptionMaterials {
+func (m mockCMM) GetEncryptionMaterials(ctx context.Context) (*CryptographicMaterials, error) {
 	// TODO: make this mock more useful
-	return &EncryptionMaterials{
-		gcmKeySize:   0,
-		gcmNonceSize: 0,
-		algorithm:    "",
-	}
+	return &CryptographicMaterials{
+		Key:          nil,
+		IV:           nil,
+		CEKAlgorithm: AESGCMNoPadding,
+	}, nil
+}
+func (m mockCMM) AddPadder(name string, entry Padder) error {
+	return nil
+}
+func (m mockCMM) GetPadder(name string) (Padder, bool) {
+	return nil, false
 }
 
-func (m mockCMM) decryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error) {
+func (m mockCMM) DecryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error) {
 	// TODO: make this mock more useful
 	return &CryptographicMaterials{
 		Key:                 nil,
@@ -74,18 +79,17 @@ func (m mockCMM) AddPadder(name string, entry Padder) error {
 }
 func (m mockCMM) GetPadder(name string) (Padder, bool) {
 	return nil, false
-
 }
 func (m mockCMM) RemovePadder(name string) (Padder, bool) {
 	return nil, false
 }
 
 type mockContentCipher struct {
-	cd CryptographicMaterials
+	materials CryptographicMaterials
 }
 
 func (cipher *mockContentCipher) GetCipherData() CryptographicMaterials {
-	return cipher.cd
+	return cipher.materials
 }
 
 func (cipher *mockContentCipher) EncryptContents(src io.Reader) (io.Reader, error) {

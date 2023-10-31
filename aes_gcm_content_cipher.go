@@ -17,17 +17,17 @@ const (
 // Note: This uses the Go stdlib AEAD implementation for AES/GCM. Due to this objects to be encrypted or decrypted
 // will be fully loaded into memory before encryption or decryption can occur. Caution must be taken to avoid memory
 // allocation failures.
-func newAESGCMContentCipher(cd CryptographicMaterials) (ContentCipher, error) {
-	cd.CEKAlgorithm = AESGCMNoPadding
-	cd.TagLength = gcmTagSizeBits
+func newAESGCMContentCipher(materials CryptographicMaterials) (ContentCipher, error) {
+	materials.CEKAlgorithm = AESGCMNoPadding
+	materials.TagLength = gcmTagSizeBits
 
-	cipher, err := newAESGCM(cd)
+	cipher, err := newAESGCM(materials)
 	if err != nil {
 		return nil, err
 	}
 
 	return &aesGCMContentCipher{
-		CryptographicMaterials: cd,
+		CryptographicMaterials: materials,
 		Cipher:                 cipher,
 	}, nil
 }

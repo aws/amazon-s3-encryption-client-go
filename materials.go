@@ -11,7 +11,7 @@ type DecryptionMaterials struct {
 	TagLength           string
 }
 
-func NewDecryptionMaterials(md ObjectMetadata, padderMap map[string]Padder) (*DecryptionMaterials, error) {
+func NewDecryptionMaterials(md ObjectMetadata) (*DecryptionMaterials, error) {
 	// TODO: Move decoding into ObjectMetadata
 	key, err := base64.StdEncoding.DecodeString(md.CipherKey)
 	if err != nil {
@@ -24,6 +24,10 @@ func NewDecryptionMaterials(md ObjectMetadata, padderMap map[string]Padder) (*De
 	materialDescription := MaterialDescription{}
 	err = materialDescription.decodeDescription([]byte(md.MatDesc))
 
+	if err != nil {
+		return nil, err
+	}
+
 	dataKey := DataKey{
 		KeyMaterial:      nil,
 		EncryptedDataKey: key,
@@ -31,17 +35,12 @@ func NewDecryptionMaterials(md ObjectMetadata, padderMap map[string]Padder) (*De
 	}
 
 	var padder Padder
-	if padderMap[md.KeyringAlg] != nil {
-		// prefer custom padder, if registered
-		padder = padderMap[md.CEKAlg]
-	} else if md.CEKAlg == "AES/CBC/PKCS5Padding" {
-		// else use default CBC padding
+
+	if md.CEKAlg == "AES/CBC/PKCS5Padding" {
+		// use default CBC padding
 		padder = aescbcPadding
 	}
 
-	if err != nil {
-		return nil, err
-	}
 	return &DecryptionMaterials{
 		DataKey:             dataKey,
 		ContentIV:           iv,
