@@ -26,7 +26,6 @@ func TestNewEncryptionClientV3_NonDefaults(t *testing.T) {
 		clientOptions.CryptographicMaterialsManager = mcmm
 		clientOptions.TempFolderPath = "/mock/path"
 		clientOptions.MinFileSize = 42
-		clientOptions.SaveStrategy = S3SaveStrategy{}
 	})
 
 	if v3 == nil {
@@ -35,11 +34,6 @@ func TestNewEncryptionClientV3_NonDefaults(t *testing.T) {
 
 	if !reflect.DeepEqual(mcmm, v3.options.CryptographicMaterialsManager) {
 		t.Errorf("CMM did not match provided value")
-	}
-
-	_, ok := v3.options.SaveStrategy.(S3SaveStrategy)
-	if !ok {
-		t.Errorf("expected default save strategy to be s3 header strategy")
 	}
 
 	if v3.Client != tClient {
