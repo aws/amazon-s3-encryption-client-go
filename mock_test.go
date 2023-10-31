@@ -50,12 +50,6 @@ func (m mockCMM) GetEncryptionMaterials(ctx context.Context) (*CryptographicMate
 		CEKAlgorithm: AESGCMNoPadding,
 	}, nil
 }
-func (m mockCMM) AddPadder(name string, entry Padder) error {
-	return nil
-}
-func (m mockCMM) GetPadder(name string) (Padder, bool) {
-	return nil, false
-}
 
 func (m mockCMM) DecryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error) {
 	// TODO: make this mock more useful
