@@ -111,14 +111,14 @@ func (load headerV2LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequ
 	return env, nil
 }
 
-// DefaultV2LoadStrategy This is the only exported LoadStrategy since cx are no longer able to configure their client
+// DefaultLoadStrategy This is the only exported LoadStrategy since cx are no longer able to configure their client
 // with a specific load strategy. Instead, we figure out which strategy to use based on the response header on decrypt.
-type DefaultV2LoadStrategy struct {
+type DefaultLoadStrategy struct {
 	client GetObjectAPIClient
 	suffix string
 }
 
-func (load DefaultV2LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (ObjectMetadata, error) {
+func (load DefaultLoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (ObjectMetadata, error) {
 	if value := req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, keyV2Header}, "-")); value != "" {
 		strat := headerV2LoadStrategy{}
 		return strat.Load(ctx, req)
