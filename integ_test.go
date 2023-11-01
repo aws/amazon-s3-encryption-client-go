@@ -55,9 +55,13 @@ func LoadAwsAccountId() string {
 	return os.Getenv(awsAccountIdEnvvar)
 }
 
-func getAliasArn(shortAlias string, region string, accountId string) (string, error) {
+func getAliasArn(shortAlias string, region string, accountId string) string {
+	if strings.Contains(shortAlias, "arn") {
+		// shortAlias is not actually short
+		return shortAlias
+	}
 	arnFormat := "arn:aws:kms:%s:%s:alias/%s"
-	return fmt.Sprintf(arnFormat, region, accountId, shortAlias), nil
+	return fmt.Sprintf(arnFormat, region, accountId, shortAlias)
 }
 
 func TestInteg_EncryptFixtures(t *testing.T) {
@@ -231,10 +235,7 @@ func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, 
 	var kmsKeyring s3crypto.Keyring
 	switch kek {
 	case "kms":
-		arn, err := getAliasArn(alias, region, accountId)
-		if err != nil {
-			t.Fatalf("failed to get fixture alias info for %s, %v", alias, err)
-		}
+		arn := getAliasArn(alias, region, accountId)
 
 		kmsSvc := kms.NewFromConfig(cfg)
 		var matDesc s3crypto.MaterialDescription
