@@ -29,7 +29,7 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 	}
 
 	var alias = LoadAwsKmsAlias()
-	arn, err := getAliasArn(alias, region, accountId)
+	arn := getAliasArn(alias, region, accountId)
 	if err != nil {
 		t.Fatalf("failed to get fixture alias info for %s, %v", alias, err)
 	}
@@ -101,7 +101,7 @@ func TestIntegKmsContext(t *testing.T) {
 	}
 
 	var alias = LoadAwsKmsAlias()
-	arn, err := getAliasArn(alias, region, accountId)
+	arn := getAliasArn(alias, region, accountId)
 	if err != nil {
 		t.Fatalf("failed to get fixture alias info for %s, %v", alias, err)
 	}
@@ -173,7 +173,7 @@ func TestIntegKmsContextDecryptAny(t *testing.T) {
 	}
 
 	var alias = LoadAwsKmsAlias()
-	arn, err := getAliasArn(alias, region, accountId)
+	arn := getAliasArn(alias, region, accountId)
 	if err != nil {
 		t.Fatalf("failed to get fixture alias info for %s, %v", alias, err)
 	}

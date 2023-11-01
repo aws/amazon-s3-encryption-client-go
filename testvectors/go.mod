@@ -3,7 +3,6 @@ module amazon-s3-encryption-client-go/testvectors
 go 1.20
 
 require (
-	github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231017191545-719b5564cafd
 	github.com/aws/aws-sdk-go v1.44.327
 	github.com/aws/aws-sdk-go-v2 v1.18.0
 	github.com/aws/aws-sdk-go-v2/config v1.18.25
@@ -12,6 +11,7 @@ require (
 )
 
 require (
+	github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231101195558-d863ec3760fd // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.4.10 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.24 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.13.3 // indirect
