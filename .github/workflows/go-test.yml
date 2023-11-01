@@ -48,5 +48,6 @@ jobs:
       run: |
         cd testvectors
         # TODO: remove after public launch
-        machine github.com login justplaz password {{ secrets.REPO_PAT_JUSTPLAZ }}
+        export GITHUB_ACCESS_TOKEN=${{ secrets.REPO_PAT_JUSTPLAZ }}
+        export GOPRIVATE="github.com/aws/amazon-s3-encryption-client-go"
         go test *.go -v
