@@ -47,4 +47,6 @@ jobs:
     - name: Test Vectors
       run: |
         cd testvectors
+        # TODO: remove after public launch
+        machine github.com login justplaz password {{ secrets.REPO_PAT_JUSTPLAZ }}
         go test *.go -v
