@@ -44,10 +44,15 @@ jobs:
         export AWS_ACCOUNT_ID=${{ secrets.CI_AWS_ACCOUNT_ID }}
         go test *.go -v
 
+    # TODO: remove after public launch
+    - name: Configure git for private modules
+      env:
+        TOKEN: ${{ secrets.REPO_PAT_JUSTPLAZ }}
+      run: git config --global url."https://justplaz:${TOKEN}@github.com".insteadOf "https://github.com"
+
     - name: Test Vectors
       run: |
         cd testvectors
-        # TODO: remove after public launch
         export GITHUB_ACCESS_TOKEN=${{ secrets.REPO_PAT_JUSTPLAZ }}
         export GOPRIVATE="github.com/aws/amazon-s3-encryption-client-go"
         go test *.go -v
