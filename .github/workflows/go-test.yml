@@ -43,3 +43,8 @@ jobs:
         export AWS_KMS_ALIAS=${{ vars.CI_KMS_KEY_ALIAS }}
         export AWS_ACCOUNT_ID=${{ secrets.CI_AWS_ACCOUNT_ID }}
         go test *.go -v
+
+    - name: Test Vectors
+      run: |
+        cd testvectors
+        go test *.go -v
