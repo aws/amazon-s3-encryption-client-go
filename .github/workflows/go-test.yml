@@ -55,4 +55,8 @@ jobs:
         cd testvectors
         export GITHUB_ACCESS_TOKEN=${{ secrets.REPO_PAT_JUSTPLAZ }}
         export GOPRIVATE="github.com/aws/amazon-s3-encryption-client-go"
+        export AWS_REGION=${{ vars.CI_AWS_REGION }}
+        export BUCKET=${{ vars.CI_S3_BUCKET }}
+        export AWS_KMS_ALIAS=${{ vars.CI_KMS_KEY_ALIAS }}
+        export AWS_ACCOUNT_ID=${{ secrets.CI_AWS_ACCOUNT_ID }}
         go test *.go -v
