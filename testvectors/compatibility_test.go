@@ -20,13 +20,11 @@ import (
 	"testing"
 )
 
-// This is duplicated in integ_test.go,
-// TODO: refactor to share
-const defaultBucket = "s3-encryption-client-v3-go-justplaz-us-west-2"
+const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
 const bucketEnvvar = "BUCKET"
 const defaultRegion = "us-west-2"
 const regionEnvvar = "AWS_REGION"
-const defaultAwsKmsAlias = "arn:aws:kms:us-west-2:657301468084:alias/s3-encryption-client-v3-go-justplaz-us-west-2"
+const defaultAwsKmsAlias = "arn:aws:kms:us-west-2:657301468084:alias/s3-encryption-client-v3-go-us-west-2"
 const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
 const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
 
