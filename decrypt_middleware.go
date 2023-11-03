@@ -62,7 +62,8 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 	}
 
 	// decode metadata
-	objectMetadata, err := m.client.options.LoadStrategy.Load(ctx, loadReq)
+	loadStrat := DefaultLoadStrategy{}
+	objectMetadata, err := loadStrat.Load(ctx, loadReq)
 	if err != nil {
 		return out, metadata, fmt.Errorf("failed to load objectMetadata: bucket=%v; key=%v; err=%w", m.input.Bucket, m.input.Key, err)
 	}

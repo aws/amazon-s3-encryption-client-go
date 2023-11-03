@@ -1,7 +1,6 @@
 package s3crypto
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -25,46 +24,12 @@ type SaveStrategyRequest struct {
 	Input interface{}
 }
 
-// SaveStrategy is how the data's metadata wants to be saved
-type SaveStrategy interface {
-	Save(context.Context, *SaveStrategyRequest) error
-}
-
-// S3SaveStrategy will save the metadata to a separate instruction file in S3
-type S3SaveStrategy struct {
-	APIClient             PutObjectAPIClient
-	InstructionFileSuffix string
-}
-
-// Save will save the envelope contents to s3.
-func (strat S3SaveStrategy) Save(ctx context.Context, req *SaveStrategyRequest) error {
-	input := req.Input.(*s3.PutObjectInput)
-	b, err := json.Marshal(req.Envelope)
-	if err != nil {
-		return err
-	}
-
-	instInput := s3.PutObjectInput{
-		Bucket: input.Bucket,
-		Body:   bytes.NewReader(b),
-	}
-
-	if strat.InstructionFileSuffix == "" {
-		instInput.Key = aws.String(*input.Key + DefaultInstructionKeySuffix)
-	} else {
-		instInput.Key = aws.String(*input.Key + strat.InstructionFileSuffix)
-	}
-
-	_, err = strat.APIClient.PutObject(ctx, &instInput)
-	return err
-}
-
-// HeaderV2SaveStrategy will save the metadata of the crypto contents to the header of
+// ObjectMetadataSaveStrategy will save the metadata of the crypto contents to the header of
 // the object.
-type HeaderV2SaveStrategy struct{}
+type ObjectMetadataSaveStrategy struct{}
 
 // Save will save the envelope to the request's header.
-func (strat HeaderV2SaveStrategy) Save(ctx context.Context, saveReq *SaveStrategyRequest) error {
+func (strat ObjectMetadataSaveStrategy) Save(ctx context.Context, saveReq *SaveStrategyRequest) error {
 
 	input := saveReq.Input.(*s3.PutObjectInput)
 	if input.Metadata == nil {
@@ -100,13 +65,13 @@ type LoadStrategy interface {
 }
 
 // S3LoadStrategy will load the instruction file from s3
-type S3LoadStrategy struct {
+type s3LoadStrategy struct {
 	APIClient             GetObjectAPIClient
 	InstructionFileSuffix string
 }
 
 // Load from a given instruction file suffix
-func (load S3LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (ObjectMetadata, error) {
+func (load s3LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (ObjectMetadata, error) {
 	env := ObjectMetadata{}
 	if load.InstructionFileSuffix == "" {
 		load.InstructionFileSuffix = DefaultInstructionKeySuffix
@@ -130,11 +95,11 @@ func (load S3LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (
 	return env, err
 }
 
-// HeaderV2LoadStrategy will load the envelope from the metadata
-type HeaderV2LoadStrategy struct{}
+// headerV2LoadStrategy will load the envelope from the metadata
+type headerV2LoadStrategy struct{}
 
 // Load from a given object's header
-func (load HeaderV2LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (ObjectMetadata, error) {
+func (load headerV2LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (ObjectMetadata, error) {
 	env := ObjectMetadata{}
 	env.CipherKey = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, keyV2Header}, "-"))
 	env.IV = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, ivHeader}, "-"))
@@ -146,23 +111,26 @@ func (load HeaderV2LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequ
 	return env, nil
 }
 
-type defaultV2LoadStrategy struct {
+// DefaultLoadStrategy This is the only exported LoadStrategy since cx are no longer able to configure their client
+// with a specific load strategy. Instead, we figure out which strategy to use based on the response header on decrypt.
+type DefaultLoadStrategy struct {
 	client GetObjectAPIClient
 	suffix string
 }
 
-func (load defaultV2LoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (ObjectMetadata, error) {
+func (load DefaultLoadStrategy) Load(ctx context.Context, req *LoadStrategyRequest) (ObjectMetadata, error) {
 	if value := req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, keyV2Header}, "-")); value != "" {
-		strat := HeaderV2LoadStrategy{}
+		strat := headerV2LoadStrategy{}
 		return strat.Load(ctx, req)
 	} else if value = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, keyV1Header}, "-")); value != "" {
+		// TODO look into this - this does not make sense.
 		return ObjectMetadata{}, &smithy.GenericAPIError{
 			Code:    "V1NotSupportedError",
 			Message: "The AWS SDK for Go does not support version 1",
 		}
 	}
 
-	strat := S3LoadStrategy{
+	strat := s3LoadStrategy{
 		APIClient:             load.client,
 		InstructionFileSuffix: load.suffix,
 	}
