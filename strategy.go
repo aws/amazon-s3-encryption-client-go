@@ -3,7 +3,9 @@ package s3crypto
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/smithy-go"
 	"io"
 	"net/http"
@@ -123,15 +125,27 @@ func (load DefaultLoadStrategy) Load(ctx context.Context, req *LoadStrategyReque
 		strat := headerV2LoadStrategy{}
 		return strat.Load(ctx, req)
 	} else if value = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, keyV1Header}, "-")); value != "" {
-		// TODO look into this - this does not make sense.
+		// In other S3EC implementations, decryption of v1 objects is supported.
+		// Go, however, does not support this.
 		return ObjectMetadata{}, &smithy.GenericAPIError{
 			Code:    "V1NotSupportedError",
 			Message: "The AWS SDK for Go does not support version 1",
 		}
 	}
 
+	var client GetObjectAPIClient
+	if load.client == nil {
+		cfg, err := config.LoadDefaultConfig(context.Background())
+		if err != nil {
+			return ObjectMetadata{}, fmt.Errorf("unable to create S3 client to load instruction file: ")
+		}
+		client = s3.NewFromConfig(cfg)
+	} else {
+		client = load.client
+	}
+
 	strat := s3LoadStrategy{
-		APIClient:             load.client,
+		APIClient:             client,
 		InstructionFileSuffix: load.suffix,
 	}
 	return strat.Load(ctx, req)
