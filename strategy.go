@@ -3,7 +3,9 @@ package s3crypto
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/smithy-go"
 	"io"
 	"net/http"
@@ -131,8 +133,19 @@ func (load DefaultLoadStrategy) Load(ctx context.Context, req *LoadStrategyReque
 		}
 	}
 
+	var client GetObjectAPIClient
+	if load.client == nil {
+		cfg, err := config.LoadDefaultConfig(context.Background())
+		if err != nil {
+			return ObjectMetadata{}, fmt.Errorf("unable to create S3 client to load instruction file: ")
+		}
+		client = s3.NewFromConfig(cfg)
+	} else {
+		client = load.client
+	}
+
 	strat := s3LoadStrategy{
-		APIClient:             load.client,
+		APIClient:             client,
 		InstructionFileSuffix: load.suffix,
 	}
 	return strat.Load(ctx, req)
