@@ -123,7 +123,8 @@ func (load DefaultLoadStrategy) Load(ctx context.Context, req *LoadStrategyReque
 		strat := headerV2LoadStrategy{}
 		return strat.Load(ctx, req)
 	} else if value = req.HTTPResponse.Header.Get(strings.Join([]string{metaHeader, keyV1Header}, "-")); value != "" {
-		// TODO look into this - this does not make sense.
+		// In other S3EC implementations, decryption of v1 objects is supported.
+		// Go, however, does not support this.
 		return ObjectMetadata{}, &smithy.GenericAPIError{
 			Code:    "V1NotSupportedError",
 			Message: "The AWS SDK for Go does not support version 1",
