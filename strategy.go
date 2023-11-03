@@ -135,11 +135,11 @@ func (load DefaultLoadStrategy) Load(ctx context.Context, req *LoadStrategyReque
 
 	var client GetObjectAPIClient
 	if load.client == nil {
-		config, err := config.LoadDefaultConfig(context.Background())
+		cfg, err := config.LoadDefaultConfig(context.Background())
 		if err != nil {
 			return ObjectMetadata{}, fmt.Errorf("unable to create S3 client to load instruction file: ")
 		}
-		client = s3.NewFromConfig(config)
+		client = s3.NewFromConfig(cfg)
 	} else {
 		client = load.client
 	}
