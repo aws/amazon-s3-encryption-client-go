@@ -86,7 +86,7 @@ func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMateria
 		TagLength:           gcmTagSizeBits,
 		MaterialDescription: requestMatDesc,
 		EncryptedKey:        out.CiphertextBlob,
-		Padder:              nil, // TODO: deal with padder stuff
+		Padder:              nil,
 	}
 
 	return cryptoMaterials, nil
