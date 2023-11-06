@@ -84,7 +84,7 @@ func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 	iv, _ := hex.DecodeString("ae325acae2bfd5b9c3d0b813")
 	kmsWithStaticIV := keyringWithStaticTestIV{
 		IV:      iv,
-		Keyring: NewKmsContextKeyring(kmsClient, "test-key-id", md),
+		Keyring: NewKmsKeyring(kmsClient, "test-key-id", md),
 	}
 
 	tConfig := awstesting.Config()

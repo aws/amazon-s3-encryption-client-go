@@ -28,7 +28,7 @@ func TestDecryptionClientV3_GetObject(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	keyring := NewKmsContextAnyKeyKeyring(kmsClient)
+	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient)
 	cmm, err := NewCryptographicMaterialsManager(keyring)
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
@@ -251,7 +251,7 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 	}{
 		"unsupported KeyringEntry": {
 			Client: func() *S3EncryptionClientV3 {
-				keyring := NewKmsContextAnyKeyKeyring(kms.NewFromConfig(awstesting.Config()))
+				keyring := NewKmsDecryptOnlyAnyKeyKeyring(kms.NewFromConfig(awstesting.Config()))
 				cmm, err := NewCryptographicMaterialsManager(keyring)
 
 				tConfig := awstesting.Config()
@@ -266,7 +266,7 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 				}
 				return client
 			}(),
-			WantErr: "operation error S3: GetObject, error while decrypting materials: x-amz-cek-alg value `kms` did not match the expected algorithm `kms+context` for this keyring",
+			WantErr: "operation error S3: GetObject, error while decrypting materials: x-amz-cek-alg value `kms` did not match an expected algorithm",
 		},
 		"unsupported cek": {
 			Client: func() *S3EncryptionClientV3 {
