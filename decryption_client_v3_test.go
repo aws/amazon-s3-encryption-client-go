@@ -123,7 +123,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
 	s3Client := s3.NewFromConfig(tConfig)
 
 	client, err := NewS3EncryptionClientV3(s3Client, cmm, func(clientOptions *EncryptionClientOptions) {
-		clientOptions.EnableLegacyModes = true
+		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
