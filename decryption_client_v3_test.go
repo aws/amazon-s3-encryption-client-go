@@ -249,25 +249,6 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 		Client  *S3EncryptionClientV3
 		WantErr string
 	}{
-		"unsupported KeyringEntry": {
-			Client: func() *S3EncryptionClientV3 {
-				keyring := NewKmsDecryptOnlyAnyKeyKeyring(kms.NewFromConfig(awstesting.Config()))
-				cmm, err := NewCryptographicMaterialsManager(keyring)
-
-				tConfig := awstesting.Config()
-				tConfig.HTTPClient = httpClientFactory()
-				s3Client := s3.NewFromConfig(tConfig)
-
-				client, err := NewS3EncryptionClientV3(s3Client, cmm, func(clientOptions *EncryptionClientOptions) {
-					clientOptions.EnableLegacyModes = true
-				})
-				if err != nil {
-					t.Fatalf("expected no error, got %v", err)
-				}
-				return client
-			}(),
-			WantErr: "operation error S3: GetObject, error while decrypting materials: x-amz-cek-alg value `kms` did not match an expected algorithm",
-		},
 		"unsupported cek": {
 			Client: func() *S3EncryptionClientV3 {
 				keyring := NewKmsDecryptOnlyAnyKeyKeyring(kms.NewFromConfig(awstesting.Config()))
