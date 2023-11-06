@@ -145,7 +145,7 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 		t.Run(c.CEKAlg+"-"+c.Lang, func(t *testing.T) {
 			s3Client := s3.NewFromConfig(cfg)
 			kmsClient := kms.NewFromConfig(cfg)
-			keyringWithContext := s3crypto.NewKmsContextAnyKeyKeyring(kmsClient)
+			keyringWithContext := s3crypto.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient)
 			cmm, err := s3crypto.NewCryptographicMaterialsManager(keyringWithContext)
 			if err != nil {
 				t.Fatalf("failed to create new CMM")
@@ -239,7 +239,7 @@ func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, 
 
 		kmsSvc := kms.NewFromConfig(cfg)
 		var matDesc s3crypto.MaterialDescription
-		kmsKeyring = s3crypto.NewKmsContextKeyring(kmsSvc, arn, matDesc)
+		kmsKeyring = s3crypto.NewKmsKeyring(kmsSvc, arn, matDesc)
 	default:
 		t.Fatalf("unknown fixture KEK, %v", kek)
 	}
