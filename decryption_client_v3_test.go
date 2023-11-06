@@ -266,7 +266,7 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 				}
 				return client
 			}(),
-			WantErr: "operation error S3: GetObject, configure client with enable legacy modes set to true to decrypt with AES/CBC/PKCS5Padding",
+			WantErr: "operation error S3: GetObject, configure client with enable legacy unauthenticated modes set to true to decrypt with AES/CBC/PKCS5Padding",
 		},
 	}
 
