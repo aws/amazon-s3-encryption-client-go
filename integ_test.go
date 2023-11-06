@@ -1,3 +1,5 @@
+//go:build s3crypto_integ
+
 package s3crypto_test
 
 import (
