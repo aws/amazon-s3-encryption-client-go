@@ -28,7 +28,7 @@ func TestDecryptionClientV3_GetObject(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient)
+	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, false)
 	cmm, err := NewCryptographicMaterialsManager(keyring)
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
@@ -95,7 +95,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient)
+	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, true)
 	cmm, err := NewCryptographicMaterialsManager(keyring)
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
@@ -166,7 +166,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESGCM(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient)
+	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, false)
 	cmm, err := NewCryptographicMaterialsManager(keyring)
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
@@ -251,7 +251,7 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 	}{
 		"unsupported cek": {
 			Client: func() *S3EncryptionClientV3 {
-				keyring := NewKmsDecryptOnlyAnyKeyKeyring(kms.NewFromConfig(awstesting.Config()))
+				keyring := NewKmsDecryptOnlyAnyKeyKeyring(kms.NewFromConfig(awstesting.Config()), false)
 				cmm, err := NewCryptographicMaterialsManager(keyring)
 				if err != nil {
 					t.Fatalf("expected no error, got %v", err)
