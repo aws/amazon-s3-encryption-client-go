@@ -123,7 +123,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
 	s3Client := s3.NewFromConfig(tConfig)
 
 	client, err := NewS3EncryptionClientV3(s3Client, cmm, func(clientOptions *EncryptionClientOptions) {
-		clientOptions.EnableLegacyModes = true
+		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -266,7 +266,7 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 				}
 				return client
 			}(),
-			WantErr: "operation error S3: GetObject, configure client with enable legacy modes set to true to decrypt with AES/CBC/PKCS5Padding",
+			WantErr: "operation error S3: GetObject, configure client with enable legacy unauthenticated modes set to true to decrypt with AES/CBC/PKCS5Padding",
 		},
 	}
 
