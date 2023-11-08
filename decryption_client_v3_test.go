@@ -166,7 +166,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESGCM(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, false)
+	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, true)
 	cmm, err := NewCryptographicMaterialsManager(keyring)
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
@@ -185,8 +185,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESGCM(t *testing.T) {
 				http.CanonicalHeaderKey("x-amz-meta-x-amz-iv"):       []string{"8Rlvyy8AoYj8v579"},
 				http.CanonicalHeaderKey("x-amz-meta-x-amz-matdesc"):  []string{`{"kms_cmk_id":"test-key-id"}`},
 				http.CanonicalHeaderKey("x-amz-meta-x-amz-wrap-alg"): []string{KMSKeyring},
-				// Is this test incorrect? afaik KMS V1 did not encrypt with GCM but with CBC so how can V1 have written a message with V1 and use GCM?
-				http.CanonicalHeaderKey("x-amz-meta-x-amz-cek-alg"): []string{"AES/GCM/NoPadding"},
+				http.CanonicalHeaderKey("x-amz-meta-x-amz-cek-alg"):  []string{"AES/GCM/NoPadding"},
 			},
 			Body: io.NopCloser(bytes.NewBuffer(b)),
 		},
