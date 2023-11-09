@@ -1,5 +1,3 @@
-//go:build s3crypto_integ
-
 package s3crypto_test
 
 import (
@@ -238,8 +236,7 @@ func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, 
 		arn := getAliasArn(alias, region, accountId)
 
 		kmsSvc := kms.NewFromConfig(cfg)
-		var matDesc s3crypto.MaterialDescription
-		kmsKeyring = s3crypto.NewKmsKeyring(kmsSvc, arn, matDesc)
+		kmsKeyring = s3crypto.NewKmsKeyring(kmsSvc, arn)
 	default:
 		t.Fatalf("unknown fixture KEK, %v", kek)
 	}

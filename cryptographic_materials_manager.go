@@ -10,7 +10,7 @@ import (
 type CEKEntry func(CryptographicMaterials) (ContentCipher, error)
 
 type CryptographicMaterialsManager interface {
-	GetEncryptionMaterials(ctx context.Context) (*CryptographicMaterials, error)
+	GetEncryptionMaterials(ctx context.Context, matDesc MaterialDescription) (*CryptographicMaterials, error)
 	DecryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error)
 }
 
@@ -39,9 +39,9 @@ func NewCryptographicMaterialsManager(keyring Keyring) (*DefaultCryptographicMat
 	return cmm, nil
 }
 
-func (cmm *DefaultCryptographicMaterialsManager) GetEncryptionMaterials(ctx context.Context) (*CryptographicMaterials, error) {
+func (cmm *DefaultCryptographicMaterialsManager) GetEncryptionMaterials(ctx context.Context, matDesc MaterialDescription) (*CryptographicMaterials, error) {
 	keyring := *cmm.Keyring
-	return keyring.OnEncrypt(ctx, NewEncryptionMaterials())
+	return keyring.OnEncrypt(ctx, NewEncryptionMaterials(), matDesc)
 }
 
 func (cmm *DefaultCryptographicMaterialsManager) DecryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error) {

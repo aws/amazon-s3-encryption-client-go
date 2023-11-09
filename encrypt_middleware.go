@@ -74,7 +74,7 @@ func (m *encryptMiddleware) HandleSerialize(
 	}
 
 	cmm := m.ec.options.CryptographicMaterialsManager
-	cryptoMaterials, err := cmm.GetEncryptionMaterials(ctx)
+	cryptoMaterials, err := cmm.GetEncryptionMaterials(ctx, input.Metadata)
 	if err != nil {
 		return out, metadata, err
 	}

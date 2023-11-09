@@ -29,20 +29,17 @@ type KmsAPIClient interface {
 type KmsKeyring struct {
 	kmsClient KmsAPIClient
 	KmsKeyId  string
-	matDesc   MaterialDescription
 }
 
 // KmsAnyKeyKeyring is decrypt-only
 type KmsAnyKeyKeyring struct {
 	kmsClient KmsAPIClient
-	matDesc   MaterialDescription
 }
 
-func NewKmsKeyring(apiClient KmsAPIClient, cmkId string, matdesc MaterialDescription) *KmsKeyring {
+func NewKmsKeyring(apiClient KmsAPIClient, cmkId string) *KmsKeyring {
 	return &KmsKeyring{
 		kmsClient: apiClient,
 		KmsKeyId:  cmkId,
-		matDesc:   matdesc,
 	}
 }
 
@@ -52,16 +49,16 @@ func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient) *KmsAnyKeyKeyring {
 	}
 }
 
-func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
+func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials, matDesc MaterialDescription) (*CryptographicMaterials, error) {
 	// TODO: matDesc MUST be set per-request, not per-Keyring instance
-	if _, ok := k.matDesc[kmsAWSCEKContextKey]; ok {
+	if _, ok := matDesc[kmsAWSCEKContextKey]; ok {
 		return nil, fmt.Errorf(kmsReservedKeyConflictErrMsg, kmsAWSCEKContextKey)
 	}
-	if k.matDesc == nil {
-		k.matDesc = map[string]string{}
+	if matDesc == nil {
+		matDesc = map[string]string{}
 	}
 
-	requestMatDesc := k.matDesc.Clone()
+	requestMatDesc := matDesc.Clone()
 	requestMatDesc[kmsAWSCEKContextKey] = AESGCMNoPadding
 
 	out, err := k.kmsClient.GenerateDataKey(ctx,
@@ -106,7 +103,7 @@ func (k *KmsKeyring) isAWSFixture() bool {
 	return true
 }
 
-func (k *KmsAnyKeyKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
+func (k *KmsAnyKeyKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials, matDesc MaterialDescription) (*CryptographicMaterials, error) {
 	return nil, fmt.Errorf("KmsAnyKeyKeyring MUST NOT be used to encrypt new data")
 }
 

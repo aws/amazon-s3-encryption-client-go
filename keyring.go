@@ -11,7 +11,7 @@ import (
 // or both encryption (including data key generation) and decryption.
 type Keyring interface {
 	// OnEncrypt generates/encrypts a data key for use with content encryption
-	OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error)
+	OnEncrypt(ctx context.Context, materials *EncryptionMaterials, matDesc MaterialDescription) (*CryptographicMaterials, error)
 	// OnDecrypt decrypts the encryptedDataKeys and returns them in materials
 	// for use with content decryption
 	OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error)
