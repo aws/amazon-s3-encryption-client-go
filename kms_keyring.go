@@ -24,31 +24,54 @@ type KmsAPIClient interface {
 	Decrypt(context.Context, *kms.DecryptInput, ...func(*kms.Options)) (*kms.DecryptOutput, error)
 }
 
+// KeyringOptions is for additional configuration on keyrings to perform additional behaviors
+type KeyringOptions struct {
+	EnableLegacyWrappingAlgorithms bool
+}
+
 // KmsKeyring encrypts with encryption context and on decrypt it checks for the algorithm
 // in the material description and makes the call to commonDecrypt with the correct parameters
 type KmsKeyring struct {
-	kmsClient KmsAPIClient
-	KmsKeyId  string
-	matDesc   MaterialDescription
+	kmsClient                KmsAPIClient
+	KmsKeyId                 string
+	matDesc                  MaterialDescription
+	legacyWrappingAlgorithms bool
 }
 
 // KmsAnyKeyKeyring is decrypt-only
 type KmsAnyKeyKeyring struct {
-	kmsClient KmsAPIClient
-	matDesc   MaterialDescription
+	kmsClient                KmsAPIClient
+	matDesc                  MaterialDescription
+	legacyWrappingAlgorithms bool
 }
 
-func NewKmsKeyring(apiClient KmsAPIClient, cmkId string, matdesc MaterialDescription) *KmsKeyring {
+func NewKmsKeyring(apiClient KmsAPIClient, cmkId string, matdesc MaterialDescription, optFns ...func(options *KeyringOptions)) *KmsKeyring {
+	options := KeyringOptions{
+		EnableLegacyWrappingAlgorithms: false,
+	}
+	for _, fn := range optFns {
+		fn(&options)
+	}
+
 	return &KmsKeyring{
-		kmsClient: apiClient,
-		KmsKeyId:  cmkId,
-		matDesc:   matdesc,
+		kmsClient:                apiClient,
+		KmsKeyId:                 cmkId,
+		matDesc:                  matdesc,
+		legacyWrappingAlgorithms: options.EnableLegacyWrappingAlgorithms,
 	}
 }
 
-func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient) *KmsAnyKeyKeyring {
+func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient, optFns ...func(options *KeyringOptions)) *KmsAnyKeyKeyring {
+	options := KeyringOptions{
+		EnableLegacyWrappingAlgorithms: false,
+	}
+	for _, fn := range optFns {
+		fn(&options)
+	}
+
 	return &KmsAnyKeyKeyring{
-		kmsClient: apiClient,
+		kmsClient:                apiClient,
+		legacyWrappingAlgorithms: options.EnableLegacyWrappingAlgorithms,
 	}
 }
 
@@ -93,9 +116,9 @@ func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMateria
 }
 
 func (k *KmsKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
-	if materials.DataKey.DataKeyAlgorithm == KMSKeyring {
+	if materials.DataKey.DataKeyAlgorithm == KMSKeyring && k.legacyWrappingAlgorithms {
 		return commonDecrypt(ctx, materials, encryptedDataKey, &k.KmsKeyId, nil, k.kmsClient)
-	} else if materials.DataKey.DataKeyAlgorithm == KMSContextKeyring {
+	} else if materials.DataKey.DataKeyAlgorithm == KMSContextKeyring && !k.legacyWrappingAlgorithms {
 		return commonDecrypt(ctx, materials, encryptedDataKey, &k.KmsKeyId, materials.MaterialDescription, k.kmsClient)
 	} else {
 		return nil, fmt.Errorf("x-amz-cek-alg value `%s` did not match an expected algorithm", materials.DataKey.DataKeyAlgorithm)
@@ -111,9 +134,9 @@ func (k *KmsAnyKeyKeyring) OnEncrypt(ctx context.Context, materials *EncryptionM
 }
 
 func (k *KmsAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
-	if materials.DataKey.DataKeyAlgorithm == KMSKeyring {
+	if materials.DataKey.DataKeyAlgorithm == KMSKeyring && k.legacyWrappingAlgorithms {
 		return commonDecrypt(ctx, materials, encryptedDataKey, nil, nil, k.kmsClient)
-	} else if materials.DataKey.DataKeyAlgorithm == KMSContextKeyring {
+	} else if materials.DataKey.DataKeyAlgorithm == KMSContextKeyring && !k.legacyWrappingAlgorithms {
 		return commonDecrypt(ctx, materials, encryptedDataKey, nil, materials.MaterialDescription, k.kmsClient)
 	} else {
 		return nil, fmt.Errorf("x-amz-cek-alg value `%s` did not match an expected algorithm", materials.DataKey.DataKeyAlgorithm)

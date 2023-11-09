@@ -43,7 +43,9 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 
 	kmsClient := kms.NewFromConfig(cfg)
 	var matDesc s3crypto.MaterialDescription
-	cmm, err := s3crypto.NewCryptographicMaterialsManager(s3crypto.NewKmsKeyring(kmsClient, arn, matDesc))
+	cmm, err := s3crypto.NewCryptographicMaterialsManager(s3crypto.NewKmsKeyring(kmsClient, arn, matDesc, func(options *s3crypto.KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = false
+	}))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
@@ -115,7 +117,9 @@ func TestIntegKmsContext(t *testing.T) {
 
 	kmsClient := kms.NewFromConfig(cfg)
 	var matDesc s3crypto.MaterialDescription
-	cmm, err := s3crypto.NewCryptographicMaterialsManager(s3crypto.NewKmsKeyring(kmsClient, arn, matDesc))
+	cmm, err := s3crypto.NewCryptographicMaterialsManager(s3crypto.NewKmsKeyring(kmsClient, arn, matDesc, func(options *s3crypto.KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = false
+	}))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
@@ -187,7 +191,9 @@ func TestIntegKmsContextDecryptAny(t *testing.T) {
 
 	kmsClient := kms.NewFromConfig(cfg)
 	var matDesc s3crypto.MaterialDescription
-	cmm, err := s3crypto.NewCryptographicMaterialsManager(s3crypto.NewKmsKeyring(kmsClient, arn, matDesc))
+	cmm, err := s3crypto.NewCryptographicMaterialsManager(s3crypto.NewKmsKeyring(kmsClient, arn, matDesc, func(options *s3crypto.KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = false
+	}))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
@@ -203,7 +209,9 @@ func TestIntegKmsContextDecryptAny(t *testing.T) {
 	}
 
 	// decrypt with AnyKey
-	anyKeyCmm, err := s3crypto.NewCryptographicMaterialsManager(s3crypto.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient))
+	anyKeyCmm, err := s3crypto.NewCryptographicMaterialsManager(s3crypto.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, func(options *s3crypto.KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = false
+	}))
 	s3EncryptionClientAnyKey, err := s3crypto.NewS3EncryptionClientV3(s3Client, anyKeyCmm)
 	if err != nil {
 		t.Fatalf("error while creating new CMM")

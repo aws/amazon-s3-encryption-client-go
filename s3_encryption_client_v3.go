@@ -47,10 +47,10 @@ func NewS3EncryptionClientV3(s3Client *s3.Client, CryptographicMaterialsManager 
 	wrappedClient := s3Client
 	// default options
 	options := EncryptionClientOptions{
-		MinFileSize:                   DefaultMinFileSize,
-		Logger:                        log.Default(),
-		CryptographicMaterialsManager: CryptographicMaterialsManager,
-		EnableLegacyUnauthenticatedModes:             false,
+		MinFileSize:                      DefaultMinFileSize,
+		Logger:                           log.Default(),
+		CryptographicMaterialsManager:    CryptographicMaterialsManager,
+		EnableLegacyUnauthenticatedModes: false,
 	}
 	for _, fn := range optFns {
 		fn(&options)
