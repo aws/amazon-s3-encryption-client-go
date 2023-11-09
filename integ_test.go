@@ -154,7 +154,7 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 				keyring := s3crypto.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, true)
 				cmmCbc, err := s3crypto.NewCryptographicMaterialsManager(keyring)
 				decClient, err = s3crypto.NewS3EncryptionClientV3(s3Client, cmmCbc, func(clientOptions *s3crypto.EncryptionClientOptions) {
-					clientOptions.EnableLegacyModes = true
+					clientOptions.EnableLegacyUnauthenticatedModes = true
 				})
 				if err != nil {
 					t.Fatalf("failed to create decryption client: %v", err)

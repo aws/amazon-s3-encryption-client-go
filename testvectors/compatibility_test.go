@@ -95,14 +95,14 @@ func TestKmsV1toV3_CBC(t *testing.T) {
 
 	kmsV2 := kms.NewFromConfig(cfg)
 	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsDecryptOnlyKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
 	s3ecV3, err := s3cryptoV3.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *s3cryptoV3.EncryptionClientOptions) {
-		clientOptions.EnableLegacyModes = true
+		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 
 	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
@@ -162,14 +162,14 @@ func TestKmsV1toV3_GCM(t *testing.T) {
 
 	kmsV2 := kms.NewFromConfig(cfg)
 	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsDecryptOnlyKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
 	s3ecV3, err := s3cryptoV3.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *s3cryptoV3.EncryptionClientOptions) {
-		clientOptions.EnableLegacyModes = true
+		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 
 	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
@@ -231,7 +231,7 @@ func TestKmsContextV2toV3_GCM(t *testing.T) {
 
 	kmsV2 := kms.NewFromConfig(cfg)
 	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsContextKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
@@ -273,7 +273,7 @@ func TestKmsContextV3toV2_GCM(t *testing.T) {
 
 	kmsV2 := kms.NewFromConfig(cfg)
 	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsContextKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
