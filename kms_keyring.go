@@ -34,18 +34,16 @@ type KeyringOptions struct {
 type KmsKeyring struct {
 	kmsClient                KmsAPIClient
 	KmsKeyId                 string
-	matDesc                  MaterialDescription
 	legacyWrappingAlgorithms bool
 }
 
 // KmsAnyKeyKeyring is decrypt-only
 type KmsAnyKeyKeyring struct {
 	kmsClient                KmsAPIClient
-	matDesc                  MaterialDescription
 	legacyWrappingAlgorithms bool
 }
 
-func NewKmsKeyring(apiClient KmsAPIClient, cmkId string, matdesc MaterialDescription, optFns ...func(options *KeyringOptions)) *KmsKeyring {
+func NewKmsKeyring(apiClient KmsAPIClient, cmkId string, optFns ...func(options *KeyringOptions)) *KmsKeyring {
 	options := KeyringOptions{
 		EnableLegacyWrappingAlgorithms: false,
 	}
@@ -56,7 +54,6 @@ func NewKmsKeyring(apiClient KmsAPIClient, cmkId string, matdesc MaterialDescrip
 	return &KmsKeyring{
 		kmsClient:                apiClient,
 		KmsKeyId:                 cmkId,
-		matDesc:                  matdesc,
 		legacyWrappingAlgorithms: options.EnableLegacyWrappingAlgorithms,
 	}
 }
@@ -76,15 +73,15 @@ func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient, optFns ...func(optio
 }
 
 func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
-	// TODO: matDesc MUST be set per-request, not per-Keyring instance
-	if _, ok := k.matDesc[kmsAWSCEKContextKey]; ok {
+	var matDesc MaterialDescription = materials.encryptionContext
+	if _, ok := matDesc[kmsAWSCEKContextKey]; ok {
 		return nil, fmt.Errorf(kmsReservedKeyConflictErrMsg, kmsAWSCEKContextKey)
 	}
-	if k.matDesc == nil {
-		k.matDesc = map[string]string{}
+	if matDesc == nil {
+		matDesc = map[string]string{}
 	}
 
-	requestMatDesc := k.matDesc.Clone()
+	requestMatDesc := matDesc.Clone()
 	requestMatDesc[kmsAWSCEKContextKey] = AESGCMNoPadding
 
 	out, err := k.kmsClient.GenerateDataKey(ctx,
