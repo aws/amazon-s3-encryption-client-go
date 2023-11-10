@@ -93,7 +93,6 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 		Bucket: &bucket,
 		Key:    &key,
 	})
-
 }
 
 func TestIntegKmsContext(t *testing.T) {
@@ -170,6 +169,11 @@ func TestIntegKmsContext(t *testing.T) {
 	if e, a := int64(len(plaintext)+16), headResult.ContentLength; e != a {
 		t.Errorf("expect %v text, got %v", e, a)
 	}
+	// Cleanup
+	s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: &bucket,
+		Key:    &key,
+	})
 }
 
 func TestIntegKmsContextDecryptAny(t *testing.T) {
@@ -253,4 +257,9 @@ func TestIntegKmsContextDecryptAny(t *testing.T) {
 	if e, a := int64(len(plaintext)+16), headResult.ContentLength; e != a {
 		t.Errorf("expect %v text, got %v", e, a)
 	}
+	// Cleanup
+	s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: &bucket,
+		Key:    &key,
+	})
 }
