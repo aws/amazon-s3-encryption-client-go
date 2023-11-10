@@ -42,20 +42,20 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 	})
 
 	kmsClient := kms.NewFromConfig(cfg)
-	var matDesc s3crypto.MaterialDescription
-	cmm, err := s3crypto.NewCryptographicMaterialsManager(s3crypto.NewKmsKeyring(kmsClient, arn, matDesc, func(options *s3crypto.KeyringOptions) {
+	cmm, err := s3crypto.NewCryptographicMaterialsManager(s3crypto.NewKmsKeyring(kmsClient, arn, func(options *s3crypto.KeyringOptions) {
 		options.EnableLegacyWrappingAlgorithms = false
 	}))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
+	encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "ec-value"})
+
 	s3EncryptionClient, err := s3crypto.NewS3EncryptionClientV3(s3Client, cmm)
-	_, err = s3EncryptionClient.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:   aws.String(bucket),
-		Key:      aws.String(key),
-		Body:     bytes.NewReader([]byte(plaintext)),
-		Metadata: matDesc,
+	_, err = s3EncryptionClient.PutObject(encryptionContext, &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   bytes.NewReader([]byte(plaintext)),
 	})
 	if err != nil {
 		t.Fatalf("error while encrypting: %v", err)
@@ -118,15 +118,16 @@ func TestIntegKmsContext(t *testing.T) {
 
 	kmsClient := kms.NewFromConfig(cfg)
 	var matDesc s3crypto.MaterialDescription
-	cmm, err := s3crypto.NewCryptographicMaterialsManager(s3crypto.NewKmsKeyring(kmsClient, arn, matDesc, func(options *s3crypto.KeyringOptions) {
+	cmm, err := s3crypto.NewCryptographicMaterialsManager(s3crypto.NewKmsKeyring(kmsClient, arn, func(options *s3crypto.KeyringOptions) {
 		options.EnableLegacyWrappingAlgorithms = false
 	}))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
+	encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "ec-value"})
 	s3EncryptionClient, err := s3crypto.NewS3EncryptionClientV3(s3Client, cmm)
-	_, err = s3EncryptionClient.PutObject(ctx, &s3.PutObjectInput{
+	_, err = s3EncryptionClient.PutObject(encryptionContext, &s3.PutObjectInput{
 		Bucket:   aws.String(bucket),
 		Key:      aws.String(key),
 		Body:     bytes.NewReader([]byte(plaintext)),
@@ -192,20 +193,19 @@ func TestIntegKmsContextDecryptAny(t *testing.T) {
 	})
 
 	kmsClient := kms.NewFromConfig(cfg)
-	var matDesc s3crypto.MaterialDescription
-	cmm, err := s3crypto.NewCryptographicMaterialsManager(s3crypto.NewKmsKeyring(kmsClient, arn, matDesc, func(options *s3crypto.KeyringOptions) {
+	cmm, err := s3crypto.NewCryptographicMaterialsManager(s3crypto.NewKmsKeyring(kmsClient, arn, func(options *s3crypto.KeyringOptions) {
 		options.EnableLegacyWrappingAlgorithms = false
 	}))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
+	encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "ec-value"})
 	s3EncryptionClient, err := s3crypto.NewS3EncryptionClientV3(s3Client, cmm)
-	_, err = s3EncryptionClient.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:   aws.String(bucket),
-		Key:      aws.String(key),
-		Body:     bytes.NewReader([]byte(plaintext)),
-		Metadata: matDesc,
+	_, err = s3EncryptionClient.PutObject(encryptionContext, &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   bytes.NewReader([]byte(plaintext)),
 	})
 	if err != nil {
 		t.Fatalf("error while encrypting: %v", err)

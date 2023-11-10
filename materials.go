@@ -58,15 +58,17 @@ type DataKey struct {
 }
 
 type EncryptionMaterials struct {
-	gcmKeySize   int
-	gcmNonceSize int
-	algorithm    string
+	gcmKeySize        int
+	gcmNonceSize      int
+	algorithm         string
+	encryptionContext map[string]string
 }
 
 func NewEncryptionMaterials() *EncryptionMaterials {
 	return &EncryptionMaterials{
-		gcmKeySize:   gcmKeySize,
-		gcmNonceSize: gcmNonceSize,
-		algorithm:    AESGCMNoPadding,
+		gcmKeySize:        gcmKeySize,
+		gcmNonceSize:      gcmNonceSize,
+		algorithm:         AESGCMNoPadding,
+		encryptionContext: map[string]string{},
 	}
 }

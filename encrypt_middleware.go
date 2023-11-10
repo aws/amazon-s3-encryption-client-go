@@ -73,8 +73,14 @@ func (m *encryptMiddleware) HandleSerialize(
 		return out, metadata, err
 	}
 
+	ec := ctx.Value("EncryptionContext")
+	if ec == nil {
+		ec = map[string]string{}
+	}
+	var matDesc MaterialDescription = ec.(map[string]string)
+
 	cmm := m.ec.options.CryptographicMaterialsManager
-	cryptoMaterials, err := cmm.GetEncryptionMaterials(ctx, input.Metadata)
+	cryptoMaterials, err := cmm.GetEncryptionMaterials(ctx, matDesc)
 	if err != nil {
 		return out, metadata, err
 	}

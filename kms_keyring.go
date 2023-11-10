@@ -34,18 +34,16 @@ type KeyringOptions struct {
 type KmsKeyring struct {
 	kmsClient                KmsAPIClient
 	KmsKeyId                 string
-	matDesc                  MaterialDescription
 	legacyWrappingAlgorithms bool
 }
 
 // KmsAnyKeyKeyring is decrypt-only
 type KmsAnyKeyKeyring struct {
 	kmsClient                KmsAPIClient
-	matDesc                  MaterialDescription
 	legacyWrappingAlgorithms bool
 }
 
-func NewKmsKeyring(apiClient KmsAPIClient, cmkId string, matdesc MaterialDescription, optFns ...func(options *KeyringOptions)) *KmsKeyring {
+func NewKmsKeyring(apiClient KmsAPIClient, cmkId string, optFns ...func(options *KeyringOptions)) *KmsKeyring {
 	options := KeyringOptions{
 		EnableLegacyWrappingAlgorithms: false,
 	}
@@ -56,7 +54,6 @@ func NewKmsKeyring(apiClient KmsAPIClient, cmkId string, matdesc MaterialDescrip
 	return &KmsKeyring{
 		kmsClient:                apiClient,
 		KmsKeyId:                 cmkId,
-		matDesc:                  matdesc,
 		legacyWrappingAlgorithms: options.EnableLegacyWrappingAlgorithms,
 	}
 }
@@ -75,8 +72,8 @@ func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient, optFns ...func(optio
 	}
 }
 
-func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials, matDesc MaterialDescription) (*CryptographicMaterials, error) {
-	// TODO: matDesc MUST be set per-request, not per-Keyring instance
+func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
+	var matDesc MaterialDescription = materials.encryptionContext
 	if _, ok := matDesc[kmsAWSCEKContextKey]; ok {
 		return nil, fmt.Errorf(kmsReservedKeyConflictErrMsg, kmsAWSCEKContextKey)
 	}
@@ -129,7 +126,7 @@ func (k *KmsKeyring) isAWSFixture() bool {
 	return true
 }
 
-func (k *KmsAnyKeyKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials, matDesc MaterialDescription) (*CryptographicMaterials, error) {
+func (k *KmsAnyKeyKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
 	return nil, fmt.Errorf("KmsAnyKeyKeyring MUST NOT be used to encrypt new data")
 }
 

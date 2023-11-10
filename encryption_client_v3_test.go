@@ -61,8 +61,8 @@ func (k keyringWithStaticTestIV) isAWSFixture() bool {
 	return true
 }
 
-func (k keyringWithStaticTestIV) OnEncrypt(ctx context.Context, materials *EncryptionMaterials, matDesc MaterialDescription) (*CryptographicMaterials, error) {
-	cryptoMaterials, err := k.Keyring.OnEncrypt(ctx, materials, matDesc)
+func (k keyringWithStaticTestIV) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
+	cryptoMaterials, err := k.Keyring.OnEncrypt(ctx, materials)
 	if err == nil {
 		cryptoMaterials.IV = k.IV
 	}
@@ -84,7 +84,7 @@ func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 	iv, _ := hex.DecodeString("ae325acae2bfd5b9c3d0b813")
 	kmsWithStaticIV := keyringWithStaticTestIV{
 		IV: iv,
-		Keyring: NewKmsKeyring(kmsClient, "test-key-id", md, func(options *KeyringOptions) {
+		Keyring: NewKmsKeyring(kmsClient, "test-key-id", func(options *KeyringOptions) {
 			options.EnableLegacyWrappingAlgorithms = false
 		}),
 	}

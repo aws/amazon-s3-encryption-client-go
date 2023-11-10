@@ -41,7 +41,10 @@ func NewCryptographicMaterialsManager(keyring Keyring) (*DefaultCryptographicMat
 
 func (cmm *DefaultCryptographicMaterialsManager) GetEncryptionMaterials(ctx context.Context, matDesc MaterialDescription) (*CryptographicMaterials, error) {
 	keyring := *cmm.Keyring
-	return keyring.OnEncrypt(ctx, NewEncryptionMaterials(), matDesc)
+	encryptionMaterials := NewEncryptionMaterials()
+	encryptionMaterials.encryptionContext = matDesc
+
+	return keyring.OnEncrypt(ctx, encryptionMaterials)
 }
 
 func (cmm *DefaultCryptographicMaterialsManager) DecryptMaterials(ctx context.Context, objectMetadata ObjectMetadata) (*CryptographicMaterials, error) {
