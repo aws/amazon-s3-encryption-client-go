@@ -14,6 +14,9 @@ import (
 // or store the data in memory.
 const DefaultMinFileSize = 1024 * 512 * 5
 
+// EncryptionContext is used to extract Encryption Context to use on a per-request basis
+const EncryptionContext = "EncryptionContext"
+
 // PutObjectAPIClient is a client that implements the PutObject operation
 type PutObjectAPIClient interface {
 	PutObject(context.Context, *s3.PutObjectInput, ...func(*s3.Options)) (*s3.PutObjectOutput, error)
@@ -73,7 +76,7 @@ func (m *encryptMiddleware) HandleSerialize(
 		return out, metadata, err
 	}
 
-	ec := ctx.Value("EncryptionContext")
+	ec := ctx.Value(EncryptionContext)
 	if ec == nil {
 		ec = map[string]string{}
 	}
