@@ -17,7 +17,7 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
 	var accountId = LoadAwsAccountId()
-	var key = "single-round-trip-test"
+	var key = "single-round-trip-test" + time.StampNano
 	var plaintext = "this is some plaintext to encrypt!"
 
 	ctx := context.Background()
@@ -37,6 +37,7 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 
 	var s3Client = s3.NewFromConfig(cfg)
 
+	// Ensure fresh key
 	s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: &bucket,
 		Key:    &key,
@@ -90,6 +91,13 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 	if e, a := int64(len(plaintext)+16), headResult.ContentLength; e != a {
 		t.Errorf("expect %v text, got %v", e, a)
 	}
+
+	// Cleanup
+	s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: &bucket,
+		Key:    &key,
+	})
+
 }
 
 func TestIntegKmsContext(t *testing.T) {
