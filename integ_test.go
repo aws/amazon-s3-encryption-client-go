@@ -71,6 +71,7 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 
 	var bucket = LoadBucket()
 	var accountId = LoadAwsAccountId()
+	var kmsAlias = LoadAwsKmsAlias()
 
 	if err != nil {
 		t.Fatalf("failed to load cfg: %v", err)
@@ -91,7 +92,7 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 			s3Client := s3.NewFromConfig(cfg)
 
 			fixtures := getFixtures(t, s3Client, c.CEKAlg, bucket)
-			keyring := getEncryptFixtureBuilder(t, cfg, c.KEK, c.bucket, c.region, accountId, c.CEK)
+			keyring := getEncryptFixtureBuilder(t, cfg, c.KEK, kmsAlias, c.region, accountId, c.CEK)
 
 			cmm, err := s3crypto.NewCryptographicMaterialsManager(keyring)
 			if err != nil {
@@ -129,14 +130,14 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 	var bucket = LoadBucket()
 
 	cases := []struct {
-		CEKAlg string
-		Lang   string
+		CEKAlg  string
+		Lang    string
+		Version string
 	}{
-		{CEKAlg: "aes_cbc", Lang: "Go"},
-		{CEKAlg: "aes_gcm", Lang: "Go"},
-		// TODO: Generate ciphertexts using Java client
-		//{CEKAlg: "aes_cbc", Lang: "Java"},
-		//{CEKAlg: "aes_gcm", Lang: "Java"},
+		{CEKAlg: "aes_cbc", Lang: "Go", Version: "v3"}, // v3 doesn't support CBC but that's where the files are
+		{CEKAlg: "aes_gcm", Lang: "Go", Version: "v3"},
+		{CEKAlg: "aes_gcm", Lang: "Java", Version: "v2"},
+		{CEKAlg: "aes_gcm", Lang: "Java", Version: "v3"},
 	}
 
 	for _, c := range cases {
@@ -174,6 +175,10 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 
 			fixtures := getFixtures(t, s3Client, c.CEKAlg, bucket)
 			ciphertexts := decryptFixtures(t, decClient, fixtures, bucket, c.Lang, version)
+
+			if len(ciphertexts) == 0 {
+				t.Fatalf("expected more than 0 ciphertexts to decrypt!")
+			}
 
 			for caseKey, ciphertext := range ciphertexts {
 				if e, a := len(fixtures.Plaintexts[caseKey]), len(ciphertext); e != a {
@@ -271,7 +276,6 @@ func decryptFixtures(t *testing.T, decClient *s3crypto.S3EncryptionClientV3, fix
 	ciphertexts := map[string][]byte{}
 	for caseKey := range fixtures.Plaintexts {
 		cipherKey := fixtures.BaseFolder + "/" + version + "/" + lang + "/" + prefix + caseKey
-
 		ctObj, err := decClient.GetObject(ctx, &s3.GetObjectInput{
 			Bucket: &bucket,
 			Key:    &cipherKey,
