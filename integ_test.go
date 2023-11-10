@@ -73,6 +73,7 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 
 	var bucket = LoadBucket()
 	var accountId = LoadAwsAccountId()
+	var kmsAlias = LoadAwsKmsAlias()
 
 	if err != nil {
 		t.Fatalf("failed to load cfg: %v", err)
@@ -93,7 +94,7 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 			s3Client := s3.NewFromConfig(cfg)
 
 			fixtures := getFixtures(t, s3Client, c.CEKAlg, bucket)
-			keyring := getEncryptFixtureBuilder(t, cfg, c.KEK, c.bucket, c.region, accountId, c.CEK)
+			keyring := getEncryptFixtureBuilder(t, cfg, c.KEK, kmsAlias, c.region, accountId, c.CEK)
 
 			cmm, err := s3crypto.NewCryptographicMaterialsManager(keyring)
 			if err != nil {
