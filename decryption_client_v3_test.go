@@ -28,7 +28,9 @@ func TestDecryptionClientV3_GetObject(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	keyring := NewKmsContextAnyKeyKeyring(kmsClient)
+	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, func(options *KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = false
+	})
 	cmm, err := NewCryptographicMaterialsManager(keyring)
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
@@ -95,7 +97,9 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient)
+	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, func(options *KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = true
+	})
 	cmm, err := NewCryptographicMaterialsManager(keyring)
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
@@ -123,7 +127,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
 	s3Client := s3.NewFromConfig(tConfig)
 
 	client, err := NewS3EncryptionClientV3(s3Client, cmm, func(clientOptions *EncryptionClientOptions) {
-		clientOptions.EnableLegacyModes = true
+		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -166,7 +170,9 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESGCM(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient)
+	keyring := NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, func(options *KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = true
+	})
 	cmm, err := NewCryptographicMaterialsManager(keyring)
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
@@ -249,28 +255,11 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 		Client  *S3EncryptionClientV3
 		WantErr string
 	}{
-		"unsupported KeyringEntry": {
-			Client: func() *S3EncryptionClientV3 {
-				keyring := NewKmsContextAnyKeyKeyring(kms.NewFromConfig(awstesting.Config()))
-				cmm, err := NewCryptographicMaterialsManager(keyring)
-
-				tConfig := awstesting.Config()
-				tConfig.HTTPClient = httpClientFactory()
-				s3Client := s3.NewFromConfig(tConfig)
-
-				client, err := NewS3EncryptionClientV3(s3Client, cmm, func(clientOptions *EncryptionClientOptions) {
-					clientOptions.EnableLegacyModes = true
-				})
-				if err != nil {
-					t.Fatalf("expected no error, got %v", err)
-				}
-				return client
-			}(),
-			WantErr: "operation error S3: GetObject, error while decrypting materials: x-amz-cek-alg value `kms` did not match the expected algorithm `kms+context` for this keyring",
-		},
 		"unsupported cek": {
 			Client: func() *S3EncryptionClientV3 {
-				keyring := NewKmsDecryptOnlyAnyKeyKeyring(kms.NewFromConfig(awstesting.Config()))
+				keyring := NewKmsDecryptOnlyAnyKeyKeyring(kms.NewFromConfig(awstesting.Config()), func(options *KeyringOptions) {
+					options.EnableLegacyWrappingAlgorithms = false
+				})
 				cmm, err := NewCryptographicMaterialsManager(keyring)
 				if err != nil {
 					t.Fatalf("expected no error, got %v", err)
@@ -285,7 +274,7 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 				}
 				return client
 			}(),
-			WantErr: "operation error S3: GetObject, configure client with enable legacy modes set to true to decrypt with AES/CBC/PKCS5Padding",
+			WantErr: "operation error S3: GetObject, configure client with enable legacy unauthenticated modes set to true to decrypt with AES/CBC/PKCS5Padding",
 		},
 	}
 

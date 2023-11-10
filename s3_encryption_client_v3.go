@@ -28,9 +28,9 @@ type EncryptionClientOptions struct {
 
 	CryptographicMaterialsManager CryptographicMaterialsManager
 
-	// EnableLegacyModes MUST be set to true in order to decrypt objects encrypted
+	// EnableLegacyUnauthenticatedModes MUST be set to true in order to decrypt objects encrypted
 	//using legacy (unauthenticated) modes such as AES/CBC
-	EnableLegacyModes bool
+	EnableLegacyUnauthenticatedModes bool
 }
 
 // awsFixture is an unexported interface to expose whether a given fixture is an aws provided fixture, and whether that
@@ -47,10 +47,10 @@ func NewS3EncryptionClientV3(s3Client *s3.Client, CryptographicMaterialsManager 
 	wrappedClient := s3Client
 	// default options
 	options := EncryptionClientOptions{
-		MinFileSize:                   DefaultMinFileSize,
-		Logger:                        log.Default(),
-		CryptographicMaterialsManager: CryptographicMaterialsManager,
-		EnableLegacyModes:             false,
+		MinFileSize:                      DefaultMinFileSize,
+		Logger:                           log.Default(),
+		CryptographicMaterialsManager:    CryptographicMaterialsManager,
+		EnableLegacyUnauthenticatedModes: false,
 	}
 	for _, fn := range optFns {
 		fn(&options)

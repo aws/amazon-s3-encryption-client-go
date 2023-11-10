@@ -1,5 +1,3 @@
-//go:build s3crypto_integ
-
 package s3crypto_test
 
 import (
@@ -145,7 +143,9 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 		t.Run(c.CEKAlg+"-"+c.Lang, func(t *testing.T) {
 			s3Client := s3.NewFromConfig(cfg)
 			kmsClient := kms.NewFromConfig(cfg)
-			keyringWithContext := s3crypto.NewKmsContextAnyKeyKeyring(kmsClient)
+			keyringWithContext := s3crypto.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, func(options *s3crypto.KeyringOptions) {
+				options.EnableLegacyWrappingAlgorithms = false
+			})
 			cmm, err := s3crypto.NewCryptographicMaterialsManager(keyringWithContext)
 			if err != nil {
 				t.Fatalf("failed to create new CMM")
@@ -153,10 +153,12 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 
 			var decClient *s3crypto.S3EncryptionClientV3
 			if c.CEKAlg == "aes_cbc" {
-				keyring := s3crypto.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient)
+				keyring := s3crypto.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, func(options *s3crypto.KeyringOptions) {
+					options.EnableLegacyWrappingAlgorithms = true
+				})
 				cmmCbc, err := s3crypto.NewCryptographicMaterialsManager(keyring)
 				decClient, err = s3crypto.NewS3EncryptionClientV3(s3Client, cmmCbc, func(clientOptions *s3crypto.EncryptionClientOptions) {
-					clientOptions.EnableLegacyModes = true
+					clientOptions.EnableLegacyUnauthenticatedModes = true
 				})
 				if err != nil {
 					t.Fatalf("failed to create decryption client: %v", err)
@@ -239,7 +241,9 @@ func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, 
 
 		kmsSvc := kms.NewFromConfig(cfg)
 		var matDesc s3crypto.MaterialDescription
-		kmsKeyring = s3crypto.NewKmsContextKeyring(kmsSvc, arn, matDesc)
+		kmsKeyring = s3crypto.NewKmsKeyring(kmsSvc, arn, matDesc, func(options *s3crypto.KeyringOptions) {
+			options.EnableLegacyWrappingAlgorithms = false
+		})
 	default:
 		t.Fatalf("unknown fixture KEK, %v", kek)
 	}
