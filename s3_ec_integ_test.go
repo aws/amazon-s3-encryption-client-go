@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"io"
 	"testing"
+	"time"
 )
 
 func TestIntegS3ECHeadObject(t *testing.T) {
@@ -60,6 +61,10 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error while encrypting: %v", err)
 	}
+
+	// S3 consistency is quite good now,
+	// but sometimes isn't fast enough
+	time.Sleep(5 * time.Second)
 
 	result, err := s3EncryptionClient.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
