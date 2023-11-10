@@ -22,8 +22,6 @@ import (
 
 const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
 const bucketEnvvar = "BUCKET"
-const defaultRegion = "us-west-2"
-const regionEnvvar = "AWS_REGION"
 const defaultAwsKmsAlias = "s3-encryption-client-v3-go-us-west-2"
 const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
 const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
@@ -33,14 +31,6 @@ func LoadBucket() string {
 		return os.Getenv(bucketEnvvar)
 	} else {
 		return defaultBucket
-	}
-}
-
-func LoadRegion() string {
-	if len(os.Getenv(regionEnvvar)) > 0 {
-		return os.Getenv(regionEnvvar)
-	} else {
-		return defaultRegion
 	}
 }
 
@@ -307,6 +297,77 @@ func TestKmsContextV3toV2_GCM(t *testing.T) {
 	}
 
 	result, err := decClient.GetObject(&s3V1.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		t.Fatalf("error while decrypting: %v", err)
+	}
+
+	decryptedPlaintext, err := io.ReadAll(result.Body)
+	if err != nil {
+		t.Fatalf("failed to read decrypted plaintext into byte array")
+	}
+
+	if e, a := []byte(plaintext), decryptedPlaintext; !bytes.Equal(e, a) {
+		t.Errorf("expect %v text, got %v", e, a)
+	}
+}
+
+func TestInstructionFileV2toV3(t *testing.T) {
+	bucket := LoadBucket()
+	kmsKeyAlias := LoadAwsKmsAlias()
+
+	cekAlg := "aes_cbc"
+	key := "crypto_tests/" + cekAlg + "/v3/language_Go/inst_file_test.txt"
+	region := "us-west-2"
+	plaintext := "This is a test.\n"
+
+	// V2 Client
+	var handler s3cryptoV2.CipherDataGenerator
+	sessV1, err := sessionV1.NewSession(&awsV1.Config{
+		Region: aws.String(region),
+	})
+
+	// KMS v1
+	kmsSvc := kmsV1.New(sessV1)
+	handler = s3cryptoV2.NewKMSKeyGenerator(kmsSvc, kmsKeyAlias)
+	// AES-CBC content cipher
+	builder := s3cryptoV2.AESCBCContentCipherBuilder(handler, s3cryptoV2.AESCBCPadder)
+	encClient := s3cryptoV2.NewEncryptionClient(sessV1, builder, func(clientOpts *s3cryptoV2.EncryptionClient) {
+		clientOpts.SaveStrategy = s3cryptoV2.S3SaveStrategy{
+			Client: s3V1.New(sessV1),
+		}
+	})
+
+	_, err = encClient.PutObject(&s3V1.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   bytes.NewReader([]byte(plaintext)),
+	})
+	if err != nil {
+		log.Fatalf("error calling putObject: %v", err)
+	}
+	fmt.Printf("successfully uploaded file to %s/%s\n", bucket, key)
+
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion(region),
+	)
+
+	kmsV2 := kms.NewFromConfig(cfg)
+	var matDesc s3cryptoV3.MaterialDescription
+	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	if err != nil {
+		t.Fatalf("error while creating new CMM")
+	}
+
+	s3V2 := s3.NewFromConfig(cfg)
+	s3ecV3, err := s3cryptoV3.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *s3cryptoV3.EncryptionClientOptions) {
+		clientOptions.EnableLegacyUnauthenticatedModes = true
+	})
+
+	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
