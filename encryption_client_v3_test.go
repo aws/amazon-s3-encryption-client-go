@@ -84,7 +84,7 @@ func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 	iv, _ := hex.DecodeString("ae325acae2bfd5b9c3d0b813")
 	kmsWithStaticIV := keyringWithStaticTestIV{
 		IV: iv,
-		Keyring: NewKmsKeyring(kmsClient, "test-key-id", md, func(options *KeyringOptions) {
+		Keyring: NewKmsKeyring(kmsClient, "test-key-id", func(options *KeyringOptions) {
 			options.EnableLegacyWrappingAlgorithms = false
 		}),
 	}
@@ -113,6 +113,7 @@ func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 			content, _ := hex.DecodeString("8f2c59c6dbfcacf356f3da40788cbde67ca38161a4702cbcf757af663e1c24a600001b2f500417dbf5a050f57db6737422b2ed6a44c75e0d")
 			return bytes.NewReader(content)
 		}(),
+		Metadata: md,
 	})
 	if err != nil {
 		t.Fatalf("PutObject failed with %v", err)
