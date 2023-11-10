@@ -18,7 +18,7 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
 	var accountId = LoadAwsAccountId()
-	var key = "single-round-trip-test" + time.StampNano
+	var key = "single-round-trip-test" + time.Now().String()
 	var plaintext = "this is some plaintext to encrypt!"
 
 	ctx := context.Background()
