@@ -3,6 +3,7 @@ package s3crypto_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	s3crypto "github.com/aws/amazon-s3-encryption-client-go"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -65,14 +66,23 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 
 	// S3 consistency is quite good now,
 	// but sometimes isn't fast enough
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	result, err := s3EncryptionClient.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		t.Fatalf("error while decrypting: %v", err)
+		fmt.Println("couldn't find object, sleeping and trying again..")
+		time.Sleep(30 * time.Second)
+		fmt.Println("trying again..")
+		result, err = s3EncryptionClient.GetObject(ctx, &s3.GetObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		})
+		if err != nil {
+			t.Fatalf("error while decrypting: %v", err)
+		}
 	}
 
 	decryptedPlaintext, err := io.ReadAll(result.Body)
