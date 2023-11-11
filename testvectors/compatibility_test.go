@@ -22,7 +22,7 @@ import (
 
 const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
 const bucketEnvvar = "BUCKET"
-const defaultAwsKmsAlias = "s3-encryption-client-v3-go-us-west-2"
+const defaultAwsKmsAlias = "arn:aws:kms:us-west-2:370957321024:alias/S3EC-Go-Github-KMS-Key"
 const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
 const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
 
@@ -84,8 +84,7 @@ func TestKmsV1toV3_CBC(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
@@ -151,8 +150,7 @@ func TestKmsV1toV3_GCM(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
@@ -220,8 +218,7 @@ func TestKmsContextV2toV3_GCM(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
@@ -262,8 +259,7 @@ func TestKmsContextV3toV2_GCM(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
@@ -356,8 +352,7 @@ func TestInstructionFileV2toV3(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
@@ -383,4 +378,64 @@ func TestInstructionFileV2toV3(t *testing.T) {
 	if e, a := []byte(plaintext), decryptedPlaintext; !bytes.Equal(e, a) {
 		t.Errorf("expect %v text, got %v", e, a)
 	}
+}
+
+func TestNegativeKeyringOption(t *testing.T) {
+	bucket := LoadBucket()
+	kmsKeyAlias := LoadAwsKmsAlias()
+
+	cekAlg := "aes_cbc"
+	key := "crypto_tests/" + cekAlg + "/v3/language_Go/V1toV3_CBC.txt"
+	region := "us-west-2"
+	plaintext := "This is a test.\n"
+
+	// V2 Client
+	var handler s3cryptoV2.CipherDataGenerator
+	sessKms, err := sessionV1.NewSession(&awsV1.Config{
+		Region: aws.String(region),
+	})
+
+	// KMS v1
+	kmsSvc := kmsV1.New(sessKms)
+	handler = s3cryptoV2.NewKMSKeyGenerator(kmsSvc, kmsKeyAlias)
+	// AES-CBC content cipher
+	builder := s3cryptoV2.AESCBCContentCipherBuilder(handler, s3cryptoV2.AESCBCPadder)
+	encClient := s3cryptoV2.NewEncryptionClient(sessKms, builder)
+
+	_, err = encClient.PutObject(&s3V1.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   bytes.NewReader([]byte(plaintext)),
+	})
+	if err != nil {
+		log.Fatalf("error calling putObject: %v", err)
+	}
+	fmt.Printf("successfully uploaded file to %s/%s\n", bucket, key)
+
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion(region),
+	)
+
+	kmsV2 := kms.NewFromConfig(cfg)
+	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *s3cryptoV3.KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = false
+	}))
+	if err != nil {
+		t.Fatalf("error while creating new CMM")
+	}
+
+	s3V2 := s3.NewFromConfig(cfg)
+	s3ecV3, err := s3cryptoV3.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *s3cryptoV3.EncryptionClientOptions) {
+		clientOptions.EnableLegacyUnauthenticatedModes = true
+	})
+
+	_, err = s3ecV3.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		fmt.Printf("Successfully failed to decrypt due to configuration on Keyring")
+	}
+
 }
