@@ -55,7 +55,7 @@ func TestKmsV1toV3_CBC(t *testing.T) {
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
-	// V2 Client
+	// V2 client
 	var handler s3cryptoV2.CipherDataGenerator
 	sessKms, err := sessionV1.NewSession(&awsV1.Config{
 		Region: aws.String(region),
@@ -122,7 +122,7 @@ func TestKmsV1toV3_GCM(t *testing.T) {
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
-	// V2 Client
+	// V2 client
 	var handler s3cryptoV2.CipherDataGenerator
 	sessKms, err := sessionV1.NewSession(&awsV1.Config{
 		Region: aws.String(region),
@@ -189,7 +189,7 @@ func TestKmsContextV2toV3_GCM(t *testing.T) {
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
-	// V2 Client
+	// V2 client
 	sessKms, err := sessionV1.NewSession(&awsV1.Config{
 		Region: aws.String(region),
 	})
@@ -281,7 +281,7 @@ func TestKmsContextV3toV2_GCM(t *testing.T) {
 	}
 	fmt.Printf("successfully uploaded file to %s/%s\n", bucket, key)
 
-	// V2 Client
+	// V2 client
 	sessKms, err := sessionV1.NewSession(&awsV1.Config{
 		Region: aws.String(region),
 	})
@@ -323,7 +323,7 @@ func TestInstructionFileV2toV3(t *testing.T) {
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
-	// V2 Client
+	// V2 client
 	var handler s3cryptoV2.CipherDataGenerator
 	sessV1, err := sessionV1.NewSession(&awsV1.Config{
 		Region: aws.String(region),
