@@ -99,15 +99,21 @@ func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMateria
 		return &internal.CryptographicMaterials{}, err
 	}
 
+	encodedMatDesc, err := requestMatDesc.EncodeDescription()
+	if err != nil {
+		return &internal.CryptographicMaterials{}, err
+	}
+
 	cryptoMaterials := &internal.CryptographicMaterials{
-		Key:                 out.Plaintext,
-		IV:                  iv,
-		KeyringAlgorithm:    KMSContextKeyring,
-		CEKAlgorithm:        materials.algorithm,
-		TagLength:           internal.GcmTagSizeBits,
-		MaterialDescription: requestMatDesc,
-		EncryptedKey:        out.CiphertextBlob,
-		Padder:              nil,
+		Key:                        out.Plaintext,
+		IV:                         iv,
+		KeyringAlgorithm:           KMSContextKeyring,
+		CEKAlgorithm:               materials.algorithm,
+		TagLength:                  internal.GcmTagSizeBits,
+		MaterialDescription:        requestMatDesc,
+		EncodedMaterialDescription: encodedMatDesc,
+		EncryptedKey:               out.CiphertextBlob,
+		Padder:                     nil,
 	}
 
 	return cryptoMaterials, nil
