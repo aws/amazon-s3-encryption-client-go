@@ -27,6 +27,16 @@ const defaultAwsKmsAlias = "arn:aws:kms:us-west-2:657301468084:alias/s3-encrypti
 // const defaultAwsKmsAlias = "s3-encryption-client-v3-go-justplaz-us-west-2"
 const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
 const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
+const defaultRegion = "us-west-2"
+const regionEnvvar = "AWS_REGION"
+
+func LoadRegion() string {
+	if len(os.Getenv(regionEnvvar)) > 0 {
+		return os.Getenv(regionEnvvar)
+	} else {
+		return defaultRegion
+	}
+}
 
 func LoadBucket() string {
 	if len(os.Getenv(bucketEnvvar)) > 0 {
@@ -86,7 +96,9 @@ func TestKmsV1toV3_CBC(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias))
+	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *client.KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = true
+	}))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
@@ -152,7 +164,9 @@ func TestKmsV1toV3_GCM(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias))
+	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *client.KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = true
+	}))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
@@ -354,7 +368,9 @@ func TestInstructionFileV2toV3(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias))
+	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *client.KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = true
+	}))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
