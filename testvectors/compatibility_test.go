@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	s3cryptoV3 "github.com/aws/amazon-s3-encryption-client-go"
+	"github.com/aws/amazon-s3-encryption-client-go/client"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
@@ -20,9 +20,11 @@ import (
 	"testing"
 )
 
-const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
+const defaultBucket = "s3-encryption-client-v3-go-justplaz-us-west-2"
 const bucketEnvvar = "BUCKET"
-const defaultAwsKmsAlias = "s3-encryption-client-v3-go-us-west-2"
+const defaultAwsKmsAlias = "arn:aws:kms:us-west-2:657301468084:alias/s3-encryption-client-v3-go-justplaz-us-west-2"
+
+// const defaultAwsKmsAlias = "s3-encryption-client-v3-go-justplaz-us-west-2"
 const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
 const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
 
@@ -84,14 +86,13 @@ func TestKmsV1toV3_CBC(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := s3cryptoV3.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *s3cryptoV3.EncryptionClientOptions) {
+	s3ecV3, err := client.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 
@@ -151,14 +152,13 @@ func TestKmsV1toV3_GCM(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := s3cryptoV3.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *s3cryptoV3.EncryptionClientOptions) {
+	s3ecV3, err := client.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 
@@ -220,14 +220,13 @@ func TestKmsContextV2toV3_GCM(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := s3cryptoV3.NewS3EncryptionClientV3(s3V2, cmm)
+	s3ecV3, err := client.NewS3EncryptionClientV3(s3V2, cmm)
 
 	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
@@ -262,14 +261,13 @@ func TestKmsContextV3toV2_GCM(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := s3cryptoV3.NewS3EncryptionClientV3(s3V2, cmm)
+	s3ecV3, err := client.NewS3EncryptionClientV3(s3V2, cmm)
 
 	_, err = s3ecV3.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
@@ -356,14 +354,13 @@ func TestInstructionFileV2toV3(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := s3cryptoV3.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *s3cryptoV3.EncryptionClientOptions) {
+	s3ecV3, err := client.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 
