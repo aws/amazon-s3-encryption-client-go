@@ -30,20 +30,14 @@ type CEKEntry func(CryptographicMaterials) (ContentCipher, error)
 // CryptographicMaterials is used for content encryption. It is used for storing the
 // metadata of the encrypted content.
 type CryptographicMaterials struct {
-	Key                 []byte
-	IV                  []byte
-	KeyringAlgorithm    string
-	CEKAlgorithm        string
-	TagLength           string
-	MaterialDescription MaterialDescription
+	Key                        []byte
+	IV                         []byte
+	KeyringAlgorithm           string
+	CEKAlgorithm               string
+	TagLength                  string
+	MaterialDescription        map[string]string
+	EncodedMaterialDescription []byte
 	// EncryptedKey should be populated when calling GenerateCipherData
 	EncryptedKey []byte
 	Padder       Padder
-}
-
-// Clone returns a new copy of CryptographicMaterials
-func (cm CryptographicMaterials) Clone() (v CryptographicMaterials) {
-	v = cm
-	v.MaterialDescription = cm.MaterialDescription.Clone()
-	return v
 }

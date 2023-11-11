@@ -8,7 +8,7 @@ import (
 )
 
 type CryptographicMaterialsManager interface {
-	GetEncryptionMaterials(ctx context.Context, matDesc internal.MaterialDescription) (*internal.CryptographicMaterials, error)
+	GetEncryptionMaterials(ctx context.Context, matDesc MaterialDescription) (*internal.CryptographicMaterials, error)
 	DecryptMaterials(ctx context.Context, objectMetadata internal.ObjectMetadata) (*internal.CryptographicMaterials, error)
 }
 
@@ -37,7 +37,7 @@ func NewCryptographicMaterialsManager(keyring Keyring) (*DefaultCryptographicMat
 	return cmm, nil
 }
 
-func (cmm *DefaultCryptographicMaterialsManager) GetEncryptionMaterials(ctx context.Context, matDesc internal.MaterialDescription) (*internal.CryptographicMaterials, error) {
+func (cmm *DefaultCryptographicMaterialsManager) GetEncryptionMaterials(ctx context.Context, matDesc MaterialDescription) (*internal.CryptographicMaterials, error) {
 	keyring := *cmm.Keyring
 	encryptionMaterials := NewEncryptionMaterials()
 	encryptionMaterials.encryptionContext = matDesc

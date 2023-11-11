@@ -8,7 +8,7 @@ import (
 type DecryptionMaterials struct {
 	DataKey             DataKey
 	ContentIV           []byte //base64 decoded content IV
-	MaterialDescription internal.MaterialDescription
+	MaterialDescription MaterialDescription
 	ContentAlgorithm    string
 	Padder              internal.Padder
 	TagLength           string
@@ -24,7 +24,7 @@ func NewDecryptionMaterials(md internal.ObjectMetadata) (*DecryptionMaterials, e
 	if err != nil {
 		return nil, err
 	}
-	materialDescription := internal.MaterialDescription{}
+	materialDescription := MaterialDescription{}
 	err = materialDescription.DecodeDescription([]byte(md.MatDesc))
 
 	if err != nil {

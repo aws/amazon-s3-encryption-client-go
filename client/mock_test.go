@@ -10,7 +10,7 @@ import (
 
 type mockCMM struct{}
 
-func (m mockCMM) GetEncryptionMaterials(ctx context.Context, matDesc internal.MaterialDescription) (*internal.CryptographicMaterials, error) {
+func (m mockCMM) GetEncryptionMaterials(ctx context.Context, matDesc MaterialDescription) (*internal.CryptographicMaterials, error) {
 	// TODO: make this mock more useful
 	return &internal.CryptographicMaterials{
 		Key:          nil,

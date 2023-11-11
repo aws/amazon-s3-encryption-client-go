@@ -74,7 +74,7 @@ func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient, optFns ...func(optio
 }
 
 func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*internal.CryptographicMaterials, error) {
-	var matDesc internal.MaterialDescription = materials.encryptionContext
+	var matDesc MaterialDescription = materials.encryptionContext
 	if _, ok := matDesc[kmsAWSCEKContextKey]; ok {
 		return nil, fmt.Errorf(kmsReservedKeyConflictErrMsg, kmsAWSCEKContextKey)
 	}
@@ -145,7 +145,7 @@ func (k *KmsAnyKeyKeyring) isAWSFixture() bool {
 	return true
 }
 
-func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey, kmsKeyId *string, matDesc internal.MaterialDescription, kmsClient KmsAPIClient) (*internal.CryptographicMaterials, error) {
+func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey, kmsKeyId *string, matDesc MaterialDescription, kmsClient KmsAPIClient) (*internal.CryptographicMaterials, error) {
 	if matDesc != nil {
 		if v, ok := matDesc[kmsAWSCEKContextKey]; !ok {
 			return nil, fmt.Errorf("required key %v is missing from encryption context", kmsAWSCEKContextKey)
@@ -166,15 +166,20 @@ func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encrypte
 	}
 
 	materials.DataKey.KeyMaterial = out.Plaintext
+	encodedMatDesc, err := materials.MaterialDescription.EncodeDescription()
+	if err != nil {
+		return nil, err
+	}
 	cryptoMaterials := &internal.CryptographicMaterials{
-		Key:                 out.Plaintext,
-		IV:                  materials.ContentIV,
-		KeyringAlgorithm:    materials.DataKey.DataKeyAlgorithm,
-		CEKAlgorithm:        materials.ContentAlgorithm,
-		TagLength:           materials.TagLength,
-		MaterialDescription: materials.MaterialDescription,
-		EncryptedKey:        materials.DataKey.EncryptedDataKey,
-		Padder:              materials.Padder,
+		Key:                        out.Plaintext,
+		IV:                         materials.ContentIV,
+		KeyringAlgorithm:           materials.DataKey.DataKeyAlgorithm,
+		CEKAlgorithm:               materials.ContentAlgorithm,
+		TagLength:                  materials.TagLength,
+		MaterialDescription:        materials.MaterialDescription,
+		EncodedMaterialDescription: encodedMatDesc,
+		EncryptedKey:               materials.DataKey.EncryptedDataKey,
+		Padder:                     materials.Padder,
 	}
 	return cryptoMaterials, nil
 }

@@ -103,15 +103,10 @@ func EncodeMeta(reader lengthReader, materials CryptographicMaterials) (ObjectMe
 
 	contentLength := reader.GetContentLength()
 
-	matdesc, err := materials.MaterialDescription.EncodeDescription()
-	if err != nil {
-		return ObjectMetadata{}, err
-	}
-
 	return ObjectMetadata{
 		CipherKey:             key,
 		IV:                    iv,
-		MatDesc:               string(matdesc),
+		MatDesc:               string(materials.EncodedMaterialDescription),
 		KeyringAlg:            materials.KeyringAlgorithm,
 		CEKAlg:                materials.CEKAlgorithm,
 		TagLen:                materials.TagLength,

@@ -81,7 +81,7 @@ func (m *encryptMiddleware) HandleSerialize(
 	if ec == nil {
 		ec = map[string]string{}
 	}
-	var matDesc internal.MaterialDescription = ec.(map[string]string)
+	var matDesc MaterialDescription = ec.(map[string]string)
 
 	cmm := m.ec.Options.CryptographicMaterialsManager
 	cryptoMaterials, err := cmm.GetEncryptionMaterials(ctx, matDesc)
