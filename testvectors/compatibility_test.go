@@ -152,7 +152,9 @@ func TestKmsV1toV3_GCM(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias))
+	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *s3cryptoV3.KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = true
+	}))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
@@ -439,7 +441,6 @@ func TestNegativeKeyringOption(t *testing.T) {
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		fmt.Printf("Successfully failed to decrypt due to configuration on Keyring")
 	}
 
 }
