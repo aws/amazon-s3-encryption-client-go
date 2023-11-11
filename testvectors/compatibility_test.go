@@ -84,7 +84,9 @@ func TestKmsV1toV3_CBC(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias))
+	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *s3cryptoV3.KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = true
+	}))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
