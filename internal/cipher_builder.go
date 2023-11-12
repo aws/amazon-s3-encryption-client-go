@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"github.com/aws/amazon-s3-encryption-client-go/materials"
 	"io"
 )
 
@@ -21,23 +22,8 @@ type ContentCipherBuilderWithContext interface {
 type ContentCipher interface {
 	EncryptContents(io.Reader) (io.Reader, error)
 	DecryptContents(io.ReadCloser) (io.ReadCloser, error)
-	GetCipherData() CryptographicMaterials
+	GetCipherData() materials.CryptographicMaterials
 }
 
 // CEKEntry is a builder that returns a proper content decrypter and error
-type CEKEntry func(CryptographicMaterials) (ContentCipher, error)
-
-// CryptographicMaterials is used for content encryption. It is used for storing the
-// metadata of the encrypted content.
-type CryptographicMaterials struct {
-	Key                        []byte
-	IV                         []byte
-	KeyringAlgorithm           string
-	CEKAlgorithm               string
-	TagLength                  string
-	MaterialDescription        map[string]string
-	EncodedMaterialDescription []byte
-	// EncryptedKey should be populated when calling GenerateCipherData
-	EncryptedKey []byte
-	Padder       Padder
-}
+type CEKEntry func(materials.CryptographicMaterials) (ContentCipher, error)

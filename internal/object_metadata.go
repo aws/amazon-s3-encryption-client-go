@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/aws/amazon-s3-encryption-client-go/materials"
 	"strconv"
 )
 
@@ -97,7 +98,7 @@ func getJSONNumberAsString(data []byte) (string, error) {
 	return "", fmt.Errorf("failed to parse as JSON Number")
 }
 
-func EncodeMeta(reader lengthReader, materials CryptographicMaterials) (ObjectMetadata, error) {
+func EncodeMeta(reader lengthReader, materials materials.CryptographicMaterials) (ObjectMetadata, error) {
 	iv := base64.StdEncoding.EncodeToString(materials.IV)
 	key := base64.StdEncoding.EncodeToString(materials.EncryptedKey)
 

@@ -1,8 +1,9 @@
-package client
+package materials
 
 import (
 	"context"
 	"fmt"
+	"github.com/aws/amazon-s3-encryption-client-go/client"
 	"github.com/aws/amazon-s3-encryption-client-go/internal"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
@@ -73,8 +74,8 @@ func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient, optFns ...func(optio
 	}
 }
 
-func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*internal.CryptographicMaterials, error) {
-	var matDesc MaterialDescription = materials.encryptionContext
+func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
+	var matDesc client.MaterialDescription = materials.encryptionContext
 	if _, ok := matDesc[kmsAWSCEKContextKey]; ok {
 		return nil, fmt.Errorf(kmsReservedKeyConflictErrMsg, kmsAWSCEKContextKey)
 	}
@@ -92,19 +93,19 @@ func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMateria
 			KeySpec:           types.DataKeySpecAes256,
 		})
 	if err != nil {
-		return &internal.CryptographicMaterials{}, err
+		return &CryptographicMaterials{}, err
 	}
 	iv, err := generateBytes(materials.gcmNonceSize)
 	if err != nil {
-		return &internal.CryptographicMaterials{}, err
+		return &CryptographicMaterials{}, err
 	}
 
 	encodedMatDesc, err := requestMatDesc.EncodeDescription()
 	if err != nil {
-		return &internal.CryptographicMaterials{}, err
+		return &CryptographicMaterials{}, err
 	}
 
-	cryptoMaterials := &internal.CryptographicMaterials{
+	cryptoMaterials := &CryptographicMaterials{
 		Key:                        out.Plaintext,
 		IV:                         iv,
 		KeyringAlgorithm:           KMSContextKeyring,
@@ -119,7 +120,7 @@ func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMateria
 	return cryptoMaterials, nil
 }
 
-func (k *KmsKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*internal.CryptographicMaterials, error) {
+func (k *KmsKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
 	if materials.DataKey.DataKeyAlgorithm == KMSKeyring && k.legacyWrappingAlgorithms {
 		return commonDecrypt(ctx, materials, encryptedDataKey, &k.KmsKeyId, nil, k.kmsClient)
 	} else if materials.DataKey.DataKeyAlgorithm == KMSContextKeyring && !k.legacyWrappingAlgorithms {
@@ -133,11 +134,11 @@ func (k *KmsKeyring) isAWSFixture() bool {
 	return true
 }
 
-func (k *KmsAnyKeyKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*internal.CryptographicMaterials, error) {
+func (k *KmsAnyKeyKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
 	return nil, fmt.Errorf("KmsAnyKeyKeyring MUST NOT be used to encrypt new data")
 }
 
-func (k *KmsAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*internal.CryptographicMaterials, error) {
+func (k *KmsAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
 	if materials.DataKey.DataKeyAlgorithm == KMSKeyring && k.legacyWrappingAlgorithms {
 		return commonDecrypt(ctx, materials, encryptedDataKey, nil, nil, k.kmsClient)
 	} else if materials.DataKey.DataKeyAlgorithm == KMSContextKeyring && !k.legacyWrappingAlgorithms {
@@ -151,7 +152,7 @@ func (k *KmsAnyKeyKeyring) isAWSFixture() bool {
 	return true
 }
 
-func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey, kmsKeyId *string, matDesc MaterialDescription, kmsClient KmsAPIClient) (*internal.CryptographicMaterials, error) {
+func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey, kmsKeyId *string, matDesc client.MaterialDescription, kmsClient KmsAPIClient) (*CryptographicMaterials, error) {
 	if matDesc != nil {
 		if v, ok := matDesc[kmsAWSCEKContextKey]; !ok {
 			return nil, fmt.Errorf("required key %v is missing from encryption context", kmsAWSCEKContextKey)
@@ -176,7 +177,7 @@ func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encrypte
 	if err != nil {
 		return nil, err
 	}
-	cryptoMaterials := &internal.CryptographicMaterials{
+	cryptoMaterials := &CryptographicMaterials{
 		Key:                        out.Plaintext,
 		IV:                         materials.ContentIV,
 		KeyringAlgorithm:           materials.DataKey.DataKeyAlgorithm,

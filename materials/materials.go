@@ -1,14 +1,15 @@
-package client
+package materials
 
 import (
 	"encoding/base64"
+	"github.com/aws/amazon-s3-encryption-client-go/client"
 	"github.com/aws/amazon-s3-encryption-client-go/internal"
 )
 
 type DecryptionMaterials struct {
 	DataKey             DataKey
 	ContentIV           []byte //base64 decoded content IV
-	MaterialDescription MaterialDescription
+	MaterialDescription client.MaterialDescription
 	ContentAlgorithm    string
 	Padder              internal.Padder
 	TagLength           string
@@ -24,7 +25,7 @@ func NewDecryptionMaterials(md internal.ObjectMetadata) (*DecryptionMaterials, e
 	if err != nil {
 		return nil, err
 	}
-	materialDescription := MaterialDescription{}
+	materialDescription := client.MaterialDescription{}
 	err = materialDescription.DecodeDescription([]byte(md.MatDesc))
 
 	if err != nil {
@@ -74,4 +75,19 @@ func NewEncryptionMaterials() *EncryptionMaterials {
 		algorithm:         internal.AESGCMNoPadding,
 		encryptionContext: map[string]string{},
 	}
+}
+
+// CryptographicMaterials is used for content encryption. It is used for storing the
+// metadata of the encrypted content.
+type CryptographicMaterials struct {
+	Key                        []byte
+	IV                         []byte
+	KeyringAlgorithm           string
+	CEKAlgorithm               string
+	TagLength                  string
+	MaterialDescription        map[string]string
+	EncodedMaterialDescription []byte
+	// EncryptedKey should be populated when calling GenerateCipherData
+	EncryptedKey []byte
+	Padder       internal.Padder
 }

@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"github.com/aws/amazon-s3-encryption-client-go/materials"
 	"io"
 )
 
@@ -17,7 +18,7 @@ const (
 // Note: This uses the Go stdlib AEAD implementation for AES/GCM. Due to this objects to be encrypted or decrypted
 // will be fully loaded into memory before encryption or decryption can occur. Caution must be taken to avoid memory
 // allocation failures.
-func NewAESGCMContentCipher(materials CryptographicMaterials) (ContentCipher, error) {
+func NewAESGCMContentCipher(materials materials.CryptographicMaterials) (ContentCipher, error) {
 	materials.CEKAlgorithm = AESGCMNoPadding
 	materials.TagLength = GcmTagSizeBits
 
@@ -34,7 +35,7 @@ func NewAESGCMContentCipher(materials CryptographicMaterials) (ContentCipher, er
 
 // AESGCMContentCipher will use AES GCM for the main cipher.
 type aesGCMContentCipher struct {
-	CryptographicMaterials CryptographicMaterials
+	CryptographicMaterials materials.CryptographicMaterials
 	Cipher                 Cipher
 }
 
@@ -52,7 +53,7 @@ func (cc *aesGCMContentCipher) DecryptContents(src io.ReadCloser) (io.ReadCloser
 }
 
 // GetCipherData returns cipher data
-func (cc aesGCMContentCipher) GetCipherData() CryptographicMaterials {
+func (cc aesGCMContentCipher) GetCipherData() materials.CryptographicMaterials {
 	return cc.CryptographicMaterials
 }
 

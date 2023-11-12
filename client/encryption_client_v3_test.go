@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/aws/amazon-s3-encryption-client-go/internal"
 	"github.com/aws/amazon-s3-encryption-client-go/internal/awstesting"
+	"github.com/aws/amazon-s3-encryption-client-go/materials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"io"
 	"net/http"
@@ -23,7 +23,7 @@ func TestNewEncryptionClientV3_NonDefaults(t *testing.T) {
 	tClient := s3.NewFromConfig(tConfig)
 
 	var mcmm = mockCMM{}
-	v3, _ := NewS3EncryptionClientV3(tClient, mcmm, func(clientOptions *EncryptionClientOptions) {
+	v3, _ := New(tClient, mcmm, func(clientOptions *EncryptionClientOptions) {
 		clientOptions.CryptographicMaterialsManager = mcmm
 		clientOptions.TempFolderPath = "/mock/path"
 		clientOptions.MinFileSize = 42
@@ -54,7 +54,7 @@ func TestNewEncryptionClientV3_NonDefaults(t *testing.T) {
 // so that encryption tests can be guaranteed to be consistent.
 type keyringWithStaticTestIV struct {
 	IV []byte
-	Keyring
+	materials.Keyring
 }
 
 // isAWSFixture will avoid the warning log message when doing tests that need to mock the IV
@@ -62,7 +62,7 @@ func (k keyringWithStaticTestIV) isAWSFixture() bool {
 	return true
 }
 
-func (k keyringWithStaticTestIV) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*internal.CryptographicMaterials, error) {
+func (k keyringWithStaticTestIV) OnEncrypt(ctx context.Context, materials *materials.EncryptionMaterials) (*materials.CryptographicMaterials, error) {
 	cryptoMaterials, err := k.Keyring.OnEncrypt(ctx, materials)
 	if err == nil {
 		cryptoMaterials.IV = k.IV
@@ -85,7 +85,7 @@ func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 	iv, _ := hex.DecodeString("ae325acae2bfd5b9c3d0b813")
 	kmsWithStaticIV := keyringWithStaticTestIV{
 		IV: iv,
-		Keyring: NewKmsKeyring(kmsClient, "test-key-id", func(options *KeyringOptions) {
+		Keyring: materials.NewKmsKeyring(kmsClient, "test-key-id", func(options *materials.KeyringOptions) {
 			options.EnableLegacyWrappingAlgorithms = false
 		}),
 	}
@@ -101,11 +101,11 @@ func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 	tConfig.HTTPClient = tHttpClient
 	s3Client := s3.NewFromConfig(tConfig)
 
-	cmm, err := NewCryptographicMaterialsManager(kmsWithStaticIV)
+	cmm, err := materials.NewCryptographicMaterialsManager(kmsWithStaticIV)
 	if err != nil {
 		t.Fatalf("error while trying to create new CMM: %v", err)
 	}
-	client, _ := NewS3EncryptionClientV3(s3Client, cmm)
+	client, _ := New(s3Client, cmm)
 
 	_, err = client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket: aws.String("test-bucket"),

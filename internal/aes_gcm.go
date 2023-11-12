@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"github.com/aws/amazon-s3-encryption-client-go/materials"
 	"io"
 )
 
@@ -25,7 +26,7 @@ type aesGCM struct {
 //		"IV": iv,
 //	}
 //	cipher, err := s3crypto.newAESGCM(materials)
-func newAESGCM(materials CryptographicMaterials) (Cipher, error) {
+func newAESGCM(materials materials.CryptographicMaterials) (Cipher, error) {
 	block, err := aes.NewCipher(materials.Key)
 	if err != nil {
 		return nil, err

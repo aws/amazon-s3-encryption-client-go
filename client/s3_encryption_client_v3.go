@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"github.com/aws/amazon-s3-encryption-client-go/internal"
+	"github.com/aws/amazon-s3-encryption-client-go/materials"
 	"log"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -27,7 +28,7 @@ type EncryptionClientOptions struct {
 	// The logger to write logging messages to.
 	Logger *log.Logger
 
-	CryptographicMaterialsManager CryptographicMaterialsManager
+	CryptographicMaterialsManager materials.CryptographicMaterialsManager
 
 	// EnableLegacyUnauthenticatedModes MUST be set to true in order to decrypt objects encrypted
 	//using legacy (unauthenticated) modes such as AES/CBC
@@ -43,8 +44,8 @@ type awsFixture interface {
 	isAWSFixture() bool
 }
 
-// NewS3EncryptionClientV3 creates a new S3 client which can encrypt and decrypt
-func NewS3EncryptionClientV3(s3Client *s3.Client, CryptographicMaterialsManager CryptographicMaterialsManager, optFns ...func(options *EncryptionClientOptions)) (*S3EncryptionClientV3, error) {
+// New creates a new S3 client which can encrypt and decrypt
+func New(s3Client *s3.Client, CryptographicMaterialsManager materials.CryptographicMaterialsManager, optFns ...func(options *EncryptionClientOptions)) (*S3EncryptionClientV3, error) {
 	wrappedClient := s3Client
 	// default options
 	options := EncryptionClientOptions{

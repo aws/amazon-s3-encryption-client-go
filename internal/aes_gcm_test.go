@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	materials2 "github.com/aws/amazon-s3-encryption-client-go/materials"
 	"io"
 	"os"
 	"strings"
@@ -162,7 +163,7 @@ func TestGCMDecryptReader_DecrypterOpenError(t *testing.T) {
 func aesgcmTest(t *testing.T, iv, key, plaintext, expected, tag []byte) {
 	t.Helper()
 	const gcmTagSize = 16
-	materials := CryptographicMaterials{
+	materials := materials2.CryptographicMaterials{
 		Key: key,
 		IV:  iv,
 	}

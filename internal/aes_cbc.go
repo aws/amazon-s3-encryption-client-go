@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"github.com/aws/amazon-s3-encryption-client-go/materials"
 	"io"
 )
 
@@ -19,7 +20,7 @@ type aesCBC struct {
 
 // newAESCBC creates a new AES CBC cipher. Expects keys to be of
 // the correct size.
-func newAESCBC(materials CryptographicMaterials, padder Padder) (Cipher, error) {
+func newAESCBC(materials materials.CryptographicMaterials, padder Padder) (Cipher, error) {
 	block, err := aes.NewCipher(materials.Key)
 	if err != nil {
 		return nil, err

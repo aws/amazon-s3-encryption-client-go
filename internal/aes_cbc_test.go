@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	materials2 "github.com/aws/amazon-s3-encryption-client-go/materials"
 	"io"
 	"testing"
 )
@@ -447,7 +448,7 @@ func TestAESCBCEncryptDecrypt(t *testing.T) {
 	for i, testCase := range testCases {
 		key, _ := hex.DecodeString(testCase.key)
 		iv, _ := hex.DecodeString(testCase.iv)
-		materials := CryptographicMaterials{
+		materials := materials2.CryptographicMaterials{
 			Key: key,
 			IV:  iv,
 		}

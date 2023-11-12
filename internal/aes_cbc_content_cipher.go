@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"github.com/aws/amazon-s3-encryption-client-go/materials"
 	"io"
 )
 
@@ -12,7 +13,7 @@ const (
 
 // NewAESCBCContentCipher will create a new aes cbc content cipher. If the cipher data's
 // will set the cek algorithm if it hasn't been set.
-func NewAESCBCContentCipher(materials CryptographicMaterials) (ContentCipher, error) {
+func NewAESCBCContentCipher(materials materials.CryptographicMaterials) (ContentCipher, error) {
 	materials.TagLength = aesCbcTagSizeBits
 	if len(materials.CEKAlgorithm) == 0 {
 		materials.CEKAlgorithm = AESCBC + "/" + materials.Padder.Name()
@@ -30,7 +31,7 @@ func NewAESCBCContentCipher(materials CryptographicMaterials) (ContentCipher, er
 
 // aesCBCContentCipher will use AES CBC for the main cipher.
 type aesCBCContentCipher struct {
-	CryptographicMaterials CryptographicMaterials
+	CryptographicMaterials materials.CryptographicMaterials
 	Cipher                 Cipher
 }
 
@@ -48,7 +49,7 @@ func (cc *aesCBCContentCipher) DecryptContents(src io.ReadCloser) (io.ReadCloser
 }
 
 // GetCipherData returns cipher data
-func (cc aesCBCContentCipher) GetCipherData() CryptographicMaterials {
+func (cc aesCBCContentCipher) GetCipherData() materials.CryptographicMaterials {
 	return cc.CryptographicMaterials
 }
 

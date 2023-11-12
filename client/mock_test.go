@@ -4,24 +4,25 @@ import (
 	"bytes"
 	"context"
 	"github.com/aws/amazon-s3-encryption-client-go/internal"
+	"github.com/aws/amazon-s3-encryption-client-go/materials"
 	"io"
 	"io/ioutil"
 )
 
 type mockCMM struct{}
 
-func (m mockCMM) GetEncryptionMaterials(ctx context.Context, matDesc MaterialDescription) (*internal.CryptographicMaterials, error) {
+func (m mockCMM) GetEncryptionMaterials(ctx context.Context, matDesc MaterialDescription) (*materials.CryptographicMaterials, error) {
 	// TODO: make this mock more useful
-	return &internal.CryptographicMaterials{
+	return &materials.CryptographicMaterials{
 		Key:          nil,
 		IV:           nil,
 		CEKAlgorithm: internal.AESGCMNoPadding,
 	}, nil
 }
 
-func (m mockCMM) DecryptMaterials(ctx context.Context, objectMetadata internal.ObjectMetadata) (*internal.CryptographicMaterials, error) {
+func (m mockCMM) DecryptMaterials(ctx context.Context, objectMetadata internal.ObjectMetadata) (*materials.CryptographicMaterials, error) {
 	// TODO: make this mock more useful
-	return &internal.CryptographicMaterials{
+	return &materials.CryptographicMaterials{
 		Key:                 nil,
 		IV:                  nil,
 		KeyringAlgorithm:    "",
@@ -36,9 +37,9 @@ func (m mockCMM) DecryptMaterials(ctx context.Context, objectMetadata internal.O
 type mockKeyring struct{}
 
 // OnEncrypt generates/encrypts a data key for use with content encryption
-func (m mockKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*internal.CryptographicMaterials, error) {
+func (m mockKeyring) OnEncrypt(ctx context.Context, materials *materials.EncryptionMaterials) (*materials.CryptographicMaterials, error) {
 	// TODO: make this mock more useful
-	return &internal.CryptographicMaterials{
+	return &materials.CryptographicMaterials{
 		Key:                 nil,
 		IV:                  nil,
 		KeyringAlgorithm:    "",
@@ -52,9 +53,9 @@ func (m mockKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMateria
 
 // OnDecrypt decrypts the encryptedDataKeys and returns them in materials
 // for use with content decryption
-func (m mockKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*internal.CryptographicMaterials, error) {
+func (m mockKeyring) OnDecrypt(ctx context.Context, materials *materials.DecryptionMaterials, encryptedDataKey materials.DataKey) (*materials.CryptographicMaterials, error) {
 	// TODO: make this mock more useful
-	return &internal.CryptographicMaterials{
+	return &materials.CryptographicMaterials{
 		Key:                 nil,
 		IV:                  nil,
 		KeyringAlgorithm:    "",
@@ -67,10 +68,10 @@ func (m mockKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMateria
 }
 
 type mockContentCipher struct {
-	materials internal.CryptographicMaterials
+	materials materials.CryptographicMaterials
 }
 
-func (cipher *mockContentCipher) GetCipherData() internal.CryptographicMaterials {
+func (cipher *mockContentCipher) GetCipherData() materials.CryptographicMaterials {
 	return cipher.materials
 }
 
