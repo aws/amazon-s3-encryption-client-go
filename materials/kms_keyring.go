@@ -100,20 +100,14 @@ func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMateria
 		return &CryptographicMaterials{}, err
 	}
 
-	encodedMatDesc, err := requestMatDesc.EncodeDescription()
-	if err != nil {
-		return &CryptographicMaterials{}, err
-	}
-
 	cryptoMaterials := &CryptographicMaterials{
-		Key:                        out.Plaintext,
-		IV:                         iv,
-		KeyringAlgorithm:           KMSContextKeyring,
-		CEKAlgorithm:               materials.algorithm,
-		TagLength:                  GcmTagSizeBits,
-		MaterialDescription:        requestMatDesc,
-		EncodedMaterialDescription: encodedMatDesc,
-		EncryptedKey:               out.CiphertextBlob,
+		Key:                 out.Plaintext,
+		IV:                  iv,
+		KeyringAlgorithm:    KMSContextKeyring,
+		CEKAlgorithm:        materials.algorithm,
+		TagLength:           GcmTagSizeBits,
+		MaterialDescription: requestMatDesc,
+		EncryptedKey:        out.CiphertextBlob,
 	}
 
 	return cryptoMaterials, nil
@@ -172,19 +166,14 @@ func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encrypte
 	}
 
 	materials.DataKey.KeyMaterial = out.Plaintext
-	encodedMatDesc, err := materials.MaterialDescription.EncodeDescription()
-	if err != nil {
-		return nil, err
-	}
 	cryptoMaterials := &CryptographicMaterials{
-		Key:                        out.Plaintext,
-		IV:                         materials.ContentIV,
-		KeyringAlgorithm:           materials.DataKey.DataKeyAlgorithm,
-		CEKAlgorithm:               materials.ContentAlgorithm,
-		TagLength:                  materials.TagLength,
-		MaterialDescription:        materials.MaterialDescription,
-		EncodedMaterialDescription: encodedMatDesc,
-		EncryptedKey:               materials.DataKey.EncryptedDataKey,
+		Key:                 out.Plaintext,
+		IV:                  materials.ContentIV,
+		KeyringAlgorithm:    materials.DataKey.DataKeyAlgorithm,
+		CEKAlgorithm:        materials.ContentAlgorithm,
+		TagLength:           materials.TagLength,
+		MaterialDescription: materials.MaterialDescription,
+		EncryptedKey:        materials.DataKey.EncryptedDataKey,
 	}
 	return cryptoMaterials, nil
 }

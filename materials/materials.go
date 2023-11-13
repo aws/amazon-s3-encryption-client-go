@@ -64,13 +64,12 @@ func NewEncryptionMaterials() *EncryptionMaterials {
 // CryptographicMaterials is used for content encryption. It is used for storing the
 // metadata of the encrypted content.
 type CryptographicMaterials struct {
-	Key                        []byte
-	IV                         []byte
-	KeyringAlgorithm           string
-	CEKAlgorithm               string
-	TagLength                  string
-	MaterialDescription        map[string]string
-	EncodedMaterialDescription []byte
+	Key                 []byte
+	IV                  []byte
+	KeyringAlgorithm    string
+	CEKAlgorithm        string
+	TagLength           string
+	MaterialDescription MaterialDescription
 	// EncryptedKey should be populated when calling GenerateCipherData
 	EncryptedKey []byte
 }
