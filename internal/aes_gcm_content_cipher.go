@@ -6,17 +6,18 @@ import (
 )
 
 const (
-	GcmTagSizeBits = "128"
+	GcmTagSizeBits  = "128"
+	AESGCMNoPadding = "AES/GCM/NoPadding"
 )
 
 // NewAESGCMContentCipher returns a new encryption only AES/GCM mode structure with a specific cipher data generator
 // that will provide keys to be used for content encryption.
 //
-// Note: This uses the Go stdlib AEAD implementation for AES/GCM. Due to this objects to be encrypted or decrypted
+// Note: This uses the Go stdlib AEAD implementation for AES/GCM. Due to this, objects to be encrypted or decrypted
 // will be fully loaded into memory before encryption or decryption can occur. Caution must be taken to avoid memory
 // allocation failures.
 func NewAESGCMContentCipher(materials materials.CryptographicMaterials) (ContentCipher, error) {
-	materials.CEKAlgorithm = "AES/GCM/NoPadding"
+	materials.CEKAlgorithm = AESGCMNoPadding
 	materials.TagLength = GcmTagSizeBits
 
 	cipher, err := newAESGCM(materials)

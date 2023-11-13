@@ -14,7 +14,7 @@ const (
 	// KMSContextKeyring is a constant used during decryption to build a kms+context keyring
 	KMSContextKeyring = "kms+context"
 
-	kmsDefaultEncryptionContextKey = "AES/GCM/NoPadding"
+	kmsDefaultEncryptionContextKey = "internal.AESGCMNoPadding"
 	kmsAWSCEKContextKey            = "aws:x-amz-cek-alg"
 	kmsMismatchCEKAlg              = "the content encryption algorithm used at encryption time does not match the algorithm stored for decryption time. The object may be altered or corrupted"
 	kmsReservedKeyConflictErrMsg   = "conflict in reserved KMS Encryption Context key %s. This value is reserved for the S3 Encryption client and cannot be set by the user"

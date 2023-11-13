@@ -3,7 +3,7 @@ package materials
 const (
 	gcmKeySize       = 32
 	gcmNonceSize     = 12
-	defaultAlgorithm = "AES/GCM/NoPadding"
+	defaultAlgorithm = "internal.AESGCMNoPadding"
 )
 
 type DecryptionMaterials struct {

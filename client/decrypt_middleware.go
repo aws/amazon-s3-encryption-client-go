@@ -18,29 +18,29 @@ type GetObjectAPIClient interface {
 	GetObject(context.Context, *s3.GetObjectInput, ...func(*s3.Options)) (*s3.GetObjectOutput, error)
 }
 
-func (m *DecryptMiddleware) addDecryptAPIOptions(options *s3.Options) {
+func (m *decryptMiddleware) addDecryptAPIOptions(options *s3.Options) {
 	options.APIOptions = append(options.APIOptions,
 		m.addDecryptMiddleware,
 	)
 }
 
-func (m *DecryptMiddleware) addDecryptMiddleware(stack *middleware.Stack) error {
+func (m *decryptMiddleware) addDecryptMiddleware(stack *middleware.Stack) error {
 	return stack.Deserialize.Add(m, middleware.Before)
 }
 
 const decryptMiddlewareID = "S3Decrypt"
 
-type DecryptMiddleware struct {
+type decryptMiddleware struct {
 	client *S3EncryptionClientV3
 	input  *s3.GetObjectInput
 }
 
 // ID returns the resolver identifier
-func (m *DecryptMiddleware) ID() string {
+func (m *decryptMiddleware) ID() string {
 	return decryptMiddlewareID
 }
 
-func (m *DecryptMiddleware) HandleDeserialize(ctx context.Context, in middleware.DeserializeInput, next middleware.DeserializeHandler) (
+func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware.DeserializeInput, next middleware.DeserializeHandler) (
 	out middleware.DeserializeOutput, metadata middleware.Metadata, err error,
 ) {
 	// call down the stack and get the deserialized result (decrypt middleware runs after the operation deserializer)
@@ -75,7 +75,7 @@ func (m *DecryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 	// this is purposefully done before attempting to
 	// decrypt the materials
 	var cekFunc internal.CEKEntry
-	if objectMetadata.CEKAlg == ("AES/GCM/NoPadding") {
+	if objectMetadata.CEKAlg == internal.AESGCMNoPadding {
 		cekFunc = internal.NewAESGCMContentCipher
 	} else if strings.Contains(objectMetadata.CEKAlg, "AES/CBC") {
 		if !m.client.Options.EnableLegacyUnauthenticatedModes {
