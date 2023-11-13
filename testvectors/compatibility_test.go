@@ -390,7 +390,7 @@ func TestInstructionFileV2toV3(t *testing.T) {
 
 	decryptedPlaintext, err := io.ReadAll(result.Body)
 	if err != nil {
-		t.Fatalf("failed to read decrypted plaintext into byte array")
+		t.Fatalf("failed to read decrypted plaintext into byte array: %v", err)
 	}
 
 	if e, a := []byte(plaintext), decryptedPlaintext; !bytes.Equal(e, a) {
