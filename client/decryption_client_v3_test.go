@@ -30,7 +30,7 @@ func TestDecryptionClientV3_GetObject(t *testing.T) {
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
 	keyring := materials.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, func(options *materials.KeyringOptions) {
-		options.enableLegacyWrappingAlgorithms = false
+		options.EnableLegacyWrappingAlgorithms = false
 	})
 	cmm, err := materials.NewCryptographicMaterialsManager(keyring)
 	if err != nil {
@@ -99,7 +99,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESCBC(t *testing.T) {
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
 	keyring := materials.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, func(options *materials.KeyringOptions) {
-		options.enableLegacyWrappingAlgorithms = true
+		options.EnableLegacyWrappingAlgorithms = true
 	})
 	cmm, err := materials.NewCryptographicMaterialsManager(keyring)
 	if err != nil {
@@ -172,7 +172,7 @@ func TestDecryptionClientV3_GetObject_V1Interop_KMS_AESGCM(t *testing.T) {
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
 	keyring := materials.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, func(options *materials.KeyringOptions) {
-		options.enableLegacyWrappingAlgorithms = true
+		options.EnableLegacyWrappingAlgorithms = true
 	})
 	cmm, err := materials.NewCryptographicMaterialsManager(keyring)
 	if err != nil {
@@ -259,7 +259,7 @@ func TestDecryptionClientV3_GetObject_OnlyDecryptsRegisteredAlgorithms(t *testin
 		"unsupported cek": {
 			Client: func() *S3EncryptionClientV3 {
 				keyring := materials.NewKmsDecryptOnlyAnyKeyKeyring(kms.NewFromConfig(awstesting.Config()), func(options *materials.KeyringOptions) {
-					options.enableLegacyWrappingAlgorithms = false
+					options.EnableLegacyWrappingAlgorithms = false
 				})
 				cmm, err := materials.NewCryptographicMaterialsManager(keyring)
 				if err != nil {
