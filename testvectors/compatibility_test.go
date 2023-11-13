@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	s3cryptoV3 "github.com/aws/amazon-s3-encryption-client-go"
+	"github.com/aws/amazon-s3-encryption-client-go/client"
+	"github.com/aws/amazon-s3-encryption-client-go/materials"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
@@ -22,9 +23,20 @@ import (
 
 const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
 const bucketEnvvar = "BUCKET"
-const defaultAwsKmsAlias = "s3-encryption-client-v3-go-us-west-2"
+const defaultAwsKmsAlias = "arn:aws:kms:us-west-2:657301468084:alias/s3-encryption-client-v3-go-us-west-2"
+
 const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
 const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
+const defaultRegion = "us-west-2"
+const regionEnvvar = "AWS_REGION"
+
+func LoadRegion() string {
+	if len(os.Getenv(regionEnvvar)) > 0 {
+		return os.Getenv(regionEnvvar)
+	} else {
+		return defaultRegion
+	}
+}
 
 func LoadBucket() string {
 	if len(os.Getenv(bucketEnvvar)) > 0 {
@@ -55,7 +67,7 @@ func TestKmsV1toV3_CBC(t *testing.T) {
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
-	// V2 Client
+	// V2 client
 	var handler s3cryptoV2.CipherDataGenerator
 	sessKms, err := sessionV1.NewSession(&awsV1.Config{
 		Region: aws.String(region),
@@ -84,14 +96,15 @@ func TestKmsV1toV3_CBC(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *materials.KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = true
+	}))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := s3cryptoV3.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *s3cryptoV3.EncryptionClientOptions) {
+	s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 
@@ -122,7 +135,7 @@ func TestKmsV1toV3_GCM(t *testing.T) {
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
-	// V2 Client
+	// V2 client
 	var handler s3cryptoV2.CipherDataGenerator
 	sessKms, err := sessionV1.NewSession(&awsV1.Config{
 		Region: aws.String(region),
@@ -151,14 +164,15 @@ func TestKmsV1toV3_GCM(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *materials.KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = true
+	}))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := s3cryptoV3.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *s3cryptoV3.EncryptionClientOptions) {
+	s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 
@@ -189,7 +203,7 @@ func TestKmsContextV2toV3_GCM(t *testing.T) {
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
-	// V2 Client
+	// V2 client
 	sessKms, err := sessionV1.NewSession(&awsV1.Config{
 		Region: aws.String(region),
 	})
@@ -220,14 +234,13 @@ func TestKmsContextV2toV3_GCM(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsV2, kmsKeyAlias))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := s3cryptoV3.NewS3EncryptionClientV3(s3V2, cmm)
+	s3ecV3, err := client.New(s3V2, cmm)
 
 	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
@@ -262,14 +275,13 @@ func TestKmsContextV3toV2_GCM(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsV2, kmsKeyAlias))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := s3cryptoV3.NewS3EncryptionClientV3(s3V2, cmm)
+	s3ecV3, err := client.New(s3V2, cmm)
 
 	_, err = s3ecV3.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
@@ -281,7 +293,7 @@ func TestKmsContextV3toV2_GCM(t *testing.T) {
 	}
 	fmt.Printf("successfully uploaded file to %s/%s\n", bucket, key)
 
-	// V2 Client
+	// V2 client
 	sessKms, err := sessionV1.NewSession(&awsV1.Config{
 		Region: aws.String(region),
 	})
@@ -323,7 +335,7 @@ func TestInstructionFileV2toV3(t *testing.T) {
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
-	// V2 Client
+	// V2 client
 	var handler s3cryptoV2.CipherDataGenerator
 	sessV1, err := sessionV1.NewSession(&awsV1.Config{
 		Region: aws.String(region),
@@ -356,14 +368,15 @@ func TestInstructionFileV2toV3(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	var matDesc s3cryptoV3.MaterialDescription
-	cmm, err := s3cryptoV3.NewCryptographicMaterialsManager(s3cryptoV3.NewKmsKeyring(kmsV2, kmsKeyAlias, matDesc))
+	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *materials.KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = true
+	}))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := s3cryptoV3.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *s3cryptoV3.EncryptionClientOptions) {
+	s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 
@@ -377,7 +390,7 @@ func TestInstructionFileV2toV3(t *testing.T) {
 
 	decryptedPlaintext, err := io.ReadAll(result.Body)
 	if err != nil {
-		t.Fatalf("failed to read decrypted plaintext into byte array")
+		t.Fatalf("failed to read decrypted plaintext into byte array: %v", err)
 	}
 
 	if e, a := []byte(plaintext), decryptedPlaintext; !bytes.Equal(e, a) {

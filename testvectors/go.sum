@@ -4,6 +4,16 @@ github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231101195558-d863ec3760fd
 github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231101195558-d863ec3760fd/go.mod h1:h9NEsWqsylYOVlK20yqhSGNaBBW9xW7keOwXwDu8Ir4=
 github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231108003545-8dbbde83414f h1:dhHOV6E6yjphJWYQB7utvk6LEuZTiHdPdrH+xwtLb+0=
 github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231108003545-8dbbde83414f/go.mod h1:h9NEsWqsylYOVlK20yqhSGNaBBW9xW7keOwXwDu8Ir4=
+github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231111001542-ee93cf31103d h1:EmD4ZV4mNPKbfITCuQx4IcIArnO2TCji8vSkTXOiAd4=
+github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231111001542-ee93cf31103d/go.mod h1:h9NEsWqsylYOVlK20yqhSGNaBBW9xW7keOwXwDu8Ir4=
+github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231111005210-9bae16e822d6 h1:JMVAsqs+LyxWdhakq3mJ4JHvMBIDrTDY/nKM/FVrrFw=
+github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231111005210-9bae16e822d6/go.mod h1:h9NEsWqsylYOVlK20yqhSGNaBBW9xW7keOwXwDu8Ir4=
+github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231111011059-0a86484b4e16 h1:LpemSrVVj2MFEhpeHU0d73yxXTmnTPkqMH/vsvrWm10=
+github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231111011059-0a86484b4e16/go.mod h1:h9NEsWqsylYOVlK20yqhSGNaBBW9xW7keOwXwDu8Ir4=
+github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231113005832-5538b9b4755d h1:XOstH7eaUKiOiHIn/9Qk3wYa8aNOZsxrKWRQYl8iRCY=
+github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231113005832-5538b9b4755d/go.mod h1:h9NEsWqsylYOVlK20yqhSGNaBBW9xW7keOwXwDu8Ir4=
+github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231113023408-6345feb6deec h1:W9FiDVR/t0Y/d+xigOn9HdWGuJJTztPjYcBaGhgQ6k4=
+github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231113023408-6345feb6deec/go.mod h1:h9NEsWqsylYOVlK20yqhSGNaBBW9xW7keOwXwDu8Ir4=
 github.com/aws/aws-sdk-go v1.44.327 h1:ZS8oO4+7MOBLhkdwIhgtVeDzCeWOlTfKJS7EgggbIEY=
 github.com/aws/aws-sdk-go v1.44.327/go.mod h1:aVsgQcEevwlmQ7qHE9I3h+dtQgpqhFB+i8Phjh7fkwI=
 github.com/aws/aws-sdk-go-v2 v1.18.0 h1:882kkTpSFhdgYRKVZ/VCgf7sd0ru57p2JCxz4/oN5RY=
