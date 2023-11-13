@@ -9,8 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-const customTypeWarningMessage = "WARNING: The S3 Encryption client is configured to write encrypted objects using types not provided by AWS. Security and compatibility with these types can not be guaranteed."
-
 type S3EncryptionClientV3 struct {
 	*s3.Client                         // promoted anonymous field, it allows this type to call s3 Client methods
 	Options    EncryptionClientOptions // options for encrypt/decrypt
@@ -33,15 +31,6 @@ type EncryptionClientOptions struct {
 	// EnableLegacyUnauthenticatedModes MUST be set to true in order to decrypt objects encrypted
 	//using legacy (unauthenticated) modes such as AES/CBC
 	EnableLegacyUnauthenticatedModes bool
-}
-
-// awsFixture is an unexported interface to expose whether a given fixture is an aws provided fixture, and whether that
-// fixtures dependencies were constructed using aws types.
-//
-// This interface is used to warn users if they are using custom implementations of CryptographicMaterialsManager
-// or Keyring.
-type awsFixture interface {
-	isAWSFixture() bool
 }
 
 // New creates a new S3 client which can encrypt and decrypt

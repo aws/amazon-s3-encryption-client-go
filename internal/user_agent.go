@@ -6,7 +6,9 @@ import (
 )
 
 // specified by SDK user-agent SEP
-const cryptoUserAgent = "S3CryptoV3"
+const (
+	cryptoUserAgent = "S3CryptoV3"
+)
 
 // TODO - can we get a meaningful encryption client version into the header?
 

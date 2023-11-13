@@ -3,21 +3,21 @@ package materials
 import (
 	"context"
 	"fmt"
-	"github.com/aws/amazon-s3-encryption-client-go/client"
-	"github.com/aws/amazon-s3-encryption-client-go/internal"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 )
 
 const (
+	GcmTagSizeBits = "128"
 	// KMSKeyring is a constant used during decryption to build a KMS key handler.
 	KMSKeyring = "kms"
 	// KMSContextKeyring is a constant used during decryption to build a kms+context keyring
 	KMSContextKeyring = "kms+context"
 
-	kmsAWSCEKContextKey          = "aws:" + internal.CekAlgorithmHeader
-	kmsMismatchCEKAlg            = "the content encryption algorithm used at encryption time does not match the algorithm stored for decryption time. The object may be altered or corrupted"
-	kmsReservedKeyConflictErrMsg = "conflict in reserved KMS Encryption Context key %s. This value is reserved for the S3 Encryption client and cannot be set by the user"
+	kmsDefaultEncryptionContextKey = "AES/GCM/NoPadding"
+	kmsAWSCEKContextKey            = "aws:x-amz-cek-alg"
+	kmsMismatchCEKAlg              = "the content encryption algorithm used at encryption time does not match the algorithm stored for decryption time. The object may be altered or corrupted"
+	kmsReservedKeyConflictErrMsg   = "conflict in reserved KMS Encryption Context key %s. This value is reserved for the S3 Encryption client and cannot be set by the user"
 )
 
 // KmsAPIClient is a client that implements the GenerateDataKey and Decrypt operations
@@ -75,7 +75,7 @@ func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient, optFns ...func(optio
 }
 
 func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
-	var matDesc client.MaterialDescription = materials.encryptionContext
+	var matDesc MaterialDescription = materials.encryptionContext
 	if _, ok := matDesc[kmsAWSCEKContextKey]; ok {
 		return nil, fmt.Errorf(kmsReservedKeyConflictErrMsg, kmsAWSCEKContextKey)
 	}
@@ -84,7 +84,7 @@ func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMateria
 	}
 
 	requestMatDesc := matDesc.Clone()
-	requestMatDesc[kmsAWSCEKContextKey] = internal.AESGCMNoPadding
+	requestMatDesc[kmsAWSCEKContextKey] = kmsDefaultEncryptionContextKey
 
 	out, err := k.kmsClient.GenerateDataKey(ctx,
 		&kms.GenerateDataKeyInput{
@@ -110,11 +110,10 @@ func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMateria
 		IV:                         iv,
 		KeyringAlgorithm:           KMSContextKeyring,
 		CEKAlgorithm:               materials.algorithm,
-		TagLength:                  internal.GcmTagSizeBits,
+		TagLength:                  GcmTagSizeBits,
 		MaterialDescription:        requestMatDesc,
 		EncodedMaterialDescription: encodedMatDesc,
 		EncryptedKey:               out.CiphertextBlob,
-		Padder:                     nil,
 	}
 
 	return cryptoMaterials, nil
@@ -152,7 +151,7 @@ func (k *KmsAnyKeyKeyring) isAWSFixture() bool {
 	return true
 }
 
-func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey, kmsKeyId *string, matDesc client.MaterialDescription, kmsClient KmsAPIClient) (*CryptographicMaterials, error) {
+func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey, kmsKeyId *string, matDesc MaterialDescription, kmsClient KmsAPIClient) (*CryptographicMaterials, error) {
 	if matDesc != nil {
 		if v, ok := matDesc[kmsAWSCEKContextKey]; !ok {
 			return nil, fmt.Errorf("required key %v is missing from encryption context", kmsAWSCEKContextKey)
@@ -186,7 +185,6 @@ func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encrypte
 		MaterialDescription:        materials.MaterialDescription,
 		EncodedMaterialDescription: encodedMatDesc,
 		EncryptedKey:               materials.DataKey.EncryptedDataKey,
-		Padder:                     materials.Padder,
 	}
 	return cryptoMaterials, nil
 }

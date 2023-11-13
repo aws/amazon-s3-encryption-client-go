@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/aws/amazon-s3-encryption-client-go/internal"
+	"github.com/aws/amazon-s3-encryption-client-go/materials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
 	"github.com/aws/smithy-go/middleware"
@@ -74,7 +75,7 @@ func (m *DecryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 	// this is purposefully done before attempting to
 	// decrypt the materials
 	var cekFunc internal.CEKEntry
-	if objectMetadata.CEKAlg == internal.AESGCMNoPadding {
+	if objectMetadata.CEKAlg == ("AES/GCM/NoPadding") {
 		cekFunc = internal.NewAESGCMContentCipher
 	} else if strings.Contains(objectMetadata.CEKAlg, "AES/CBC") {
 		if !m.client.Options.EnableLegacyUnauthenticatedModes {
@@ -85,7 +86,19 @@ func (m *DecryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 		return out, metadata, fmt.Errorf("invalid content encryption algorithm found in metadata: %s", objectMetadata.CEKAlg)
 	}
 
-	decryptMaterials, err := m.client.Options.CryptographicMaterialsManager.DecryptMaterials(ctx, objectMetadata)
+	cipherKey, err := objectMetadata.GetDecodedKey()
+	iv, err := objectMetadata.GetDecodedIV()
+	matDesc, err := objectMetadata.GetMatDesc()
+	decryptMaterialsRequest := materials.DecryptMaterialsRequest{
+		cipherKey,
+		iv,
+		matDesc,
+		objectMetadata.KeyringAlg,
+		objectMetadata.CEKAlg,
+		objectMetadata.TagLen,
+	}
+
+	decryptMaterials, err := m.client.Options.CryptographicMaterialsManager.DecryptMaterials(ctx, decryptMaterialsRequest)
 	if err != nil {
 		return out, metadata, fmt.Errorf("error while decrypting materials: %v", err)
 	}

@@ -3,7 +3,6 @@ package client
 import (
 	"bytes"
 	"context"
-	"github.com/aws/amazon-s3-encryption-client-go/internal"
 	"github.com/aws/amazon-s3-encryption-client-go/materials"
 	"io"
 	"io/ioutil"
@@ -11,16 +10,16 @@ import (
 
 type mockCMM struct{}
 
-func (m mockCMM) GetEncryptionMaterials(ctx context.Context, matDesc MaterialDescription) (*materials.CryptographicMaterials, error) {
+func (m mockCMM) GetEncryptionMaterials(ctx context.Context, matDesc materials.MaterialDescription) (*materials.CryptographicMaterials, error) {
 	// TODO: make this mock more useful
 	return &materials.CryptographicMaterials{
 		Key:          nil,
 		IV:           nil,
-		CEKAlgorithm: internal.AESGCMNoPadding,
+		CEKAlgorithm: "AES/GCM/NoPadding",
 	}, nil
 }
 
-func (m mockCMM) DecryptMaterials(ctx context.Context, objectMetadata internal.ObjectMetadata) (*materials.CryptographicMaterials, error) {
+func (m mockCMM) DecryptMaterials(ctx context.Context, req materials.DecryptMaterialsRequest) (*materials.CryptographicMaterials, error) {
 	// TODO: make this mock more useful
 	return &materials.CryptographicMaterials{
 		Key:                 nil,
@@ -30,15 +29,13 @@ func (m mockCMM) DecryptMaterials(ctx context.Context, objectMetadata internal.O
 		TagLength:           "",
 		MaterialDescription: nil,
 		EncryptedKey:        nil,
-		Padder:              nil,
 	}, nil
 }
 
 type mockKeyring struct{}
 
 // OnEncrypt generates/encrypts a data key for use with content encryption
-func (m mockKeyring) OnEncrypt(ctx context.Context, materials *materials.EncryptionMaterials) (*materials.CryptographicMaterials, error) {
-	// TODO: make this mock more useful
+func (m mockKeyring) OnEncrypt(ctx context.Context, encryptionMaterials *materials.EncryptionMaterials) (*materials.CryptographicMaterials, error) {
 	return &materials.CryptographicMaterials{
 		Key:                 nil,
 		IV:                  nil,
@@ -47,13 +44,14 @@ func (m mockKeyring) OnEncrypt(ctx context.Context, materials *materials.Encrypt
 		TagLength:           "",
 		MaterialDescription: nil,
 		EncryptedKey:        nil,
-		Padder:              nil,
 	}, nil
+	// TODO: make this mock more useful
+	return &materials.CryptographicMaterials{}, nil
 }
 
 // OnDecrypt decrypts the encryptedDataKeys and returns them in materials
 // for use with content decryption
-func (m mockKeyring) OnDecrypt(ctx context.Context, materials *materials.DecryptionMaterials, encryptedDataKey materials.DataKey) (*materials.CryptographicMaterials, error) {
+func (m mockKeyring) OnDecrypt(ctx context.Context, decryptionMaterials *materials.DecryptionMaterials, encryptedDataKey materials.DataKey) (*materials.CryptographicMaterials, error) {
 	// TODO: make this mock more useful
 	return &materials.CryptographicMaterials{
 		Key:                 nil,
@@ -63,7 +61,6 @@ func (m mockKeyring) OnDecrypt(ctx context.Context, materials *materials.Decrypt
 		TagLength:           "",
 		MaterialDescription: nil,
 		EncryptedKey:        nil,
-		Padder:              nil,
 	}, nil
 }
 

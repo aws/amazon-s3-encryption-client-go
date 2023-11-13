@@ -42,6 +42,26 @@ type ObjectMetadata struct {
 	UnencryptedContentLen string `json:"x-amz-unencrypted-content-length"`
 }
 
+func (e *ObjectMetadata) GetDecodedKey() ([]byte, error) {
+	key, err := base64.StdEncoding.DecodeString(e.CipherKey)
+	if err != nil {
+		return nil, err
+	}
+	return key, err
+}
+
+func (e *ObjectMetadata) GetDecodedIV() ([]byte, error) {
+	iv, err := base64.StdEncoding.DecodeString(e.IV)
+	if err != nil {
+		return nil, err
+	}
+	return iv, err
+}
+
+func (e *ObjectMetadata) GetMatDesc() (string, error) {
+	return e.MatDesc, nil
+}
+
 // UnmarshalJSON unmarshalls the given JSON bytes into ObjectMetadata
 func (e *ObjectMetadata) UnmarshalJSON(value []byte) error {
 	type StrictEnvelope ObjectMetadata

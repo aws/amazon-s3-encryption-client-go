@@ -81,7 +81,7 @@ func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
 	kmsClient := kms.NewFromConfig(tKmsConfig)
 
-	var md MaterialDescription
+	var md materials.MaterialDescription
 	iv, _ := hex.DecodeString("ae325acae2bfd5b9c3d0b813")
 	kmsWithStaticIV := keyringWithStaticTestIV{
 		IV: iv,

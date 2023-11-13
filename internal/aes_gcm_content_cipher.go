@@ -6,10 +6,7 @@ import (
 )
 
 const (
-	GcmKeySize      = 32
-	GcmNonceSize    = 12
-	GcmTagSizeBits  = "128"
-	AESGCMNoPadding = "AES/GCM/NoPadding"
+	GcmTagSizeBits = "128"
 )
 
 // NewAESGCMContentCipher returns a new encryption only AES/GCM mode structure with a specific cipher data generator
@@ -19,7 +16,7 @@ const (
 // will be fully loaded into memory before encryption or decryption can occur. Caution must be taken to avoid memory
 // allocation failures.
 func NewAESGCMContentCipher(materials materials.CryptographicMaterials) (ContentCipher, error) {
-	materials.CEKAlgorithm = AESGCMNoPadding
+	materials.CEKAlgorithm = "AES/GCM/NoPadding"
 	materials.TagLength = GcmTagSizeBits
 
 	cipher, err := newAESGCM(materials)

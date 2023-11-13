@@ -1,57 +1,41 @@
 package materials
 
-import (
-	"encoding/base64"
-	"github.com/aws/amazon-s3-encryption-client-go/client"
-	"github.com/aws/amazon-s3-encryption-client-go/internal"
+const (
+	gcmKeySize       = 32
+	gcmNonceSize     = 12
+	defaultAlgorithm = "AES/GCM/NoPadding"
 )
 
 type DecryptionMaterials struct {
 	DataKey             DataKey
 	ContentIV           []byte //base64 decoded content IV
-	MaterialDescription client.MaterialDescription
+	MaterialDescription MaterialDescription
 	ContentAlgorithm    string
-	Padder              internal.Padder
 	TagLength           string
 }
 
-func NewDecryptionMaterials(md internal.ObjectMetadata) (*DecryptionMaterials, error) {
-	// TODO: Move decoding into ObjectMetadata
-	key, err := base64.StdEncoding.DecodeString(md.CipherKey)
-	if err != nil {
-		return nil, err
-	}
-	iv, err := base64.StdEncoding.DecodeString(md.IV)
-	if err != nil {
-		return nil, err
-	}
-	materialDescription := client.MaterialDescription{}
-	err = materialDescription.DecodeDescription([]byte(md.MatDesc))
+func NewDecryptionMaterials(req DecryptMaterialsRequest) (*DecryptionMaterials, error) {
 
+	//cipherKey []byte, iv []byte, matDesc string,
+	//	keyringAlg string, cekAlg string, tagLength string
+
+	materialDescription := MaterialDescription{}
+	err := materialDescription.DecodeDescription([]byte(req.MatDesc))
 	if err != nil {
 		return nil, err
 	}
-
 	dataKey := DataKey{
 		KeyMaterial:      nil,
-		EncryptedDataKey: key,
-		DataKeyAlgorithm: md.KeyringAlg,
-	}
-
-	var padder internal.Padder
-
-	if md.CEKAlg == "AES/CBC/PKCS5Padding" {
-		// use default CBC padding
-		padder = internal.AesCbcPadding
+		EncryptedDataKey: req.CipherKey,
+		DataKeyAlgorithm: req.KeyringAlg,
 	}
 
 	return &DecryptionMaterials{
 		DataKey:             dataKey,
-		ContentIV:           iv,
+		ContentIV:           req.Iv,
 		MaterialDescription: materialDescription,
-		ContentAlgorithm:    md.CEKAlg,
-		Padder:              padder,
-		TagLength:           md.TagLen,
+		ContentAlgorithm:    req.CekAlg,
+		TagLength:           req.TagLength,
 	}, nil
 }
 
@@ -70,9 +54,9 @@ type EncryptionMaterials struct {
 
 func NewEncryptionMaterials() *EncryptionMaterials {
 	return &EncryptionMaterials{
-		gcmKeySize:        internal.GcmKeySize,
-		gcmNonceSize:      internal.GcmNonceSize,
-		algorithm:         internal.AESGCMNoPadding,
+		gcmKeySize:        gcmKeySize,
+		gcmNonceSize:      gcmNonceSize,
+		algorithm:         defaultAlgorithm,
 		encryptionContext: map[string]string{},
 	}
 }
@@ -89,5 +73,4 @@ type CryptographicMaterials struct {
 	EncodedMaterialDescription []byte
 	// EncryptedKey should be populated when calling GenerateCipherData
 	EncryptedKey []byte
-	Padder       internal.Padder
 }

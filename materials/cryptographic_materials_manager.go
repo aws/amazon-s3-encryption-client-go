@@ -3,14 +3,12 @@ package materials
 import (
 	"context"
 	"fmt"
-	"github.com/aws/amazon-s3-encryption-client-go/client"
-	"github.com/aws/amazon-s3-encryption-client-go/internal"
 	"log"
 )
 
 type CryptographicMaterialsManager interface {
-	GetEncryptionMaterials(ctx context.Context, matDesc client.MaterialDescription) (*CryptographicMaterials, error)
-	DecryptMaterials(ctx context.Context, objectMetadata internal.ObjectMetadata) (*CryptographicMaterials, error)
+	GetEncryptionMaterials(ctx context.Context, matDesc MaterialDescription) (*CryptographicMaterials, error)
+	DecryptMaterials(ctx context.Context, req DecryptMaterialsRequest) (*CryptographicMaterials, error)
 }
 
 // DefaultCryptographicMaterialsManager is a collection of registries for configuring a encryption client with different Keyring algorithms,
@@ -27,8 +25,8 @@ func NewCryptographicMaterialsManager(keyring Keyring) (*DefaultCryptographicMat
 	}
 	if keyring != nil {
 		// Check if the passed in type is a fixture, if not log a warning message to the user
-		if fixture, ok := keyring.(client.awsFixture); !ok || !fixture.isAWSFixture() {
-			log.Default().Println(client.customTypeWarningMessage)
+		if fixture, ok := keyring.(awsFixture); !ok || !fixture.isAWSFixture() {
+			log.Default().Println(customTypeWarningMessage)
 		}
 	} else {
 		// keyring MUST NOT be nil
@@ -38,7 +36,7 @@ func NewCryptographicMaterialsManager(keyring Keyring) (*DefaultCryptographicMat
 	return cmm, nil
 }
 
-func (cmm *DefaultCryptographicMaterialsManager) GetEncryptionMaterials(ctx context.Context, matDesc client.MaterialDescription) (*CryptographicMaterials, error) {
+func (cmm *DefaultCryptographicMaterialsManager) GetEncryptionMaterials(ctx context.Context, matDesc MaterialDescription) (*CryptographicMaterials, error) {
 	keyring := *cmm.Keyring
 	encryptionMaterials := NewEncryptionMaterials()
 	encryptionMaterials.encryptionContext = matDesc
@@ -46,10 +44,19 @@ func (cmm *DefaultCryptographicMaterialsManager) GetEncryptionMaterials(ctx cont
 	return keyring.OnEncrypt(ctx, encryptionMaterials)
 }
 
-func (cmm *DefaultCryptographicMaterialsManager) DecryptMaterials(ctx context.Context, objectMetadata internal.ObjectMetadata) (*CryptographicMaterials, error) {
+type DecryptMaterialsRequest struct {
+	CipherKey  []byte
+	Iv         []byte
+	MatDesc    string
+	KeyringAlg string
+	CekAlg     string
+	TagLength  string
+}
+
+func (cmm *DefaultCryptographicMaterialsManager) DecryptMaterials(ctx context.Context, req DecryptMaterialsRequest) (*CryptographicMaterials, error) {
 	keyring := *cmm.Keyring
 
-	materials, err := NewDecryptionMaterials(objectMetadata)
+	materials, err := NewDecryptionMaterials(req)
 	if err != nil {
 		return nil, err
 	}

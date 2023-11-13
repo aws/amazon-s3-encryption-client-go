@@ -6,7 +6,6 @@ import (
 )
 
 const (
-	AESCBC             = "AES/CBC"
 	AESCBCPKCS5Padding = "AES/CBC/PKCS5Padding"
 	aesCbcTagSizeBits  = "0"
 )
@@ -16,9 +15,9 @@ const (
 func NewAESCBCContentCipher(materials materials.CryptographicMaterials) (ContentCipher, error) {
 	materials.TagLength = aesCbcTagSizeBits
 	if len(materials.CEKAlgorithm) == 0 {
-		materials.CEKAlgorithm = AESCBC + "/" + materials.Padder.Name()
+		materials.CEKAlgorithm = AESCBCPKCS5Padding
 	}
-	cipher, err := newAESCBC(materials, materials.Padder)
+	cipher, err := newAESCBC(materials, AESCBCPadder)
 	if err != nil {
 		return nil, err
 	}

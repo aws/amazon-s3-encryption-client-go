@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/aws/amazon-s3-encryption-client-go/internal"
+	"github.com/aws/amazon-s3-encryption-client-go/materials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
 	"github.com/aws/smithy-go/middleware"
@@ -81,7 +82,7 @@ func (m *encryptMiddleware) HandleSerialize(
 	if ec == nil {
 		ec = map[string]string{}
 	}
-	var matDesc MaterialDescription = ec.(map[string]string)
+	var matDesc materials.MaterialDescription = ec.(map[string]string)
 
 	cmm := m.ec.Options.CryptographicMaterialsManager
 	cryptoMaterials, err := cmm.GetEncryptionMaterials(ctx, matDesc)
