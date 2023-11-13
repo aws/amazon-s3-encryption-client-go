@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/aws/amazon-s3-encryption-client-go/client"
+	"github.com/aws/amazon-s3-encryption-client-go/materials"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
@@ -58,11 +59,11 @@ func TestInteg_EncryptFixtures(t *testing.T) {
 			fixtures := getFixtures(t, s3Client, c.CEKAlg, bucket)
 			keyring := getEncryptFixtureBuilder(t, cfg, c.KEK, kmsAlias, c.region, accountId, c.CEK)
 
-			cmm, err := client.NewCryptographicMaterialsManager(keyring)
+			cmm, err := materials.NewCryptographicMaterialsManager(keyring)
 			if err != nil {
 				t.Fatalf("failed to create new CMM")
 			}
-			encClient, _ := client.NewS3EncryptionClientV3(s3Client, cmm)
+			encClient, _ := client.New(s3Client, cmm)
 
 			for caseKey, plaintext := range fixtures.Plaintexts {
 				_, err := encClient.PutObject(ctx, &s3.PutObjectInput{
@@ -108,28 +109,28 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 		t.Run(c.CEKAlg+"-"+c.Lang, func(t *testing.T) {
 			s3Client := s3.NewFromConfig(cfg)
 			kmsClient := kms.NewFromConfig(cfg)
-			keyringWithContext := client.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, func(options *client.KeyringOptions) {
+			keyringWithContext := materials.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, func(options *materials.KeyringOptions) {
 				options.EnableLegacyWrappingAlgorithms = false
 			})
-			cmm, err := client.NewCryptographicMaterialsManager(keyringWithContext)
+			cmm, err := materials.NewCryptographicMaterialsManager(keyringWithContext)
 			if err != nil {
 				t.Fatalf("failed to create new CMM")
 			}
 
 			var decClient *client.S3EncryptionClientV3
 			if c.CEKAlg == "aes_cbc" {
-				keyring := client.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, func(options *client.KeyringOptions) {
+				keyring := materials.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, func(options *materials.KeyringOptions) {
 					options.EnableLegacyWrappingAlgorithms = true
 				})
-				cmmCbc, err := client.NewCryptographicMaterialsManager(keyring)
-				decClient, err = client.NewS3EncryptionClientV3(s3Client, cmmCbc, func(clientOptions *client.EncryptionClientOptions) {
+				cmmCbc, err := materials.NewCryptographicMaterialsManager(keyring)
+				decClient, err = client.New(s3Client, cmmCbc, func(clientOptions *client.EncryptionClientOptions) {
 					clientOptions.EnableLegacyUnauthenticatedModes = true
 				})
 				if err != nil {
 					t.Fatalf("failed to create decryption client: %v", err)
 				}
 			} else if c.CEKAlg == "aes_gcm" {
-				decClient, err = client.NewS3EncryptionClientV3(s3Client, cmm)
+				decClient, err = client.New(s3Client, cmm)
 				if err != nil {
 					t.Fatalf("failed to create decryption client: %v", err)
 				}
@@ -200,16 +201,16 @@ func getFixtures(t *testing.T, s3Client *s3.Client, cekAlg, bucket string) testF
 	}
 }
 
-func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, accountId string, cek string) (keyring client.Keyring) {
+func getEncryptFixtureBuilder(t *testing.T, cfg aws.Config, kek, alias, region, accountId string, cek string) (keyring materials.Keyring) {
 	t.Helper()
 
-	var kmsKeyring client.Keyring
+	var kmsKeyring materials.Keyring
 	switch kek {
 	case "kms":
 		arn := getAliasArn(alias, region, accountId)
 
 		kmsSvc := kms.NewFromConfig(cfg)
-		kmsKeyring = client.NewKmsKeyring(kmsSvc, arn, func(options *client.KeyringOptions) {
+		kmsKeyring = materials.NewKmsKeyring(kmsSvc, arn, func(options *materials.KeyringOptions) {
 			options.EnableLegacyWrappingAlgorithms = false
 		})
 	default:
@@ -288,7 +289,7 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 	})
 
 	kmsClient := kms.NewFromConfig(cfg)
-	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsClient, arn, func(options *client.KeyringOptions) {
+	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsClient, arn, func(options *materials.KeyringOptions) {
 		options.EnableLegacyWrappingAlgorithms = false
 	}))
 	if err != nil {
@@ -297,7 +298,7 @@ func TestIntegS3ECHeadObject(t *testing.T) {
 
 	encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "ec-value"})
 
-	s3EncryptionClient, err := client.NewS3EncryptionClientV3(s3Client, cmm)
+	s3EncryptionClient, err := client.New(s3Client, cmm)
 	_, err = s3EncryptionClient.PutObject(encryptionContext, &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
@@ -369,8 +370,8 @@ func TestIntegKmsContext(t *testing.T) {
 	})
 
 	kmsClient := kms.NewFromConfig(cfg)
-	var matDesc client.MaterialDescription
-	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsClient, arn, func(options *client.KeyringOptions) {
+	var matDesc materials.MaterialDescription
+	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsClient, arn, func(options *materials.KeyringOptions) {
 		options.EnableLegacyWrappingAlgorithms = false
 	}))
 	if err != nil {
@@ -378,7 +379,7 @@ func TestIntegKmsContext(t *testing.T) {
 	}
 
 	encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "ec-value"})
-	s3EncryptionClient, err := client.NewS3EncryptionClientV3(s3Client, cmm)
+	s3EncryptionClient, err := client.New(s3Client, cmm)
 	_, err = s3EncryptionClient.PutObject(encryptionContext, &s3.PutObjectInput{
 		Bucket:   aws.String(bucket),
 		Key:      aws.String(key),
@@ -450,7 +451,7 @@ func TestIntegKmsContextDecryptAny(t *testing.T) {
 	})
 
 	kmsClient := kms.NewFromConfig(cfg)
-	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsClient, arn, func(options *client.KeyringOptions) {
+	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsClient, arn, func(options *materials.KeyringOptions) {
 		options.EnableLegacyWrappingAlgorithms = false
 	}))
 	if err != nil {
@@ -458,7 +459,7 @@ func TestIntegKmsContextDecryptAny(t *testing.T) {
 	}
 
 	encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "ec-value"})
-	s3EncryptionClient, err := client.NewS3EncryptionClientV3(s3Client, cmm)
+	s3EncryptionClient, err := client.New(s3Client, cmm)
 	_, err = s3EncryptionClient.PutObject(encryptionContext, &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
@@ -469,10 +470,10 @@ func TestIntegKmsContextDecryptAny(t *testing.T) {
 	}
 
 	// decrypt with AnyKey
-	anyKeyCmm, err := client.NewCryptographicMaterialsManager(client.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, func(options *client.KeyringOptions) {
+	anyKeyCmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsDecryptOnlyAnyKeyKeyring(kmsClient, func(options *materials.KeyringOptions) {
 		options.EnableLegacyWrappingAlgorithms = false
 	}))
-	s3EncryptionClientAnyKey, err := client.NewS3EncryptionClientV3(s3Client, anyKeyCmm)
+	s3EncryptionClientAnyKey, err := client.New(s3Client, anyKeyCmm)
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}

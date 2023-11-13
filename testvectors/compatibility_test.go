@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/aws/amazon-s3-encryption-client-go/client"
+	"github.com/aws/amazon-s3-encryption-client-go/materials"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
@@ -96,7 +97,7 @@ func TestKmsV1toV3_CBC(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *client.KeyringOptions) {
+	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *materials.KeyringOptions) {
 		options.EnableLegacyWrappingAlgorithms = true
 	}))
 	if err != nil {
@@ -104,7 +105,7 @@ func TestKmsV1toV3_CBC(t *testing.T) {
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := client.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
+	s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 
@@ -164,7 +165,7 @@ func TestKmsV1toV3_GCM(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *client.KeyringOptions) {
+	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *materials.KeyringOptions) {
 		options.EnableLegacyWrappingAlgorithms = true
 	}))
 	if err != nil {
@@ -172,7 +173,7 @@ func TestKmsV1toV3_GCM(t *testing.T) {
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := client.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
+	s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 
@@ -234,13 +235,13 @@ func TestKmsContextV2toV3_GCM(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias))
+	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsV2, kmsKeyAlias))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := client.NewS3EncryptionClientV3(s3V2, cmm)
+	s3ecV3, err := client.New(s3V2, cmm)
 
 	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
@@ -275,13 +276,13 @@ func TestKmsContextV3toV2_GCM(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias))
+	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsV2, kmsKeyAlias))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := client.NewS3EncryptionClientV3(s3V2, cmm)
+	s3ecV3, err := client.New(s3V2, cmm)
 
 	_, err = s3ecV3.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
@@ -368,7 +369,7 @@ func TestInstructionFileV2toV3(t *testing.T) {
 	)
 
 	kmsV2 := kms.NewFromConfig(cfg)
-	cmm, err := client.NewCryptographicMaterialsManager(client.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *client.KeyringOptions) {
+	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *materials.KeyringOptions) {
 		options.EnableLegacyWrappingAlgorithms = true
 	}))
 	if err != nil {
@@ -376,7 +377,7 @@ func TestInstructionFileV2toV3(t *testing.T) {
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := client.NewS3EncryptionClientV3(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
+	s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 

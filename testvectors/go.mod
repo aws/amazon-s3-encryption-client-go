@@ -11,7 +11,7 @@ require (
 )
 
 require (
-	github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231111011059-0a86484b4e16 // indirect
+	github.com/aws/amazon-s3-encryption-client-go v0.0.0-20231113005832-5538b9b4755d // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.4.10 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.24 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.13.3 // indirect
