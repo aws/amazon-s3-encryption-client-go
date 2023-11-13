@@ -28,7 +28,11 @@ type KmsAPIClient interface {
 
 // KeyringOptions is for additional configuration on keyrings to perform additional behaviors
 type KeyringOptions struct {
-	EnableLegacyWrappingAlgorithms bool
+	enableLegacyWrappingAlgorithms bool
+}
+
+func (o *KeyringOptions) AreLegacyWrappingAlgorithmsEnabled() bool {
+	return o.enableLegacyWrappingAlgorithms
 }
 
 // KmsKeyring encrypts with encryption context and on decrypt it checks for the algorithm
@@ -47,7 +51,7 @@ type KmsAnyKeyKeyring struct {
 
 func NewKmsKeyring(apiClient KmsAPIClient, cmkId string, optFns ...func(options *KeyringOptions)) *KmsKeyring {
 	options := KeyringOptions{
-		EnableLegacyWrappingAlgorithms: false,
+		enableLegacyWrappingAlgorithms: false,
 	}
 	for _, fn := range optFns {
 		fn(&options)
@@ -56,13 +60,13 @@ func NewKmsKeyring(apiClient KmsAPIClient, cmkId string, optFns ...func(options 
 	return &KmsKeyring{
 		kmsClient:                apiClient,
 		KmsKeyId:                 cmkId,
-		legacyWrappingAlgorithms: options.EnableLegacyWrappingAlgorithms,
+		legacyWrappingAlgorithms: options.enableLegacyWrappingAlgorithms,
 	}
 }
 
 func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient, optFns ...func(options *KeyringOptions)) *KmsAnyKeyKeyring {
 	options := KeyringOptions{
-		EnableLegacyWrappingAlgorithms: false,
+		enableLegacyWrappingAlgorithms: false,
 	}
 	for _, fn := range optFns {
 		fn(&options)
@@ -70,7 +74,7 @@ func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient, optFns ...func(optio
 
 	return &KmsAnyKeyKeyring{
 		kmsClient:                apiClient,
-		legacyWrappingAlgorithms: options.EnableLegacyWrappingAlgorithms,
+		legacyWrappingAlgorithms: options.enableLegacyWrappingAlgorithms,
 	}
 }
 

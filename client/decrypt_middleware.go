@@ -78,7 +78,7 @@ func (m *DecryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 	if objectMetadata.CEKAlg == ("AES/GCM/NoPadding") {
 		cekFunc = internal.NewAESGCMContentCipher
 	} else if strings.Contains(objectMetadata.CEKAlg, "AES/CBC") {
-		if !m.client.Options.EnableLegacyUnauthenticatedModes {
+		if !m.client.AreLegacyUnauthenticatedModesEnabled() {
 			return out, metadata, fmt.Errorf("configure client with enable legacy unauthenticated modes set to true to decrypt with %s", objectMetadata.CEKAlg)
 		}
 		cekFunc = internal.NewAESCBCContentCipher

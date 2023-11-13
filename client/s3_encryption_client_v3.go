@@ -14,6 +14,10 @@ type S3EncryptionClientV3 struct {
 	Options    EncryptionClientOptions // options for encrypt/decrypt
 }
 
+func (c *S3EncryptionClientV3) AreLegacyUnauthenticatedModesEnabled() bool {
+	return c.Options.enableLegacyUnauthenticatedModes
+}
+
 type EncryptionClientOptions struct {
 	// TempFolderPath is used to store temp files when calling PutObject.
 	// Temporary files are needed to compute the X-Amz-Content-Sha256 header.
@@ -30,7 +34,7 @@ type EncryptionClientOptions struct {
 
 	// EnableLegacyUnauthenticatedModes MUST be set to true in order to decrypt objects encrypted
 	//using legacy (unauthenticated) modes such as AES/CBC
-	EnableLegacyUnauthenticatedModes bool
+	enableLegacyUnauthenticatedModes bool
 }
 
 // New creates a new S3 client which can encrypt and decrypt
@@ -41,7 +45,7 @@ func New(s3Client *s3.Client, CryptographicMaterialsManager materials.Cryptograp
 		MinFileSize:                      DefaultMinFileSize,
 		Logger:                           log.Default(),
 		CryptographicMaterialsManager:    CryptographicMaterialsManager,
-		EnableLegacyUnauthenticatedModes: false,
+		enableLegacyUnauthenticatedModes: false,
 	}
 	for _, fn := range optFns {
 		fn(&options)

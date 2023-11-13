@@ -86,7 +86,7 @@ func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 	kmsWithStaticIV := keyringWithStaticTestIV{
 		IV: iv,
 		Keyring: materials.NewKmsKeyring(kmsClient, "test-key-id", func(options *materials.KeyringOptions) {
-			options.EnableLegacyWrappingAlgorithms = false
+			options.enableLegacyWrappingAlgorithms = false
 		}),
 	}
 
