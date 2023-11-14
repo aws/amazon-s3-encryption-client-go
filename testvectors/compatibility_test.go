@@ -452,7 +452,8 @@ func TestNegativeKeyringOption(t *testing.T) {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
-	if err != nil {
+	if err == nil {
+		t.Fatalf("error while calling GetObject, expected to FAIL")
 	}
 
 }
