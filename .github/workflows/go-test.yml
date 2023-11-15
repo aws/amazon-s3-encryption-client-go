@@ -38,6 +38,8 @@ jobs:
 
     - name: Go Test
       run: |
+        # CDK example tests make go test ./... fail
+        # so go package by package
         cd client
         go test *.go -v
         cd ../internal
