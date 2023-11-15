@@ -38,17 +38,13 @@ jobs:
 
     - name: Go Test
       run: |
-	cd client
-        export AWS_REGION=${{ vars.CI_AWS_REGION }}
-        export BUCKET=${{ vars.CI_S3_BUCKET }}
-        export AWS_KMS_ALIAS=${{ vars.CI_KMS_KEY_ALIAS }}
-        export AWS_ACCOUNT_ID=${{ secrets.CI_AWS_ACCOUNT_ID }}
+        # CDK example tests make go test ./... fail
+        # so go package by package
+        cd client
         go test *.go -v
         cd ../internal
-        export AWS_REGION=${{ vars.CI_AWS_REGION }}
-        export BUCKET=${{ vars.CI_S3_BUCKET }}
-        export AWS_KMS_ALIAS=${{ vars.CI_KMS_KEY_ALIAS }}
-        export AWS_ACCOUNT_ID=${{ secrets.CI_AWS_ACCOUNT_ID }}
+        go test *.go -v
+        cd ../materials
         go test *.go -v
 
     # TODO: remove after public launch
