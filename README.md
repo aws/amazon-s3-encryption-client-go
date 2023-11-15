@@ -12,9 +12,6 @@ fixes, updates, and features added to the encryption client.
 
 Jump To:
 * [Getting Started](#getting-started)
-* [Getting Help](#getting-help)
-* [Contributing](#feedback-and-contributing)
-* [More Resources](#resources)
 
 ## Maintenance and support for SDK major versions
 
@@ -207,8 +204,6 @@ cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(k
 * AES/CBC
 #### Key Wrap Encryption
 * KMS (without context)
-#### Encryption Metadata Storage
-* Instruction File
 
 ## Security
 
