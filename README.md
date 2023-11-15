@@ -12,6 +12,7 @@ fixes, updates, and features added to the encryption client.
 
 Jump To:
 * [Getting Started](#getting-started)
+* [Migration](#migration)
 
 ## Maintenance and support for SDK major versions
 
