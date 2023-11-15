@@ -3,7 +3,7 @@ package materials
 const (
 	gcmKeySize       = 32
 	gcmNonceSize     = 12
-	defaultAlgorithm = "internal.AESGCMNoPadding"
+	defaultAlgorithm = "AESGCMNoPadding"
 )
 
 type DecryptionMaterials struct {
@@ -15,10 +15,6 @@ type DecryptionMaterials struct {
 }
 
 func NewDecryptionMaterials(req DecryptMaterialsRequest) (*DecryptionMaterials, error) {
-
-	//cipherKey []byte, iv []byte, matDesc string,
-	//	keyringAlg string, cekAlg string, tagLength string
-
 	materialDescription := MaterialDescription{}
 	err := materialDescription.DecodeDescription([]byte(req.MatDesc))
 	if err != nil {
