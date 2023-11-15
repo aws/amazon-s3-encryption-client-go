@@ -38,7 +38,7 @@ jobs:
 
     - name: Go Test
       run: |
-	cd client
+        cd client
         export AWS_REGION=${{ vars.CI_AWS_REGION }}
         export BUCKET=${{ vars.CI_S3_BUCKET }}
         export AWS_KMS_ALIAS=${{ vars.CI_KMS_KEY_ALIAS }}
