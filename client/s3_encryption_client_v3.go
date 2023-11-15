@@ -55,7 +55,7 @@ func New(s3Client *s3.Client, CryptographicMaterialsManager materials.Cryptograp
 // GetObject will make a request to s3 and retrieve the object. In this process
 // decryption will be done. The SDK only supports region reads of KMS and GCM.
 func (c *S3EncryptionClientV3) GetObject(ctx context.Context, input *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
-	m := &DecryptMiddleware{
+	m := &decryptMiddleware{
 		client: c,
 		input:  input,
 	}
