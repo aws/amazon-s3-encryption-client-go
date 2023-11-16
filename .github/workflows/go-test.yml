@@ -43,7 +43,7 @@ jobs:
       run: |
         # CDK example tests make go test ./... fail
         # so go package by package
-        cd client
+        cd v3/client
         go test *.go -v
         cd ../internal
         go test *.go -v
@@ -52,7 +52,7 @@ jobs:
 
     - name: Test Vectors
       run: |
-        cd testvectors
+        cd v3/testvectors
         export AWS_REGION=${{ vars.CI_AWS_REGION }}
         export BUCKET=${{ vars.CI_S3_BUCKET }}
         export AWS_KMS_ALIAS=${{ vars.CI_KMS_KEY_ALIAS }}
