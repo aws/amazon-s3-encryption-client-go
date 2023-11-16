@@ -50,12 +50,6 @@ jobs:
         cd ../materials
         go test *.go -v
 
-    # TODO: remove after public launch
-    - name: Configure git for private modules
-      env:
-        TOKEN: ${{ secrets.REPO_PAT_JUSTPLAZ }}
-      run: git config --global url."https://justplaz:${TOKEN}@github.com".insteadOf "https://github.com"
-
     - name: Test Vectors
       run: |
         cd testvectors
