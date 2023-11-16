@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"github.com/aws/amazon-s3-encryption-client-go/materials"
+	"github.com/aws/amazon-s3-encryption-client-go/v3/materials"
 	"io"
 )
 

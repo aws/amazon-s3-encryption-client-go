@@ -6,7 +6,7 @@ package internal_test
 import (
 	"bytes"
 	"fmt"
-	s3crypto "github.com/aws/amazon-s3-encryption-client-go/internal"
+	s3crypto "github.com/aws/amazon-s3-encryption-client-go/v3/internal"
 	"testing"
 )
 

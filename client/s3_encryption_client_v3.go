@@ -5,8 +5,8 @@ package client
 
 import (
 	"context"
-	"github.com/aws/amazon-s3-encryption-client-go/internal"
-	"github.com/aws/amazon-s3-encryption-client-go/materials"
+	"github.com/aws/amazon-s3-encryption-client-go/v3/internal"
+	"github.com/aws/amazon-s3-encryption-client-go/v3/materials"
 	"log"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
