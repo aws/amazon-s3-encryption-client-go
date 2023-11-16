@@ -1,4 +1,4 @@
-module github.com/aws/amazon-s3-encryption-client-go
+module github.com/aws/amazon-s3-encryption-client-go/v3
 
 go 1.20
 

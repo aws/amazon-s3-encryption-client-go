@@ -6,8 +6,8 @@ package client
 import (
 	"context"
 	"fmt"
-	"github.com/aws/amazon-s3-encryption-client-go/internal"
-	"github.com/aws/amazon-s3-encryption-client-go/materials"
+	"github.com/aws/amazon-s3-encryption-client-go/v3/internal"
+	"github.com/aws/amazon-s3-encryption-client-go/v3/materials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
 	"github.com/aws/smithy-go/middleware"

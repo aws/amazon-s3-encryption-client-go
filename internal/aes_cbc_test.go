@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	materials2 "github.com/aws/amazon-s3-encryption-client-go/materials"
+	materials2 "github.com/aws/amazon-s3-encryption-client-go/v3/materials"
 	"io"
 	"testing"
 )

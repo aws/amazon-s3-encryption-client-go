@@ -5,7 +5,7 @@ package internal
 
 import (
 	"context"
-	"github.com/aws/amazon-s3-encryption-client-go/materials"
+	"github.com/aws/amazon-s3-encryption-client-go/v3/materials"
 	"io"
 )
 
