@@ -9,23 +9,28 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
+// S3EncryptionClientV3 provides client-side encryption for S3.
+// The client embeds a default client to provide support for control plane operations
+// which do not involve encryption.
 type S3EncryptionClientV3 struct {
 	*s3.Client                         // promoted anonymous field, it allows this type to call s3 Client methods
 	Options    EncryptionClientOptions // options for encrypt/decrypt
 }
 
+// EncryptionClientOptions is the configuration options for the S3 Encryption Client.
 type EncryptionClientOptions struct {
-	// TempFolderPath is used to store temp files when calling PutObject.
-	// Temporary files are needed to compute the X-Amz-Content-Sha256 header.
+	// TempFolderPath is used to store temp files when calling PutObject
+	// Temporary files are needed to compute the X-Amz-Content-Sha256 header
 	TempFolderPath string
 
 	// MinFileSize is the minimum size for the content to write to a
-	// temporary file instead of using memory.
+	// temporary file instead of using memory
 	MinFileSize int64
 
-	// The logger to write logging messages to.
+	// The logger to write logging messages to
 	Logger *log.Logger
 
+	// The CryptographicMaterialsManager to use to manage encryption and decryption materials
 	CryptographicMaterialsManager materials.CryptographicMaterialsManager
 
 	// EnableLegacyUnauthenticatedModes MUST be set to true in order to decrypt objects encrypted
@@ -33,7 +38,7 @@ type EncryptionClientOptions struct {
 	EnableLegacyUnauthenticatedModes bool
 }
 
-// New creates a new S3 client which can encrypt and decrypt
+// New creates a new S3 Encryption Client v3 with the given CryptographicMaterialsManager
 func New(s3Client *s3.Client, CryptographicMaterialsManager materials.CryptographicMaterialsManager, optFns ...func(options *EncryptionClientOptions)) (*S3EncryptionClientV3, error) {
 	wrappedClient := s3Client
 	// default options

@@ -14,7 +14,7 @@ const (
 	// KMSContextKeyring is a constant used during decryption to build a kms+context keyring
 	KMSContextKeyring = "kms+context"
 
-	kmsDefaultEncryptionContextKey = "internal.AESGCMNoPadding"
+	kmsDefaultEncryptionContextKey = "AESGCMNoPadding"
 	kmsAWSCEKContextKey            = "aws:x-amz-cek-alg"
 	kmsMismatchCEKAlg              = "the content encryption algorithm used at encryption time does not match the algorithm stored for decryption time. The object may be altered or corrupted"
 	kmsReservedKeyConflictErrMsg   = "conflict in reserved KMS Encryption Context key %s. This value is reserved for the S3 Encryption client and cannot be set by the user"
@@ -26,7 +26,9 @@ type KmsAPIClient interface {
 	Decrypt(context.Context, *kms.DecryptInput, ...func(*kms.Options)) (*kms.DecryptOutput, error)
 }
 
-// KeyringOptions is for additional configuration on keyrings to perform additional behaviors
+// KeyringOptions is for additional configuration on Keyring types to perform additional behaviors.
+// When EnableLegacyWrappingAlgorithms is set to true, the Keyring MAY decrypt objects encrypted
+// using legacy wrapping algorithms such as KMS v1.
 type KeyringOptions struct {
 	EnableLegacyWrappingAlgorithms bool
 }
@@ -39,13 +41,15 @@ type KmsKeyring struct {
 	legacyWrappingAlgorithms bool
 }
 
-// KmsAnyKeyKeyring is decrypt-only
+// KmsAnyKeyKeyring is decrypt-only.
 type KmsAnyKeyKeyring struct {
 	kmsClient                KmsAPIClient
 	legacyWrappingAlgorithms bool
 }
 
-func NewKmsKeyring(apiClient KmsAPIClient, cmkId string, optFns ...func(options *KeyringOptions)) *KmsKeyring {
+// NewKmsKeyring creates a new KmsKeyring which calls KMS to encrypt/decrypt the data key used to encrypt the S3
+// object. The KmsKeyring will always use the kmsKeyId provided to encrypt and decrypt messages.
+func NewKmsKeyring(apiClient KmsAPIClient, kmsKeyId string, optFns ...func(options *KeyringOptions)) *KmsKeyring {
 	options := KeyringOptions{
 		EnableLegacyWrappingAlgorithms: false,
 	}
@@ -55,11 +59,13 @@ func NewKmsKeyring(apiClient KmsAPIClient, cmkId string, optFns ...func(options 
 
 	return &KmsKeyring{
 		kmsClient:                apiClient,
-		KmsKeyId:                 cmkId,
+		KmsKeyId:                 kmsKeyId,
 		legacyWrappingAlgorithms: options.EnableLegacyWrappingAlgorithms,
 	}
 }
 
+// NewKmsDecryptOnlyAnyKeyKeyring creates a new KmsAnyKeyKeyring. This Keyring uses the KMS identifier
+// persisted in the data key's ciphertext to decrypt the data key.
 func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient, optFns ...func(options *KeyringOptions)) *KmsAnyKeyKeyring {
 	options := KeyringOptions{
 		EnableLegacyWrappingAlgorithms: false,
@@ -74,6 +80,7 @@ func NewKmsDecryptOnlyAnyKeyKeyring(apiClient KmsAPIClient, optFns ...func(optio
 	}
 }
 
+// OnEncrypt generates/encrypts a data key for use with content encryption.
 func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
 	var matDesc MaterialDescription = materials.encryptionContext
 	if _, ok := matDesc[kmsAWSCEKContextKey]; ok {
@@ -113,6 +120,9 @@ func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMateria
 	return cryptoMaterials, nil
 }
 
+// OnDecrypt decrypts the encryptedDataKeys and returns them in materials
+// for use with content decryption, or an error if the object cannot be decrypted
+// by the Keyring as its configured.
 func (k *KmsKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
 	if materials.DataKey.DataKeyAlgorithm == KMSKeyring && !k.legacyWrappingAlgorithms {
 		return nil, fmt.Errorf("to decrypt x-amz-cek-alg value `%s` you must enable legacyWrappingAlgorithms on the keyring", materials.DataKey.DataKeyAlgorithm)
@@ -131,10 +141,15 @@ func (k *KmsKeyring) isAWSFixture() bool {
 	return true
 }
 
+// OnEncrypt generates/encrypts a data key for use with content encryption
+// The KmsAnyKeyKeyring does not support OnEncrypt, so an error is returned.
 func (k *KmsAnyKeyKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMaterials) (*CryptographicMaterials, error) {
 	return nil, fmt.Errorf("KmsAnyKeyKeyring MUST NOT be used to encrypt new data")
 }
 
+// OnDecrypt decrypts the encryptedDataKeys and returns them in materials
+// for use with content decryption, or an error if the object cannot be decrypted
+// by the Keyring as its configured.
 func (k *KmsAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
 	if materials.DataKey.DataKeyAlgorithm == KMSKeyring && k.legacyWrappingAlgorithms {
 		return commonDecrypt(ctx, materials, encryptedDataKey, nil, nil, k.kmsClient)

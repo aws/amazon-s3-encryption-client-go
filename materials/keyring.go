@@ -19,13 +19,6 @@ type Keyring interface {
 	OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error)
 }
 
-// CipherDataGenerator handles generating proper key and IVs of proper size for the
-// content cipher. CipherDataGenerator will also encrypt the key and store it in
-// the CryptographicMaterials.
-type CipherDataGenerator interface {
-	GenerateCipherData(int, int) (CryptographicMaterials, error)
-}
-
 // awsFixture is an unexported interface to expose whether a given fixture is an aws provided fixture, and whether that
 // fixtures dependencies were constructed using aws types.
 //
