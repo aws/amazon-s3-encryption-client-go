@@ -43,7 +43,7 @@ $ go mod init encryptionclient
 ```
 ###### Add SDK Dependencies
 ```sh
-$ go get github.com/aws/amazon-s3-encryption-client-go
+$ go get github.com/aws/amazon-s3-encryption-client-go/v3
 ```
 
 ###### Write Code
@@ -61,8 +61,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	
 	// Import the materials and client package 
-	"github.com/aws/amazon-s3-encryption-client-go/client"
-	"github.com/aws/amazon-s3-encryption-client-go/materials"
+	"github.com/aws/amazon-s3-encryption-client-go/v3/client"
+	"github.com/aws/amazon-s3-encryption-client-go/v3/materials"
 )
 
 func main() {
