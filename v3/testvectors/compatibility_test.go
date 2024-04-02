@@ -61,6 +61,50 @@ func LoadAwsAccountId() string {
 	return os.Getenv(awsAccountIdEnvvar)
 }
 
+// This generates CBC ciphertexts that the s3_integ_test decrypts.
+// This is meant to be a utility function, not a test function,
+// but for simplicity and easy invocation it is a test function.
+// To avoid running it each test run, it is left commented out.
+//func TestGenerateCBCIntegTests(t *testing.T) {
+//	arn := "arn:aws:kms:us-west-2:370957321024:alias/S3EC-Go-Github-KMS-Key"
+//	bucket := "s3ec-go-github-test-bucket"
+//	region := "us-west-2"
+//	ctx := context.Background()
+//	cfg, _ := config.LoadDefaultConfig(ctx,
+//		config.WithRegion(region),
+//	)
+//
+//	s3Client := s3.NewFromConfig(cfg)
+//	fixtures := getFixtures(t, s3Client, "aes_cbc", bucket)
+//	// V2 client
+//	var handler s3cryptoV2.CipherDataGenerator
+//	sessKms, _ := sessionV1.NewSession(&awsV1.Config{
+//		Region: aws.String(region),
+//	})
+//
+//	// KMS v1
+//	kmsSvc := kmsV1.New(sessKms)
+//	handler = s3cryptoV2.NewKMSKeyGenerator(kmsSvc, arn)
+//	// AES-CBC content cipher
+//	builder := s3cryptoV2.AESCBCContentCipherBuilder(handler, s3cryptoV2.AESCBCPadder)
+//	encClient := s3cryptoV2.NewEncryptionClient(sessKms, builder)
+//
+//	for caseKey, plaintext := range fixtures.Plaintexts {
+//		_, err := encClient.PutObject(&s3V1.PutObjectInput{
+//			Bucket: aws.String(bucket),
+//			Key: aws.String(
+//				fmt.Sprintf("%s/%s/language_Go/ciphertext_test_case_%s",
+//					fixtures.BaseFolder, version, caseKey),
+//			),
+//			Body: bytes.NewReader(plaintext),
+//		})
+//		if err != nil {
+//			t.Fatalf("failed to upload encrypted fixture, %v", err)
+//		}
+//	}
+//
+//}
+
 func TestKmsV1toV3_CBC(t *testing.T) {
 	bucket := LoadBucket()
 	kmsKeyAlias := LoadAwsKmsAlias()
