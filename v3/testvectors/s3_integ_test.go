@@ -102,7 +102,8 @@ func TestInteg_DecryptFixtures(t *testing.T) {
 		Lang    string
 		Version string
 	}{
-		{CEKAlg: "aes_cbc", Lang: "Go", Version: "v3"}, // v3 doesn't support CBC but that's where the files are
+		{CEKAlg: "aes_cbc", Lang: "Go", Version: "v2"},
+		{CEKAlg: "aes_cbc", Lang: "Java", Version: "v1"},
 		{CEKAlg: "aes_gcm", Lang: "Go", Version: "v3"},
 		{CEKAlg: "aes_gcm", Lang: "Java", Version: "v2"},
 		{CEKAlg: "aes_gcm", Lang: "Java", Version: "v3"},
