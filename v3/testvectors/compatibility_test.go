@@ -24,9 +24,9 @@ import (
 	"testing"
 )
 
-const defaultBucket = "s3-encryption-client-v3-go-justplaz-us-west-2"
+const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
 const bucketEnvvar = "BUCKET"
-const defaultAwsKmsAlias = "arn:aws:kms:us-west-2:657301468084:alias/s3-encryption-client-v3-go-justplaz-us-west-2"
+const defaultAwsKmsAlias = "arn:aws:kms:us-west-2:657301468084:alias/s3-encryption-client-v3-go-us-west-2"
 
 const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
 const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
@@ -433,18 +433,6 @@ func TestInstructionFileV2toV3(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("error while decrypting: %v", err)
-	}
-
-	// todo - why is this empty??
-	for key, val := range result.Metadata {
-
-		fmt.Printf("printing..")
-		// Convert each key/value pair in m to a string
-		s := fmt.Sprintf("%s=\"%s\"", key, val)
-
-		// Do whatever you want to do with the string;
-		// in this example I just print out each of them.
-		fmt.Println(s)
 	}
 
 	decryptedPlaintext, err := io.ReadAll(result.Body)
