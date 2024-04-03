@@ -16,7 +16,6 @@ import {
   BlockPublicAccess,
   BlockPublicAccessOptions,
   Bucket,
-  LifecycleRule
 } from 'aws-cdk-lib/aws-s3';
 
 export class S3ECGoGithub extends cdk.Stack {
@@ -51,16 +50,11 @@ export class S3ECGoGithub extends cdk.Stack {
       ignorePublicAcls: false,
       restrictPublicBuckets: false
     }
-    const BucketLifecycleRule: LifecycleRule = {
-        expiration: cdk.Duration.days(14),
-        id: "Expire after 14 days"
-    };
     const S3ECGithubTestS3Bucket = new Bucket(
       this,
       "S3ECGithubTestS3Bucket",
       {
         bucketName: "s3ec-go-github-test-bucket",
-        lifecycleRules: [BucketLifecycleRule],
         blockPublicAccess: new BlockPublicAccess(AccessConfiguration)
       }
     )

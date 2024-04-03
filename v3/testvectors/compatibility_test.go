@@ -63,7 +63,7 @@ func LoadAwsAccountId() string {
 
 // This generates CBC ciphertexts that the s3_integ_test decrypts.
 // This is meant to be a utility function, not a test function,
-// but for simplicity uses functions from s3_integ_test.
+// but for simplicity and easy invocation it is a test function.
 // To avoid running it each test run, it is left commented out.
 //func TestGenerateCBCIntegTests(t *testing.T) {
 //	arn := "arn:aws:kms:us-west-2:370957321024:alias/S3EC-Go-Github-KMS-Key"
