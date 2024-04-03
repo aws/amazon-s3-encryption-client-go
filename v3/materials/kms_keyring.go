@@ -156,7 +156,7 @@ func (k *KmsAnyKeyKeyring) OnEncrypt(ctx context.Context, materials *EncryptionM
 func (k *KmsAnyKeyKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
 	if materials.DataKey.DataKeyAlgorithm == KMSKeyring && k.legacyWrappingAlgorithms {
 		return commonDecrypt(ctx, materials, encryptedDataKey, nil, nil, k.kmsClient)
-	} else if materials.DataKey.DataKeyAlgorithm == KMSContextKeyring && !k.legacyWrappingAlgorithms {
+	} else if materials.DataKey.DataKeyAlgorithm == KMSContextKeyring {
 		return commonDecrypt(ctx, materials, encryptedDataKey, nil, materials.MaterialDescription, k.kmsClient)
 	} else {
 		return nil, fmt.Errorf("x-amz-cek-alg value `%s` did not match an expected algorithm", materials.DataKey.DataKeyAlgorithm)
