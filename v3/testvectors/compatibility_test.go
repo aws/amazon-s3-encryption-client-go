@@ -543,14 +543,14 @@ func TestEnableLegacyDecryptBothFormatsFails(t *testing.T) {
 		config.WithRegion(region),
 	)
 
+	// This SHOULD be able to call getObject on both objects
 	kmsV2 := kms.NewFromConfig(cfg)
 	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *materials.KeyringOptions) {
-		options.EnableLegacyWrappingAlgorithms = false
+		options.EnableLegacyWrappingAlgorithms = true
 	}))
 	if err != nil {
 		t.Fatalf("error while creating new CMM")
 	}
-
 	s3V2 := s3.NewFromConfig(cfg)
 	s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
@@ -562,7 +562,7 @@ func TestEnableLegacyDecryptBothFormatsFails(t *testing.T) {
 		Body:   bytes.NewReader([]byte(plaintext)),
 	})
 	if err != nil {
-		t.Fatalf("error while calling PutObject!")
+		t.Fatalf("error while calling PutObject: %v", err)
 	}
 
 	getResponseCbc, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
@@ -570,7 +570,7 @@ func TestEnableLegacyDecryptBothFormatsFails(t *testing.T) {
 		Key:    aws.String(keyCbc),
 	})
 	if err != nil {
-		t.Fatalf("error while calling GetObject for CBC")
+		t.Fatalf("error while calling GetObject for CBC: %v", err)
 	}
 	// ensure CBC matches
 	decryptedPlaintext, err := io.ReadAll(getResponseCbc.Body)
