@@ -1,0 +1,9 @@
+# This workflow runs for every pull request
+name: PR CI
+
+on:
+  pull_request:
+
+jobs:
+  pr-ci-go-test:
+    uses: ./.github/workflows/go-test.yml
