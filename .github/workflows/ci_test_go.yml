@@ -1,14 +1,10 @@
 name: Go Tests
+
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:
-    branches:
-      - main
+  workflow_call:
+    secrets:
+      CI_AWS_ACCOUNT_ID:
+        required: true
 
 jobs:
   unix-tests:

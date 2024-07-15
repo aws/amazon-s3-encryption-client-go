@@ -1,0 +1,13 @@
+# This workflow runs for every push to main
+name: Push CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  push-ci-go-test:
+    uses: ./.github/workflows/ci_test_go.yml
+    secrets:
+      CI_AWS_ACCOUNT_ID: ${{ secrets.CI_AWS_ACCOUNT_ID }}

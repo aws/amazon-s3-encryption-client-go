@@ -1,0 +1,11 @@
+# This workflow runs for every pull request
+name: PR CI
+
+on:
+  pull_request:
+
+jobs:
+  pr-ci-go-test:
+    uses: ./.github/workflows/ci_test_go.yml
+    secrets:
+      CI_AWS_ACCOUNT_ID: ${{ secrets.CI_AWS_ACCOUNT_ID }}
