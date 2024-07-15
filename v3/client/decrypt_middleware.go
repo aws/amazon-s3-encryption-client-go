@@ -103,7 +103,7 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 
 	decryptMaterials, err := m.client.Options.CryptographicMaterialsManager.DecryptMaterials(ctx, decryptMaterialsRequest)
 	if err != nil {
-		return out, metadata, fmt.Errorf("error while decrypting materials: %v", err)
+		return out, metadata, fmt.Errorf("error while decrypting materials: %w", err)
 	}
 
 	cipher, err := cekFunc(*decryptMaterials)
