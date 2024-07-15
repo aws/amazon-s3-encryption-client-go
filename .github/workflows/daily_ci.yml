@@ -8,5 +8,5 @@ on:
 jobs:
   daily-ci-go-test:
       uses: ./.github/workflows/go-test.yml
-      with:
+      secrets:
         CI_AWS_ACCOUNT_ID: ${{ secrets.CI_AWS_ACCOUNT_ID }}
