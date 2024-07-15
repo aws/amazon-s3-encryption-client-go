@@ -83,12 +83,12 @@ func (e *ObjectMetadata) UnmarshalJSON(value []byte) error {
 
 	e.TagLen, err = getJSONNumberAsString(inner.TagLen)
 	if err != nil {
-		return fmt.Errorf("failed to parse tag length: %v", err)
+		return fmt.Errorf("failed to parse tag length: %w", err)
 	}
 
 	e.UnencryptedContentLen, err = getJSONNumberAsString(inner.UnencryptedContentLen)
 	if err != nil {
-		return fmt.Errorf("failed to parse unencrypted content length: %v", err)
+		return fmt.Errorf("failed to parse unencrypted content length: %w", err)
 	}
 
 	return nil
