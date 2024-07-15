@@ -5,12 +5,5 @@ on:
   pull_request:
 
 jobs:
-  echo-before-calling:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Echo
-        run: echo ${{ secrets.CI_AWS_ACCOUNT_ID }}
   pr-ci-go-test:
     uses: ./.github/workflows/go-test.yml
-    with:
-      CI_AWS_ACCOUNT_ID: ${{ secrets.CI_AWS_ACCOUNT_ID }}
