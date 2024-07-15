@@ -10,7 +10,3 @@ jobs:
     steps:
       - name: Echo
         run: echo ${{ secrets.CI_AWS_ACCOUNT_ID }}
-  pr-ci-go-test:
-    uses: ./.github/workflows/go-test.yml
-    with:
-      CI_AWS_ACCOUNT_ID: ${{ secrets.CI_AWS_ACCOUNT_ID }}
