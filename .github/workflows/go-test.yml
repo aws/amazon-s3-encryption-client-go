@@ -1,5 +1,8 @@
 name: Go Tests
 
+on:
+  workflow_call:
+  
 jobs:
   unix-tests:
     name: Unix Tests
