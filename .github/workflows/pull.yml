@@ -6,9 +6,4 @@ on:
 
 jobs:
   pr-ci-go-test:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Go Test
-    # uses: ./.github/workflows/go-test.yml
-      run: |
-        - echo ${{ secrets.CI_AWS_ACCOUNT_ID }}
+    uses: ./.github/workflows/go-test.yml
