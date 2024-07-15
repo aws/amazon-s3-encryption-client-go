@@ -9,3 +9,5 @@ on:
 jobs:
   push-ci-go-test:
     uses: ./.github/workflows/go-test.yml
+    with:
+      CI_AWS_ACCOUNT_ID: ${{ secrets.CI_AWS_ACCOUNT_ID }}

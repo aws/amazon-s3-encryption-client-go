@@ -2,7 +2,11 @@ name: Go Tests
 
 on:
   workflow_call:
-  
+    inputs:
+      CI_AWS_ACCOUNT_ID:
+        required: true
+        type: string
+
 jobs:
   unix-tests:
     name: Unix Tests
@@ -20,7 +24,7 @@ jobs:
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::${{ secrets.CI_AWS_ACCOUNT_ID }}:role/${{ vars.CI_AWS_ROLE }}
+        role-to-assume: arn:aws:iam::${{ inputs.CI_AWS_ACCOUNT_ID }}:role/${{ vars.CI_AWS_ROLE }}
         role-session-name: S3EC-Github-Go-CI-Tests
         aws-region: ${{ vars.CI_AWS_REGION }}
 
@@ -49,5 +53,5 @@ jobs:
         export AWS_REGION=${{ vars.CI_AWS_REGION }}
         export BUCKET=${{ vars.CI_S3_BUCKET }}
         export AWS_KMS_ALIAS=${{ vars.CI_KMS_KEY_ALIAS }}
-        export AWS_ACCOUNT_ID=${{ secrets.CI_AWS_ACCOUNT_ID }}
+        export AWS_ACCOUNT_ID=${{ inputs.CI_AWS_ACCOUNT_ID }}
         go test *.go -v
