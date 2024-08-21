@@ -20,13 +20,16 @@ import (
 	s3cryptoV2 "github.com/aws/aws-sdk-go/service/s3/s3crypto"
 	"io"
 	"log"
+	"mime"
+	"mime/quotedprintable"
 	"os"
 	"testing"
+	"unicode/utf8"
 )
 
-const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
+const defaultBucket = "s3ec-go-github-test-bucket"
 const bucketEnvvar = "BUCKET"
-const defaultAwsKmsAlias = "arn:aws:kms:us-west-2:657301468084:alias/s3-encryption-client-v3-go-us-west-2"
+const defaultAwsKmsAlias = "arn:aws:kms:us-west-2:370957321024:alias/S3EC-Go-Github-KMS-Key"
 
 const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
 const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
@@ -593,6 +596,308 @@ func TestEnableLegacyDecryptBothFormats(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read decrypted plaintext into byte array: %v", err)
 	}
+	if e, a := []byte(plaintext), decryptedPlaintext; !bytes.Equal(e, a) {
+		t.Errorf("expect %v text, got %v", e, a)
+	}
+}
+
+func TestReproUnicodeV3(t *testing.T) {
+	bucket := LoadBucket()
+	kmsKeyAlias := LoadAwsKmsAlias()
+
+	key := "unicode-repro-highest-high"
+	region := "us-west-2"
+	plaintext := "This is a test.\n"
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion(region),
+	)
+
+	kmsV2 := kms.NewFromConfig(cfg)
+	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *materials.KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = true
+	}))
+	if err != nil {
+		t.Fatalf("error while creating new CMM")
+	}
+
+	s3V2 := s3.NewFromConfig(cfg)
+	s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
+		clientOptions.EnableLegacyUnauthenticatedModes = true
+	})
+
+	r := rune(251)
+	encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": string(r)})
+	fmt.Println(string(r))
+	// Convert string to slice of runes
+	runes := []rune(string(r))
+	// Iterate over runes and print their binary representation
+	fmt.Println("runes:")
+	for _, r := range runes {
+		fmt.Printf("%c: %b\n", r, r)
+	}
+	fmt.Println("bytes:")
+	for _, b := range []byte(string(r)) {
+		fmt.Printf("%c: %08b\n ", b, b)
+	}
+	//encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "normal"})
+	//encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "我的资我的资源我的资源我的资源的资源源"})
+	//encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "我"})
+	_, err = s3ecV3.PutObject(encryptionContext, &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   bytes.NewReader([]byte(plaintext)),
+	})
+	if err != nil {
+		log.Fatalf("error calling putObject: %v", err)
+	}
+	fmt.Printf("successfully uploaded file to %s/%s\n", bucket, key)
+
+	// before decrypt, get to check metadata
+	ptGet, err := s3V2.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	matDesc := ptGet.Metadata["x-amz-matdesc"]
+	fmt.Printf("\n" + matDesc + "\n")
+
+	// try to decode here
+	//dec := new(mime.WordDecoder)
+	//header, err := dec.DecodeHeader("=?UTF-8?B?eyJhd3M6eC1hbXotY2VrLWFsZyI6IkFFUy9H?= =?UTF-8?B?Q00vTm9QYWRkaW5nIiwiZWMta2V5Ijoiw6bCiMKRw6c=?= =?UTF-8?B?wprChMOowrXChMOmwojCkcOnwprChMOowrU=?= =?UTF-8?B?woTDpsK6wpDDpsKIwpHDp8KawoTDqMK1woTDpg==?= =?UTF-8?B?wrrCkMOmwojCkcOnwprChMOowrXChMOmwrrCkA==?= =?UTF-8?B?w6fCmsKEw6jCtcKEw6bCusKQw6bCusKQIn0=?=")
+	//if err != nil {
+	//	panic(err)
+	//}
+	//fmt.Println(header)
+	//
+	//decoder := new(mime.WordDecoder)
+	//testDesc := "=?UTF-8?B?eyJhd3M6eC1hbXotY2VrLWFsZyI6IkFFUy9H?="
+	//decodedTest, err := decoder.DecodeHeader(testDesc)
+	//if err != nil {
+	//	fmt.Printf("decoded success: \n" + decodedTest)
+	//} else {
+	//	t.Fatalf("failed to decode test!")
+	//}
+
+	//decoded, err := decoder.DecodeHeader(matDesc)
+	//if err != nil {
+	//	fmt.Printf("decoded success: \n" + decoded)
+	//} else {
+	//	t.Fatalf("failed to decode!")
+	//}
+
+	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	//fmt.Printf("\n" + result.Metadata["x-amz-matdesc"])
+	if err != nil {
+		t.Fatalf("error while decrypting: %v", err)
+	}
+
+	decryptedPlaintext, err := io.ReadAll(result.Body)
+	if err != nil {
+		t.Fatalf("failed to read decrypted plaintext into byte array")
+	}
+
+	if e, a := []byte(plaintext), decryptedPlaintext; !bytes.Equal(e, a) {
+		t.Errorf("expect %v text, got %v", e, a)
+	}
+
+	fmt.Printf("plaintext: %s", decryptedPlaintext)
+}
+
+func TestReproUnicodeV3Plaintext(t *testing.T) {
+	bucket := LoadBucket()
+
+	key := "unicode-repro-plaintext-unicode-string-lowest-high"
+	region := "us-west-2"
+	plaintext := "This is a test.\n"
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion(region),
+		config.WithClientLogMode(aws.LogRequestWithBody),
+	)
+
+	//kmsV2 := kms.NewFromConfig(cfg)
+	//cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *materials.KeyringOptions) {
+	//	options.EnableLegacyWrappingAlgorithms = true
+	//}))
+	//if err != nil {
+	//	t.Fatalf("error while creating new CMM")
+	//}
+	//
+	s3V2 := s3.NewFromConfig(cfg)
+	//s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
+	//	clientOptions.EnableLegacyUnauthenticatedModes = true
+	//})
+
+	//encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "normal"})
+	r := rune(128)
+
+	md := map[string]string{"matdesc": string(r)}
+	//md := map[string]string{"matdesc": "我的资我的资源我的资源我的资源的资源源"}
+	//md := map[string]string{"matdesc": "我的资源"}
+	_, err = s3V2.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(key),
+		Body:     bytes.NewReader([]byte(plaintext)),
+		Metadata: md,
+	})
+	if err != nil {
+		log.Fatalf("error calling putObject: %v", err)
+	}
+	fmt.Printf("successfully uploaded file to %s/%s\n", bucket, key)
+
+	result, err := s3V2.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		t.Fatalf("error while decrypting: %v", err)
+	}
+
+	fmt.Printf("\n" + result.Metadata["matdesc"] + "\n")
+	decoder := new(mime.WordDecoder)
+	decoded, err := decoder.DecodeHeader(result.Metadata["matdesc"])
+	fmt.Printf("decoded: " + decoded)
+	//doubleDecoded, err := decoder.DecodeHeader(decoded)
+	//fmt.Printf("dbl decoded: " + doubleDecoded)
+
+	//fmt.Printf("offline testing...")
+	//buf2 := &bytes.Buffer{}
+	//err = quotedPrintableEncode(buf2, md["matdesc"])
+	//if err != nil {
+	//	t.Fatalf("problemo with the QP decoder")
+	//}
+	//fmt.Printf(buf2.String())
+	//
+	//encoder := new(mime.WordEncoder)
+	//encoded := encoder.Encode("UTF-8", buf2.String())
+	//fmt.Println("trying..")
+	//fmt.Printf(encoded)
+
+	//s3wacky := "=?UTF-8?Q?{\"aws:x-amz-cek-alg\":\"AES/GCM/No?= =?UTF-8?Q?Padding\",\"ec-key?= =?UTF-8?Q?\":\"=C3=A6=C2=88=C2=91=C3=A7=C2=9A?= =?UTF-8?Q?=C2=84=C3=A8=C2=B5=C2=84=C3=A6=C2=BA=C2=90\"}?="
+	//buf := &bytes.Buffer{}
+	//err = quotedPrintableDecode(buf, s3wacky)
+	//if err != nil {
+	//	t.Fatalf("problemo with the QP decoder")
+	//}
+	//fmt.Printf(buf.String())
+
+	decryptedPlaintext, err := io.ReadAll(result.Body)
+	if err != nil {
+		t.Fatalf("failed to read decrypted plaintext into byte array")
+	}
+
+	if e, a := []byte(plaintext), decryptedPlaintext; !bytes.Equal(e, a) {
+		t.Errorf("expect %v text, got %v", e, a)
+	}
+}
+
+// this doesn't work
+func quotedPrintableDecode(buf *bytes.Buffer, text string) error {
+	qp := quotedprintable.NewReader(buf)
+	if _, err := qp.Read([]byte(text)); err != nil {
+		return err
+	}
+	return nil
+}
+func quotedPrintableEncode(buf *bytes.Buffer, text string) error {
+	qp := quotedprintable.NewWriter(buf)
+	if _, err := qp.Write([]byte(text)); err != nil {
+		return err
+	}
+	if err := qp.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//func base64ToRawOctets(b64string string) {
+//	input := b64string
+//	for len(input) > 0 {
+//		r, size := utf8.DecodeRuneInString(input)
+//		// cheat using ASCII
+//		if
+//		//if size > 0 {
+//		//	input = input[size:]
+//		//	if r <= 127 {
+//		//		fmt.Printf("%c is ASCII\n", r)
+//		//	} else {
+//		//		fmt.Printf("%c is not ASCII\n", r)
+//		//	}
+//		//}
+//	}
+//}
+
+func TestReproWhatTheS3ServerDoes(t *testing.T) {
+	input := "{\"aws:x-amz-cek-alg\":\"AES/GCM/NoPadding\",\"ec-key\":\"我的资源\"}"
+	for len(input) > 0 {
+		r, size := utf8.DecodeRuneInString(input)
+		if size > 0 {
+			input = input[size:]
+			if r <= 127 {
+				fmt.Printf("%c is ASCII\n", r)
+			} else {
+				fmt.Printf("%c is not ASCII\n", r)
+			}
+		}
+	}
+}
+
+func TestPutObjectWithFunnyMetadata(t *testing.T) {
+	bucket := LoadBucket()
+
+	region := "us-west-2"
+	plaintext := "This is a test.\n"
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion(region),
+	)
+
+	s3V2 := s3.NewFromConfig(cfg)
+	//encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "normal"})
+	// Simulate the S3EC Matdesc serialization
+	funnyChars := "我的资源"
+	key := "unicode-metadata-basic-style-5" + funnyChars
+	//md := map[string]string{"matdesc": "{\"aws:x-amz-cek-alg\":\"AES/GCM/NoPadding\",\"ec-key\":\"" + funnyChars + "\"}"}
+	md := map[string]string{"matdesc": "unicode: 我的源 {i}"}
+	_, err = s3V2.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(key),
+		Body:     bytes.NewReader([]byte(plaintext)),
+		Metadata: md,
+	})
+	if err != nil {
+		log.Fatalf("error calling putObject: %v", err)
+	}
+	fmt.Printf("successfully uploaded file to %s/%s\n", bucket, key)
+
+	result, err := s3V2.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		t.Fatalf("error while decrypting: %v", err)
+	}
+
+	fmt.Printf("\n" + md["matdesc"])
+	fmt.Printf("\n" + result.Metadata["matdesc"])
+	fmt.Printf("\nLength of OG string: %d", len(md["matdesc"]))
+	fmt.Printf("\n")
+
+	//decoder := new(mime.WordDecoder)
+	//decoded, err := decoder.DecodeHeader(result.Metadata["matdesc"])
+	//fmt.Printf("decoded: " + decoded)
+	//doubleDecoded, err := decoder.DecodeHeader(decoded)
+	//fmt.Printf("dbl decoded: " + doubleDecoded)
+
+	decryptedPlaintext, err := io.ReadAll(result.Body)
+	if err != nil {
+		t.Fatalf("failed to read decrypted plaintext into byte array")
+	}
+
 	if e, a := []byte(plaintext), decryptedPlaintext; !bytes.Equal(e, a) {
 		t.Errorf("expect %v text, got %v", e, a)
 	}

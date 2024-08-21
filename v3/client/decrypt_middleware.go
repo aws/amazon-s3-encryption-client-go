@@ -11,10 +11,85 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
 	"github.com/aws/smithy-go/middleware"
-
 	smithyhttp "github.com/aws/smithy-go/transport/http"
+	"io"
+	"mime"
 	"strings"
+	"unicode/utf16"
+	"unicode/utf8"
 )
+
+func customS3Decoder(s string) (decoded string) {
+	// Manually decode S3's non-standard "double encoding"
+	// This function assumes that the string has already been decoded once.
+	// TODO: maybe refactor that into this function too along with checking if MIME-encoded
+	var sb strings.Builder
+
+	skipNext := false
+	pair := 0
+	pairBuf := []byte{0, 0}
+	for i, b := range []byte(s) {
+		r := rune(b)
+		// Check if the rune (code point) is non-US-ASCII
+		if r > 127 && !skipNext {
+			// non-ASCII characters need special treatment
+			// due to double-encoding.
+			// we convert the rune to binary
+			// go 1.23 has a fancier library for this?
+			buf := []byte{s[i], s[i+1]}
+			wrongRune := string(buf)
+			// need to UTF-16 encode it
+			encd := utf16.Encode([]rune(wrongRune))
+			skipNext = true
+			pairBuf[pair] = byte(encd[0])
+			pair += 1
+		} else if r > 127 && skipNext {
+			// only skip once
+			skipNext = false
+			// write full pair buf happens on a skip frame
+			if pair == 2 {
+				// maybe use size
+				actualRune, _ := utf8.DecodeRune(pairBuf)
+				sb.WriteRune(actualRune)
+				pairBuf = []byte{0, 0}
+				pair = 0
+			}
+		} else {
+			// else just write it
+			sb.WriteByte(b)
+		}
+	}
+
+	return sb.String()
+}
+
+func decodeRFC2047Word(s string) (word string, isEncoded bool, err error) {
+	word, err = rfc2047Decoder.Decode(s)
+
+	if err == nil {
+		return word, true, nil
+	}
+
+	if _, ok := err.(charsetError); ok {
+		return s, true, err
+	}
+
+	// Ignore invalid RFC 2047 encoded-word errors.
+	return s, false, nil
+}
+
+var rfc2047Decoder = mime.WordDecoder{
+	CharsetReader: func(charset string, input io.Reader) (io.Reader, error) {
+		return nil, charsetError(charset)
+	},
+}
+
+type charsetError string
+
+func (c charsetError) Error() string {
+	//TODO implement me
+	return fmt.Sprintf("charset not supported: %q", string(c))
+}
 
 // GetObjectAPIClient is a client that implements the GetObject operation
 type GetObjectAPIClient interface {
@@ -92,15 +167,33 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 	cipherKey, err := objectMetadata.GetDecodedKey()
 	iv, err := objectMetadata.GetDecodedIV()
 	matDesc, err := objectMetadata.GetMatDesc()
+	// S3 server likes to fuck with unicode
+	// un fuck it here
+	decoder := new(mime.WordDecoder)
+	decoded, err := decoder.DecodeHeader(matDesc)
+	fmt.Println("decoded: " + decoded)
+	// Convert string to slice of runes
+	runes := []rune(decoded)
+	// Iterate over runes and print their binary representation
+	fmt.Println("runes:")
+	for _, r := range runes {
+		fmt.Printf("%c: %b\n", r, r)
+	}
+	fmt.Println("bytes:")
+	for _, b := range []byte(decoded) {
+		fmt.Printf("%c: %08b\n ", b, b)
+	}
+	decoded_c := customS3Decoder(decoded)
+	//decoded, _, _ := decodeRFC2047Word(matDesc)
+
 	decryptMaterialsRequest := materials.DecryptMaterialsRequest{
 		cipherKey,
 		iv,
-		matDesc,
+		decoded_c,
 		objectMetadata.KeyringAlg,
 		objectMetadata.CEKAlg,
 		objectMetadata.TagLen,
 	}
-
 	decryptMaterials, err := m.client.Options.CryptographicMaterialsManager.DecryptMaterials(ctx, decryptMaterialsRequest)
 	if err != nil {
 		return out, metadata, fmt.Errorf("error while decrypting materials: %w", err)
