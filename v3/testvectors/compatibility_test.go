@@ -21,7 +21,6 @@ import (
 	"io"
 	"log"
 	"mime"
-	"mime/quotedprintable"
 	"os"
 	"testing"
 	"unicode/utf8"
@@ -626,22 +625,23 @@ func TestReproUnicodeV3(t *testing.T) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 
-	r := rune(251)
-	encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": string(r)})
-	fmt.Println(string(r))
-	// Convert string to slice of runes
-	runes := []rune(string(r))
-	// Iterate over runes and print their binary representation
-	fmt.Println("runes:")
-	for _, r := range runes {
-		fmt.Printf("%c: %b\n", r, r)
-	}
-	fmt.Println("bytes:")
-	for _, b := range []byte(string(r)) {
-		fmt.Printf("%c: %08b\n ", b, b)
-	}
+	//r := rune(25101)
+	//r := rune(200)
+	//encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": string(r)})
+	//fmt.Println(string(r))
+	//// Convert string to slice of runes
+	//runes := []rune(string(r))
+	//// Iterate over runes and print their binary representation
+	//fmt.Println("runes:")
+	//for _, r := range runes {
+	//	fmt.Printf("%c: %b\n", r, r)
+	//}
+	//fmt.Println("bytes:")
+	//for _, b := range []byte(string(r)) {
+	//	fmt.Printf("%c: %08b\n ", b, b)
+	//}
 	//encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "normal"})
-	//encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "我的资我的资源我的资源我的资源的资源源"})
+	encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "我的资我的资源我的资源我的资源的资源源"})
 	//encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "我"})
 	_, err = s3ecV3.PutObject(encryptionContext, &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
@@ -793,43 +793,6 @@ func TestReproUnicodeV3Plaintext(t *testing.T) {
 		t.Errorf("expect %v text, got %v", e, a)
 	}
 }
-
-// this doesn't work
-func quotedPrintableDecode(buf *bytes.Buffer, text string) error {
-	qp := quotedprintable.NewReader(buf)
-	if _, err := qp.Read([]byte(text)); err != nil {
-		return err
-	}
-	return nil
-}
-func quotedPrintableEncode(buf *bytes.Buffer, text string) error {
-	qp := quotedprintable.NewWriter(buf)
-	if _, err := qp.Write([]byte(text)); err != nil {
-		return err
-	}
-	if err := qp.Close(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-//func base64ToRawOctets(b64string string) {
-//	input := b64string
-//	for len(input) > 0 {
-//		r, size := utf8.DecodeRuneInString(input)
-//		// cheat using ASCII
-//		if
-//		//if size > 0 {
-//		//	input = input[size:]
-//		//	if r <= 127 {
-//		//		fmt.Printf("%c is ASCII\n", r)
-//		//	} else {
-//		//		fmt.Printf("%c is not ASCII\n", r)
-//		//	}
-//		//}
-//	}
-//}
 
 func TestReproWhatTheS3ServerDoes(t *testing.T) {
 	input := "{\"aws:x-amz-cek-alg\":\"AES/GCM/NoPadding\",\"ec-key\":\"我的资源\"}"

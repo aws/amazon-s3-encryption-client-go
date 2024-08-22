@@ -26,8 +26,9 @@ func customS3Decoder(s string) (decoded string) {
 	var sb strings.Builder
 
 	skipNext := false
-	pair := 0
-	pairBuf := []byte{0, 0}
+	tupleIndex := 0
+	tupleSize := -1
+	tupleBuf := []byte{}
 	for i, b := range []byte(s) {
 		r := rune(b)
 		// Check if the rune (code point) is non-US-ASCII
@@ -39,27 +40,38 @@ func customS3Decoder(s string) (decoded string) {
 			buf := []byte{s[i], s[i+1]}
 			wrongRune := string(buf)
 			// need to UTF-16 encode it
-			encd := utf16.Encode([]rune(wrongRune))
+			encd := utf16.Encode([]rune(wrongRune))[0]
 			skipNext = true
-			pairBuf[pair] = byte(encd[0])
-			pair += 1
+			if tupleIndex == 0 {
+				if encd < 191 {
+					tupleSize = 1
+				} else if encd < 223 {
+					tupleSize = 2
+				} else if encd < 255 {
+					tupleSize = 3
+				} else {
+					tupleSize = 4
+				}
+				tupleBuf = make([]byte, tupleSize)
+			}
+			tupleBuf[tupleIndex] = byte(encd)
+			tupleIndex += 1
 		} else if r > 127 && skipNext {
 			// only skip once
 			skipNext = false
-			// write full pair buf happens on a skip frame
-			if pair == 2 {
-				// maybe use size
-				actualRune, _ := utf8.DecodeRune(pairBuf)
-				sb.WriteRune(actualRune)
-				pairBuf = []byte{0, 0}
-				pair = 0
-			}
 		} else {
 			// else just write it
 			sb.WriteByte(b)
 		}
+		// write full pair buf happens on a skip frame
+		if tupleIndex == tupleSize {
+			// maybe use size
+			actualRune, _ := utf8.DecodeRune(tupleBuf)
+			sb.WriteRune(actualRune)
+			tupleIndex = 0
+			tupleSize = -1
+		}
 	}
-
 	return sb.String()
 }
 
