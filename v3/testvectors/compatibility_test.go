@@ -20,6 +20,7 @@ import (
 	s3cryptoV2 "github.com/aws/aws-sdk-go/service/s3/s3crypto"
 	"io"
 	"log"
+	"math"
 	"mime"
 	"os"
 	"testing"
@@ -601,10 +602,25 @@ func TestEnableLegacyDecryptBothFormats(t *testing.T) {
 }
 
 func TestReproUnicodeV3(t *testing.T) {
+	rune128 := string(rune(128))
+	rune200 := string(rune(200))
+	rune256 := string(rune(256))
+	runeMaxInt := string(rune(math.MaxInt32))
+	shorter := "我"
+	longer := "我的资我的资源我的资源我的资源的资源源"
+	mix := "hello 我的资我的资源我的资源我的资源的资源源 goodbye"
+
+	unicodeStrings := []string{rune128, rune200, rune256, runeMaxInt, shorter, longer, mix}
+	for _, s := range unicodeStrings {
+		ReproUnicodeV3(t, s)
+	}
+}
+
+func ReproUnicodeV3(t *testing.T, metadataString string) {
 	bucket := LoadBucket()
 	kmsKeyAlias := LoadAwsKmsAlias()
 
-	key := "unicode-repro-highest-high"
+	key := "unicode-repro-" + metadataString
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 	ctx := context.Background()
@@ -625,11 +641,7 @@ func TestReproUnicodeV3(t *testing.T) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 
-	//r := rune(25101)
-	//r := rune(200)
-	//encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "normal"})
-	encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "我的资我的资源我的资源我的资源的资源源"})
-	//encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": "我"})
+	encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": metadataString})
 	_, err = s3ecV3.PutObject(encryptionContext, &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
@@ -656,8 +668,6 @@ func TestReproUnicodeV3(t *testing.T) {
 	if e, a := []byte(plaintext), decryptedPlaintext; !bytes.Equal(e, a) {
 		t.Errorf("expect %v text, got %v", e, a)
 	}
-
-	fmt.Printf("plaintext: %s", decryptedPlaintext)
 }
 
 func TestReproUnicodeV3Plaintext(t *testing.T) {
