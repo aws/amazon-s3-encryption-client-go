@@ -12,7 +12,6 @@ import (
 	"github.com/aws/smithy-go"
 	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
-	"io"
 	"mime"
 	"strings"
 	"unicode/utf16"
@@ -73,34 +72,6 @@ func customS3Decoder(s string) (decoded string) {
 		}
 	}
 	return sb.String()
-}
-
-func decodeRFC2047Word(s string) (word string, isEncoded bool, err error) {
-	word, err = rfc2047Decoder.Decode(s)
-
-	if err == nil {
-		return word, true, nil
-	}
-
-	if _, ok := err.(charsetError); ok {
-		return s, true, err
-	}
-
-	// Ignore invalid RFC 2047 encoded-word errors.
-	return s, false, nil
-}
-
-var rfc2047Decoder = mime.WordDecoder{
-	CharsetReader: func(charset string, input io.Reader) (io.Reader, error) {
-		return nil, charsetError(charset)
-	},
-}
-
-type charsetError string
-
-func (c charsetError) Error() string {
-	//TODO implement me
-	return fmt.Sprintf("charset not supported: %q", string(c))
 }
 
 // GetObjectAPIClient is a client that implements the GetObject operation
@@ -179,29 +150,17 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 	cipherKey, err := objectMetadata.GetDecodedKey()
 	iv, err := objectMetadata.GetDecodedIV()
 	matDesc, err := objectMetadata.GetMatDesc()
-	// S3 server likes to fuck with unicode
-	// un fuck it here
+
+	// S3 server will encode metadata with non-US-ASCII characters
+	// Decode it here to avoid parsing/decryption failure
 	decoder := new(mime.WordDecoder)
 	decoded, err := decoder.DecodeHeader(matDesc)
-	fmt.Println("decoded: " + decoded)
-	// Convert string to slice of runes
-	runes := []rune(decoded)
-	// Iterate over runes and print their binary representation
-	fmt.Println("runes:")
-	for _, r := range runes {
-		fmt.Printf("%c: %b\n", r, r)
-	}
-	fmt.Println("bytes:")
-	for _, b := range []byte(decoded) {
-		fmt.Printf("%c: %08b\n ", b, b)
-	}
-	decoded_c := customS3Decoder(decoded)
-	//decoded, _, _ := decodeRFC2047Word(matDesc)
+	decodedC := customS3Decoder(decoded)
 
 	decryptMaterialsRequest := materials.DecryptMaterialsRequest{
 		cipherKey,
 		iv,
-		decoded_c,
+		decodedC,
 		objectMetadata.KeyringAlg,
 		objectMetadata.CEKAlg,
 		objectMetadata.TagLen,
@@ -212,7 +171,6 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 	}
 
 	cipher, err := cekFunc(*decryptMaterials)
-	cipher.DecryptContents(result.Body)
 	reader, err := cipher.DecryptContents(result.Body)
 	if err != nil {
 		return out, metadata, err
