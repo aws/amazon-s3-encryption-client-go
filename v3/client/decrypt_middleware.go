@@ -25,51 +25,41 @@ func customS3Decoder(s string) (decoded string) {
 	var sb strings.Builder
 
 	skipNext := false
-	tupleIndex := 0
-	tupleSize := -1
-	tupleBuf := []byte{}
+	var utf8buffer []byte
+	// Iterate over the bytes in the string
 	for i, b := range []byte(s) {
 		r := rune(b)
 		// Check if the rune (code point) is non-US-ASCII
 		if r > 127 && !skipNext {
-			// non-ASCII characters need special treatment
+			// Non-ASCII characters need special treatment
 			// due to double-encoding.
-			// we convert the rune to binary
-			// go 1.23 has a fancier library for this?
+			// We are dealing with UTF-16 encoded codepoints
+			// of the original UTF-8 characters.
+			// So, take two bytes at a time...
 			buf := []byte{s[i], s[i+1]}
+			// Get the rune (code point)
 			wrongRune := string(buf)
-			// need to UTF-16 encode it
+			// UTF-16 encode it
 			encd := utf16.Encode([]rune(wrongRune))[0]
+			// Buffer the byte-level representation of the code point
+			utf8buffer = append(utf8buffer, byte(encd))
 			skipNext = true
-			if tupleIndex == 0 {
-				if encd < 191 {
-					tupleSize = 1
-				} else if encd < 223 {
-					tupleSize = 2
-				} else if encd < 255 {
-					tupleSize = 3
-				} else {
-					tupleSize = 4
-				}
-				tupleBuf = make([]byte, tupleSize)
-			}
-			tupleBuf[tupleIndex] = byte(encd)
-			tupleIndex += 1
 		} else if r > 127 && skipNext {
 			// only skip once
 			skipNext = false
 		} else {
-			// else just write it
+			// Decode the binary values as UTF-8
+			// This recovers the original UTF-8
+			for len(utf8buffer) > 0 {
+				rb, size := utf8.DecodeRune(utf8buffer)
+				sb.WriteRune(rb)
+				utf8buffer = utf8buffer[size:]
+			}
 			sb.WriteByte(b)
 		}
-		// write full pair buf happens on a skip frame
-		if tupleIndex == tupleSize {
-			// maybe use size
-			actualRune, _ := utf8.DecodeRune(tupleBuf)
-			sb.WriteRune(actualRune)
-			tupleIndex = 0
-			tupleSize = -1
-		}
+		// A more general solution would need to clear the utf8buffer here,
+		// but we can assume that the string is JSON,
+		// so the last character is '}' which is valid ASCII
 	}
 	return sb.String()
 }
