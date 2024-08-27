@@ -2,9 +2,10 @@ module amazon-s3-encryption-client-go/testvectors
 
 go 1.20
 
-replace (
-	github.com/aws/amazon-s3-encryption-client-go/v3 v3.0.1 => ../../v3
-)
+// uncomment this to make local testing easier.
+//replace (
+//	github.com/aws/amazon-s3-encryption-client-go/v3 v3.0.1 => ../../v3
+//)
 
 require (
 	github.com/aws/amazon-s3-encryption-client-go/v3 v3.0.1
