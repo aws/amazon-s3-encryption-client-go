@@ -18,10 +18,14 @@ import (
 	"unicode/utf8"
 )
 
-func customS3Decoder(s string) (decoded string) {
+func customS3Decoder(matDesc string) (decoded string, e error) {
 	// Manually decode S3's non-standard "double encoding"
-	// This function assumes that the string has already been decoded once.
-	// TODO: maybe refactor that into this function too along with checking if MIME-encoded
+	// First, mime decode it:
+	decoder := new(mime.WordDecoder)
+	s, err := decoder.DecodeHeader(matDesc)
+	if err != nil {
+		return "", fmt.Errorf("error while decoding material description: %s\n from S3 object metadata: %w", matDesc, err)
+	}
 	var sb strings.Builder
 
 	skipNext := false
@@ -42,6 +46,7 @@ func customS3Decoder(s string) (decoded string) {
 			// UTF-16 encode it
 			encd := utf16.Encode([]rune(wrongRune))[0]
 			// Buffer the byte-level representation of the code point
+			// So that it can be UTF-8 encoded later
 			utf8buffer = append(utf8buffer, byte(encd))
 			skipNext = true
 		} else if r > 127 && skipNext {
@@ -58,10 +63,11 @@ func customS3Decoder(s string) (decoded string) {
 			sb.WriteByte(b)
 		}
 		// A more general solution would need to clear the utf8buffer here,
-		// but we can assume that the string is JSON,
-		// so the last character is '}' which is valid ASCII
+		// but specifically for material description,
+		// we can assume that the string is JSON,
+		// so the last character is '}' which is valid ASCII.
 	}
-	return sb.String()
+	return sb.String(), nil
 }
 
 // GetObjectAPIClient is a client that implements the GetObject operation
@@ -143,9 +149,7 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 
 	// S3 server will encode metadata with non-US-ASCII characters
 	// Decode it here to avoid parsing/decryption failure
-	decoder := new(mime.WordDecoder)
-	decoded, err := decoder.DecodeHeader(matDesc)
-	decodedC := customS3Decoder(decoded)
+	decodedC := customS3Decoder(matDesc)
 
 	decryptMaterialsRequest := materials.DecryptMaterialsRequest{
 		cipherKey,
