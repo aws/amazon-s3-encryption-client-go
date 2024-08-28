@@ -144,12 +144,24 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 	}
 
 	cipherKey, err := objectMetadata.GetDecodedKey()
+	if err != nil {
+		return out, metadata, fmt.Errorf("unable to get decoded key for materials: %w", err)
+	}
 	iv, err := objectMetadata.GetDecodedIV()
+	if err != nil {
+		return out, metadata, fmt.Errorf("unable to get decoded IV for materials: %w", err)
+	}
 	matDesc, err := objectMetadata.GetMatDesc()
+	if err != nil {
+		return out, metadata, fmt.Errorf("unable to get Material Description for materials: %w", err)
+	}
 
 	// S3 server will encode metadata with non-US-ASCII characters
 	// Decode it here to avoid parsing/decryption failure
-	decodedC := customS3Decoder(matDesc)
+	decodedC, err := customS3Decoder(matDesc)
+	if err != nil {
+		return out, metadata, fmt.Errorf("error while decoding Material Description: %w", err)
+	}
 
 	decryptMaterialsRequest := materials.DecryptMaterialsRequest{
 		cipherKey,

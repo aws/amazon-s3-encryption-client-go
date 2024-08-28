@@ -599,27 +599,28 @@ func TestEnableLegacyDecryptBothFormats(t *testing.T) {
 	}
 }
 
-func TestReproUnicodeV3(t *testing.T) {
+func TestUnicodeEncryptionContextV3(t *testing.T) {
 	rune128 := string(rune(128))
 	rune200 := string(rune(200))
 	rune256 := string(rune(256))
 	runeMaxInt := string(rune(math.MaxInt32))
 	shorter := "我"
+	medium := "Brøther, may I have the lööps"
 	longer := "我的资我的资源我的资源我的资源的资源源"
 	mix := "hello 我的资我的资源我的资源我的资源的资源源 goodbye"
 	mixTwo := "hello 我的资我的资源我的资源我的资源的资源源 goodbye我的资"
 
-	unicodeStrings := []string{rune128, rune200, rune256, runeMaxInt, shorter, longer, mix, mixTwo}
+	unicodeStrings := []string{rune128, rune200, rune256, runeMaxInt, shorter, medium, longer, mix, mixTwo}
 	for _, s := range unicodeStrings {
-		ReproUnicodeV3(t, s)
+		UnicodeEncryptionContextV3(t, s)
 	}
 }
 
-func ReproUnicodeV3(t *testing.T, metadataString string) {
+func UnicodeEncryptionContextV3(t *testing.T, metadataString string) {
 	bucket := LoadBucket()
 	kmsKeyAlias := LoadAwsKmsAlias()
 
-	key := "unicode-repro-" + metadataString
+	key := "unicode-encryption-context-" + metadataString
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 	ctx := context.Background()
@@ -649,7 +650,6 @@ func ReproUnicodeV3(t *testing.T, metadataString string) {
 	if err != nil {
 		log.Fatalf("error calling putObject: %v", err)
 	}
-	fmt.Printf("successfully uploaded file to %s/%s\n", bucket, key)
 
 	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
@@ -667,4 +667,9 @@ func ReproUnicodeV3(t *testing.T, metadataString string) {
 	if e, a := []byte(plaintext), decryptedPlaintext; !bytes.Equal(e, a) {
 		t.Errorf("expect %v text, got %v", e, a)
 	}
+
+	s3ecV3.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: &bucket,
+		Key:    &key,
+	})
 }
