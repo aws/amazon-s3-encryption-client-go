@@ -158,7 +158,7 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 
 	// S3 server will encode metadata with non-US-ASCII characters
 	// Decode it here to avoid parsing/decryption failure
-	decodedC, err := customS3Decoder(matDesc)
+	decodedMatDesc, err := customS3Decoder(matDesc)
 	if err != nil {
 		return out, metadata, fmt.Errorf("error while decoding Material Description: %w", err)
 	}
@@ -166,7 +166,7 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 	decryptMaterialsRequest := materials.DecryptMaterialsRequest{
 		cipherKey,
 		iv,
-		decodedC,
+		decodedMatDesc,
 		objectMetadata.KeyringAlg,
 		objectMetadata.CEKAlg,
 		objectMetadata.TagLen,
