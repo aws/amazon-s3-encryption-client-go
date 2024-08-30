@@ -11,10 +11,64 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
 	"github.com/aws/smithy-go/middleware"
-
 	smithyhttp "github.com/aws/smithy-go/transport/http"
+	"mime"
 	"strings"
+	"unicode/utf16"
+	"unicode/utf8"
 )
+
+func customS3Decoder(matDesc string) (decoded string, e error) {
+	// Manually decode S3's non-standard "double encoding"
+	// First, mime decode it:
+	decoder := new(mime.WordDecoder)
+	s, err := decoder.DecodeHeader(matDesc)
+	if err != nil {
+		return "", fmt.Errorf("error while decoding material description: %s\n from S3 object metadata: %w", matDesc, err)
+	}
+	var sb strings.Builder
+
+	skipNext := false
+	var utf8buffer []byte
+	// Iterate over the bytes in the string
+	for i, b := range []byte(s) {
+		r := rune(b)
+		// Check if the rune (code point) is non-US-ASCII
+		if r > 127 && !skipNext {
+			// Non-ASCII characters need special treatment
+			// due to double-encoding.
+			// We are dealing with UTF-16 encoded codepoints
+			// of the original UTF-8 characters.
+			// So, take two bytes at a time...
+			buf := []byte{s[i], s[i+1]}
+			// Get the rune (code point)
+			wrongRune := string(buf)
+			// UTF-16 encode it
+			encd := utf16.Encode([]rune(wrongRune))[0]
+			// Buffer the byte-level representation of the code point
+			// So that it can be UTF-8 encoded later
+			utf8buffer = append(utf8buffer, byte(encd))
+			skipNext = true
+		} else if r > 127 && skipNext {
+			// only skip once
+			skipNext = false
+		} else {
+			// Decode the binary values as UTF-8
+			// This recovers the original UTF-8
+			for len(utf8buffer) > 0 {
+				rb, size := utf8.DecodeRune(utf8buffer)
+				sb.WriteRune(rb)
+				utf8buffer = utf8buffer[size:]
+			}
+			sb.WriteByte(b)
+		}
+		// A more general solution would need to clear the utf8buffer here,
+		// but specifically for material description,
+		// we can assume that the string is JSON,
+		// so the last character is '}' which is valid ASCII.
+	}
+	return sb.String(), nil
+}
 
 // GetObjectAPIClient is a client that implements the GetObject operation
 type GetObjectAPIClient interface {
@@ -90,24 +144,39 @@ func (m *decryptMiddleware) HandleDeserialize(ctx context.Context, in middleware
 	}
 
 	cipherKey, err := objectMetadata.GetDecodedKey()
+	if err != nil {
+		return out, metadata, fmt.Errorf("unable to get decoded key for materials: %w", err)
+	}
 	iv, err := objectMetadata.GetDecodedIV()
+	if err != nil {
+		return out, metadata, fmt.Errorf("unable to get decoded IV for materials: %w", err)
+	}
 	matDesc, err := objectMetadata.GetMatDesc()
+	if err != nil {
+		return out, metadata, fmt.Errorf("unable to get Material Description for materials: %w", err)
+	}
+
+	// S3 server will encode metadata with non-US-ASCII characters
+	// Decode it here to avoid parsing/decryption failure
+	decodedMatDesc, err := customS3Decoder(matDesc)
+	if err != nil {
+		return out, metadata, fmt.Errorf("error while decoding Material Description: %w", err)
+	}
+
 	decryptMaterialsRequest := materials.DecryptMaterialsRequest{
 		cipherKey,
 		iv,
-		matDesc,
+		decodedMatDesc,
 		objectMetadata.KeyringAlg,
 		objectMetadata.CEKAlg,
 		objectMetadata.TagLen,
 	}
-
 	decryptMaterials, err := m.client.Options.CryptographicMaterialsManager.DecryptMaterials(ctx, decryptMaterialsRequest)
 	if err != nil {
 		return out, metadata, fmt.Errorf("error while decrypting materials: %w", err)
 	}
 
 	cipher, err := cekFunc(*decryptMaterials)
-	cipher.DecryptContents(result.Body)
 	reader, err := cipher.DecryptContents(result.Body)
 	if err != nil {
 		return out, metadata, err

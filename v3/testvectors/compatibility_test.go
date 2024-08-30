@@ -20,13 +20,16 @@ import (
 	s3cryptoV2 "github.com/aws/aws-sdk-go/service/s3/s3crypto"
 	"io"
 	"log"
+	"math"
+	"math/rand"
 	"os"
 	"testing"
+	"time"
 )
 
-const defaultBucket = "s3-encryption-client-v3-go-us-west-2"
+const defaultBucket = "s3ec-go-github-test-bucket"
 const bucketEnvvar = "BUCKET"
-const defaultAwsKmsAlias = "arn:aws:kms:us-west-2:657301468084:alias/s3-encryption-client-v3-go-us-west-2"
+const defaultAwsKmsAlias = "arn:aws:kms:us-west-2:370957321024:alias/S3EC-Go-Github-KMS-Key"
 
 const awsKmsAliasEnvvar = "AWS_KMS_ALIAS"
 const awsAccountIdEnvvar = "AWS_ACCOUNT_ID"
@@ -596,4 +599,82 @@ func TestEnableLegacyDecryptBothFormats(t *testing.T) {
 	if e, a := []byte(plaintext), decryptedPlaintext; !bytes.Equal(e, a) {
 		t.Errorf("expect %v text, got %v", e, a)
 	}
+}
+
+func TestUnicodeEncryptionContextV3(t *testing.T) {
+	rune128 := string(rune(128))
+	rune200 := string(rune(200))
+	rune256 := string(rune(256))
+	runeMaxInt := string(rune(math.MaxInt32))
+	shorter := "我"
+	medium := "Brøther, may I have the lööps"
+	longer := "我的资我的资源我的资源我的资源的资源源"
+	mix := "hello 我的资我的资源我的资源我的资源的资源源 goodbye"
+	mixTwo := "hello 我的资我的资源我的资源我的资源的资源源 goodbye我的资"
+
+	unicodeStrings := []string{rune128, rune200, rune256, runeMaxInt, shorter, medium, longer, mix, mixTwo}
+	for _, s := range unicodeStrings {
+		UnicodeEncryptionContextV3(t, s)
+	}
+}
+
+func UnicodeEncryptionContextV3(t *testing.T, metadataString string) {
+	bucket := LoadBucket()
+	kmsKeyAlias := LoadAwsKmsAlias()
+
+	random := rand.Int()
+	key := "unicode-encryption-context-" + time.Now().String() + fmt.Sprintf("%d", random)
+	region := "us-west-2"
+	plaintext := "This is a test.\n"
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion(region),
+	)
+
+	kmsV2 := kms.NewFromConfig(cfg)
+	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsV2, kmsKeyAlias, func(options *materials.KeyringOptions) {
+		options.EnableLegacyWrappingAlgorithms = true
+	}))
+	if err != nil {
+		t.Fatalf("error while creating new CMM")
+	}
+
+	s3V2 := s3.NewFromConfig(cfg)
+	s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
+		clientOptions.EnableLegacyUnauthenticatedModes = true
+	})
+
+	encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": metadataString})
+	_, err = s3ecV3.PutObject(encryptionContext, &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   bytes.NewReader([]byte(plaintext)),
+	})
+	if err != nil {
+		log.Fatalf("error calling putObject: %v", err)
+	}
+
+	time.Sleep(1 * time.Second)
+
+	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		t.Fatalf("error while decrypting object (%s): %v", key, err)
+	}
+
+	decryptedPlaintext, err := io.ReadAll(result.Body)
+	if err != nil {
+		t.Fatalf("failed to read decrypted plaintext into byte array")
+	}
+
+	if e, a := []byte(plaintext), decryptedPlaintext; !bytes.Equal(e, a) {
+		t.Errorf("expect %v text, got %v", e, a)
+	}
+
+	s3ecV3.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: &bucket,
+		Key:    &key,
+	})
 }
