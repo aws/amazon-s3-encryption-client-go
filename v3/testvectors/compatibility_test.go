@@ -621,7 +621,7 @@ func UnicodeEncryptionContextV3(t *testing.T, metadataString string) {
 	bucket := LoadBucket()
 	kmsKeyAlias := LoadAwsKmsAlias()
 
-	key := "unicode-encryption-context-" + metadataString
+	key := "unicode-encryption-context-" + time.StampNano
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 	ctx := context.Background()
