@@ -659,7 +659,7 @@ func UnicodeEncryptionContextV3(t *testing.T, metadataString string) {
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		t.Fatalf("error while decrypting: %v", err)
+		t.Fatalf("error while decrypting object (%s): %v", key, err)
 	}
 
 	decryptedPlaintext, err := io.ReadAll(result.Body)
