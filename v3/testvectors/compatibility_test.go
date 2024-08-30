@@ -23,6 +23,7 @@ import (
 	"math"
 	"os"
 	"testing"
+	"time"
 )
 
 const defaultBucket = "s3ec-go-github-test-bucket"
@@ -650,6 +651,8 @@ func UnicodeEncryptionContextV3(t *testing.T, metadataString string) {
 	if err != nil {
 		log.Fatalf("error calling putObject: %v", err)
 	}
+
+	time.Sleep(1 * time.Second)
 
 	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
