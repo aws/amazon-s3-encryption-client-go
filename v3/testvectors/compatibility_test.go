@@ -21,6 +21,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -621,7 +622,8 @@ func UnicodeEncryptionContextV3(t *testing.T, metadataString string) {
 	bucket := LoadBucket()
 	kmsKeyAlias := LoadAwsKmsAlias()
 
-	key := "unicode-encryption-context-" + time.Now().String()
+	random := rand.Int()
+	key := "unicode-encryption-context-" + time.Now().String() + fmt.Sprintf("%d", random)
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 	ctx := context.Background()
