@@ -612,16 +612,16 @@ func TestUnicodeEncryptionContextV3(t *testing.T) {
 	mixTwo := "hello 我的资我的资源我的资源我的资源的资源源 goodbye我的资"
 
 	unicodeStrings := []string{rune128, rune200, rune256, runeMaxInt, shorter, medium, longer, mix, mixTwo}
-	for i, s := range unicodeStrings {
-		UnicodeEncryptionContextV3(t, s, i)
+	for _, s := range unicodeStrings {
+		UnicodeEncryptionContextV3(t, s)
 	}
 }
 
-func UnicodeEncryptionContextV3(t *testing.T, metadataString string, id int) {
+func UnicodeEncryptionContextV3(t *testing.T, metadataString string) {
 	bucket := LoadBucket()
 	kmsKeyAlias := LoadAwsKmsAlias()
 
-	key := fmt.Sprintf("unicode-encryption-context-%d", id)
+	key := "unicode-encryption-context-" + time.Now().String()
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 	ctx := context.Background()
@@ -652,7 +652,7 @@ func UnicodeEncryptionContextV3(t *testing.T, metadataString string, id int) {
 		log.Fatalf("error calling putObject: %v", err)
 	}
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
