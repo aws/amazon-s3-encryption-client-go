@@ -1,3 +1,15 @@
+### 3.0.2 (2024-09-10)
+
+### Fixes
+
+    * allow S3EC Go to decode S3 server non-US-ASCII object metadata encoding (https://github.com/aws/amazon-s3-encryption-client-go/pull/56)
+
+### Maintenance
+
+    * CI: Add workflow to run CI daily  (https://github.com/aws/amazon-s3-encryption-client-go/pull/53)
+    * upgrade packages (https://github.com/aws/amazon-s3-encryption-client-go/pull/57)
+    * use %w for error types in string formatting (https://github.com/aws/amazon-s3-encryption-client-go/pull/54)
+
 ## 3.0.1 (2024-04-08)
 
 ### Fixes
