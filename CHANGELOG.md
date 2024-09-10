@@ -2,13 +2,13 @@
 
 ### Fixes
 
-    * allow S3EC Go to decode S3 server non-US-ASCII object metadata encoding (#56 (https://github.com/aws/amazon-s3-encryption-client-go/issues/56)) (abd375f (https://github.com/aws/amazon-s3-encryption-client-go/commit/abd375f425be7573e25a182b6ed77790428a784e))
+    * allow S3EC Go to decode S3 server non-US-ASCII object metadata encoding (https://github.com/aws/amazon-s3-encryption-client-go/pull/56)
 
 ### Maintenance
 
-    * CI: Add workflow to run CI daily  (#53 (https://github.com/aws/amazon-s3-encryption-client-go/issues/53)) (8a052f6 (https://github.com/aws/amazon-s3-encryption-client-go/commit/8a052f61c5940cc52018c82f94e8173822c27672))
-    * upgrade packages (#57 (https://github.com/aws/amazon-s3-encryption-client-go/issues/57)) (6c36256 (https://github.com/aws/amazon-s3-encryption-client-go/commit/6c36256690ae03e46899c5416e496758c8b93369))
-    * use %w for error types in string formatting (#54 (https://github.com/aws/amazon-s3-encryption-client-go/issues/54)) (50bcdc6 (https://github.com/aws/amazon-s3-encryption-client-go/commit/50bcdc63ef821fddd8fe3578fa99c082266adbec))
+    * CI: Add workflow to run CI daily  (https://github.com/aws/amazon-s3-encryption-client-go/pull/53)
+    * upgrade packages (https://github.com/aws/amazon-s3-encryption-client-go/pull/57)
+    * use %w for error types in string formatting (https://github.com/aws/amazon-s3-encryption-client-go/pull/54)
 
 ## 3.0.1 (2024-04-08)
 
