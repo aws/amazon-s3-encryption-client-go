@@ -6,6 +6,7 @@ package materials
 import (
 	"context"
 	"fmt"
+
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 )
@@ -16,6 +17,9 @@ const (
 	KMSKeyring = "kms"
 	// KMSContextKeyring is a constant used during decryption to build a kms+context keyring
 	KMSContextKeyring = "kms+context"
+
+	// GrantToken is the key used to store the grant tokens in the context. They are used to avoid eventual consistency authorization issues when calling KMS APIs
+	GrantTokens = "GrantTokens"
 
 	kmsDefaultEncryptionContextKey = "AES/GCM/NoPadding"
 	kmsAWSCEKContextKey            = "aws:x-amz-cek-alg"
@@ -96,12 +100,18 @@ func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMateria
 	requestMatDesc := matDesc.Clone()
 	requestMatDesc[kmsAWSCEKContextKey] = kmsDefaultEncryptionContextKey
 
-	out, err := k.kmsClient.GenerateDataKey(ctx,
-		&kms.GenerateDataKeyInput{
-			EncryptionContext: requestMatDesc,
-			KeyId:             &k.KmsKeyId,
-			KeySpec:           types.DataKeySpecAes256,
-		})
+	in := kms.GenerateDataKeyInput{
+		EncryptionContext: requestMatDesc,
+		KeyId:             &k.KmsKeyId,
+		KeySpec:           types.DataKeySpecAes256,
+	}
+
+	grantTokens := ctx.Value(GrantTokens)
+	if grantTokens != nil {
+		in.GrantTokens = grantTokens.([]string)
+	}
+
+	out, err := k.kmsClient.GenerateDataKey(ctx, &in)
 	if err != nil {
 		return &CryptographicMaterials{}, err
 	}
@@ -180,6 +190,11 @@ func commonDecrypt(ctx context.Context, materials *DecryptionMaterials, encrypte
 		EncryptionContext: materials.MaterialDescription,
 		CiphertextBlob:    encryptedDataKey.EncryptedDataKey,
 		KeyId:             kmsKeyId,
+	}
+
+	grantTokens := ctx.Value(GrantTokens)
+	if grantTokens != nil {
+		in.GrantTokens = grantTokens.([]string)
 	}
 
 	out, err := kmsClient.Decrypt(ctx, in)
