@@ -1,4 +1,10 @@
-### 3.0.2 (2024-09-10)
+## 3.1.0 (2024-11-11)
+
+### Features
+
+* add support for GrantTokens in KMS keyring (https://github.com/aws/amazon-s3-encryption-client-go/issues/61)
+
+## 3.0.2 (2024-09-10)
 
 ### Fixes
 
@@ -6,7 +12,7 @@
 
 ### Maintenance
 
-* CI: Add workflow to run CI daily  (https://github.com/aws/amazon-s3-encryption-client-go/pull/53)
+* CI: Add workflow to run CI daily (https://github.com/aws/amazon-s3-encryption-client-go/pull/53)
 * upgrade packages (https://github.com/aws/amazon-s3-encryption-client-go/pull/57)
 * use %w for error types in string formatting (https://github.com/aws/amazon-s3-encryption-client-go/pull/54)
     
