@@ -8,14 +8,15 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/aws/amazon-s3-encryption-client-go/v3/internal/awstesting"
-	"github.com/aws/amazon-s3-encryption-client-go/v3/materials"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
+
+	"github.com/aws/amazon-s3-encryption-client-go/v3/internal/awstesting"
+	"github.com/aws/amazon-s3-encryption-client-go/v3/materials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
@@ -131,6 +132,68 @@ func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM(t *testing.T) {
 
 	if !bytes.Equal(tHttpClient.CapturedBody, expected) {
 		t.Error("encrypted bytes did not match expected")
+	}
+
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+}
+
+func TestEncryptionClientV3_PutObject_KMSCONTEXT_AESGCM_EmptyBody(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		fmt.Fprintln(writer, `{"CiphertextBlob":"8gSzlk7giyfFbLPUVgoVjvQebI1827jp8lDkO+n2chsiSoegx1sjm8NdPk0Bl70I","KeyId":"test-key-id","Plaintext":"lP6AbIQTmptyb/+WQq+ubDw+w7na0T1LGSByZGuaono="}`)
+	}))
+
+	tKmsConfig := awstesting.Config()
+	tKmsConfig.Region = "us-west-2"
+	tKmsConfig.RetryMaxAttempts = 0
+	tKmsConfig.EndpointResolverWithOptions = awstesting.TestEndpointResolver(ts.URL)
+	kmsClient := kms.NewFromConfig(tKmsConfig)
+
+	var md materials.MaterialDescription
+	iv, _ := hex.DecodeString("ae325acae2bfd5b9c3d0b813")
+	kmsWithStaticIV := keyringWithStaticTestIV{
+		IV: iv,
+		Keyring: materials.NewKmsKeyring(kmsClient, "test-key-id", func(options *materials.KeyringOptions) {
+			options.EnableLegacyWrappingAlgorithms = false
+		}),
+	}
+
+	tConfig := awstesting.Config()
+	tHttpClient := &awstesting.MockHttpClient{
+		Response: &http.Response{
+			Status:     http.StatusText(200),
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(bytes.NewReader([]byte{})),
+		},
+	}
+	tConfig.HTTPClient = tHttpClient
+	s3Client := s3.NewFromConfig(tConfig)
+
+	cmm, err := materials.NewCryptographicMaterialsManager(kmsWithStaticIV)
+	if err != nil {
+		t.Fatalf("error while trying to create new CMM: %v", err)
+	}
+	client, _ := New(s3Client, cmm)
+
+	_, err = client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:   aws.String("test-bucket"),
+		Key:      aws.String("test-key"),
+		Body:     new(bytes.Buffer),
+		Metadata: md,
+	})
+	if err != nil {
+		t.Fatalf("PutObject failed with %v", err)
+	}
+
+	if tHttpClient.CapturedReq == nil || tHttpClient.CapturedBody == nil {
+		t.Errorf("captured HTTP request/body was nil")
+	}
+
+	expected, _ := hex.DecodeString("38a7dff91ec56105eedb716fe171675f")
+
+	if !bytes.Equal(tHttpClient.CapturedBody, expected) {
+		t.Errorf("encrypted bytes did not match expected")
 	}
 
 	if err != nil {

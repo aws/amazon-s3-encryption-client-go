@@ -24,6 +24,9 @@ func NewContentLengthReader(f io.Reader) *contentLengthReader {
 }
 
 func (r *contentLengthReader) Read(b []byte) (int, error) {
+	if r.body == nil {
+		return 0, io.EOF
+	}
 	n, err := r.body.Read(b)
 	if err != nil && err != io.EOF {
 		return n, err
