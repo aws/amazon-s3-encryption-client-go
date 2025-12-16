@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/aws/amazon-s3-encryption-client-go/v3/algorithms"
 	materials2 "github.com/aws/amazon-s3-encryption-client-go/v3/materials"
 	"io"
 	"os"
@@ -163,10 +164,70 @@ func TestGCMDecryptReader_DecrypterOpenError(t *testing.T) {
 	}
 }
 
+//= ../specification/s3-encryption/key-derivation.md#hkdf-operation
+//= type=test
+//# The client MUST set the AAD to the Algorithm Suite ID represented as bytes.
+func TestGIVEN_materialsCEKAlg115_WHEN_newAESGCM_THEN_returnedAesGCMAadIs0x0073(t *testing.T) {
+	// Given: materials with CEKAlgorithm ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY (0x73)
+	materials := materials2.CryptographicMaterials{
+		CEKAlgorithm: "115",
+		Key:          make([]byte, 32),
+		IV:           make([]byte, 12),
+	}
+
+	// When: instantiating new AES GCM cipher with the materials
+	cipher, err := newAESGCM(materials)
+
+	// Then: no error is returned and the AAD is set to the Algorithm Suite ID bytes
+	if err != nil {
+		panic(fmt.Sprintf("expected no error, but received %v", err))
+	}
+
+	aesgcm, ok := cipher.(*aesGCM)
+	if !ok {
+		panic("expected cipher to be of type *aesGCM")
+	}
+	
+	expectedAad := []byte{0x00, 0x73}
+	if !bytes.Equal(aesgcm.aad, expectedAad) {
+		panic(fmt.Sprintf("expected AAD to be %v, but received %v", expectedAad, aesgcm.aad))
+	}
+}
+
+//= ../specification/s3-encryption/encryption.md#alg-aes-256-gcm-iv12-tag16-no-kdf
+//= type=test
+//# The client MUST NOT provide any AAD when encrypting with ALG_AES_256_GCM_IV12_TAG16_NO_KDF.
+func TestGIVEN_materialsCEKAlgAESGCMNoPadding_WHEN_newAESGCM_THEN_returnedAesGCMAadIsNil(t *testing.T) {
+	// Given: materials with CEKAlgorithm ALG_AES_256_GCM_HKDF_SHA512_COMMIT_KEY (0x73)
+	materials := materials2.CryptographicMaterials{
+		CEKAlgorithm: "AES/GCM/NoPadding",
+		Key:          make([]byte, 32),
+		IV:           make([]byte, 12),
+	}
+
+	// When: instantiating new AES GCM cipher with the materials
+	cipher, err := newAESGCM(materials)
+
+	// Then: no error is returned and the AAD is set to the Algorithm Suite ID bytes
+	if err != nil {
+		panic(fmt.Sprintf("expected no error, but received %v", err))
+	}
+
+	aesgcm, ok := cipher.(*aesGCM)
+	if !ok {
+		panic("expected cipher to be of type *aesGCM")
+	}
+	
+	if aesgcm.aad != nil {
+		panic(fmt.Sprintf("expected AAD to be nil, but received %v", aesgcm.aad))
+	}
+}
+
 func aesgcmTest(t *testing.T, iv, key, plaintext, expected, tag []byte) {
 	t.Helper()
 	const gcmTagSize = 16
 	materials := materials2.CryptographicMaterials{
+		CEKAlgorithm: algorithms.AESGCMNoPadding,
 		Key: key,
 		IV:  iv,
 	}

@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        go-version: ['1.20', '1.21']
+        go-version: ['1.24', '1.25']
     steps:
     - uses: actions/checkout@v3
 
@@ -39,7 +39,7 @@ jobs:
       run: |
         # CDK example tests make go test ./... fail
         # so go package by package
-        cd v3/client
+        cd v4/client
         go test *.go -v
         cd ../internal
         go test *.go -v
@@ -48,7 +48,7 @@ jobs:
 
     - name: Test Vectors
       run: |
-        cd v3/testvectors
+        cd v4/testvectors
         export AWS_REGION=${{ vars.CI_AWS_REGION }}
         export BUCKET=${{ vars.CI_S3_BUCKET }}
         export AWS_KMS_ALIAS=${{ vars.CI_KMS_KEY_ALIAS }}

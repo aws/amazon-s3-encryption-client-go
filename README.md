@@ -1,11 +1,11 @@
-# Amazon S3 Encryption Client for Go V3
+# Amazon S3 Encryption Client for Go V4
 
 [![Go Build status](https://github.com/aws/amazon-s3-encryption-client-go/actions/workflows/go-test.yml/badge.svg?branch=main)](https://github.com/aws/amazon-s3-encryption-client-go/actions/workflows/go-test.yml)  [![Apache V2 License](https://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://github.com/aws/amazon-s3-encryption-client-go/blob/main/LICENSE)
 
 This library provides an S3 client that supports client-side encryption.
-`amazon-s3-encryption-client-go` is the v3 of the Amazon S3 Encryption Client for the Go programming language.
+`amazon-s3-encryption-client-go` is the v4 of the Amazon S3 Encryption Client for the Go programming language.
 
-The v3 encryption client requires a minimum version of `Go 1.20`.
+The v4 encryption client requires a minimum version of `Go 1.24`.
 
 Check out the [release notes](https://github.com/aws/amazon-s3-encryption-client-go/blob/main/CHANGELOG.md) for information about the latest bug
 fixes, updates, and features added to the encryption client.
@@ -24,7 +24,7 @@ following in the AWS SDKs and Tools Shared Configuration and Credentials Referen
 
 ### Go version support policy
 
-The v3 Encryption Client follows the upstream [release policy](https://go.dev/doc/devel/release#policy)
+The v4 Encryption Client follows the upstream [release policy](https://go.dev/doc/devel/release#policy)
 with an additional six months of support for the most recently deprecated
 language version.
 
@@ -33,7 +33,7 @@ address critical security issues.**
 
 ## Getting started
 To get started working with the S3 Encryption Client set up your project for Go modules, and retrieve the client's dependencies with `go get`.
-This example shows how you can use the v3 encryption client to make a `PutItem` request using a KmsKeyring.
+This example shows how you can use the v4 encryption client to make a `PutItem` request using a KmsKeyring.
 
 ###### Initialize Project
 ```sh
@@ -43,7 +43,7 @@ $ go mod init encryptionclient
 ```
 ###### Add SDK Dependencies
 ```sh
-$ go get github.com/aws/amazon-s3-encryption-client-go/v3
+$ go get github.com/aws/amazon-s3-encryption-client-go/v4
 ```
 
 ###### Write Code
@@ -61,8 +61,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	
 	// Import the materials and client package 
-	"github.com/aws/amazon-s3-encryption-client-go/v3/client"
-	"github.com/aws/amazon-s3-encryption-client-go/v3/materials"
+	"github.com/aws/amazon-s3-encryption-client-go/v4/client"
+	"github.com/aws/amazon-s3-encryption-client-go/v4/materials"
 )
 
 func main() {
@@ -80,7 +80,7 @@ func main() {
 	s3Client := s3.NewFromConfig(cfg)
 	kmsClient := kms.NewFromConfig(cfg)
 
-	// Create the keyring and &CMM-long; (&CMM-short;)
+	// Create the keyring and CMM
 	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsClient, kmsKeyArn, func(options *materials.KeyringOptions) {
 		options.EnableLegacyWrappingAlgorithms = false
 	}))
@@ -103,108 +103,12 @@ func main() {
 
 ## Migration
 
-This version of the library supports reading encrypted objects from previous versions.
+This version of the library supports reading encrypted objects from previous versions with extra configuration.
 It also supports writing objects with non-legacy algorithms.
 The list of legacy modes and operations will be provided below.
 
-### Examples
-#### V2 KMS to V3
-
-The following example demonstrates how to migrate a version v2 application that uses
-the `NewKMSContextKeyGenerator` kms-key provider with a material
-description and `AESGCMContentCipherBuilderV2` content cipher to
-version v3 of the S3 Encryption Client for Go.
-
-```go
-func KmsContextV2toV3GCMExample() error {
- 	bucket := LoadBucket()
- 	kmsKeyAlias := LoadAwsKmsAlias()
- 
- 	objectKey := "my-object-key"
- 	region := "us-west-2"
- 	plaintext := "This is an example.\n"
- 
- 	// Create an S3EC Go v2 encryption client
- 	// using the KMS client from AWS SDK for Go v1
-	sessKms, err := sessionV1.NewSession(&awsV1.Config{
-        Region: aws.String(region),
-    })
- 
- 	kmsSvc := kmsV1.New(sessKms)
- 	handler := s3cryptoV2.NewKMSContextKeyGenerator(kmsSvc, kmsKeyAlias, s3cryptoV2.MaterialDescription{})
- 	builder := s3cryptoV2.AESGCMContentCipherBuilderV2(handler)
- 	encClient, err := s3cryptoV2.NewEncryptionClientV2(sessKms, builder)
- 	if err != nil {
- 		log.Fatalf("error creating new v2 client: %v", err)
- 	}
- 
- 	// Encrypt using KMS+Context and AES-GCM content cipher
- 	_, err = encClient.PutObject(s3V1.PutObjectInput{
- 		Bucket: aws.String(bucket),
- 		Key:    aws.String(objectKey),
- 		Body:   bytes.NewReader([]byte(plaintext)),
- 	})
- 	if err != nil {
- 		log.Fatalf("error calling putObject: %v", err)
- 	}
- 	fmt.Printf("successfully uploaded file to %s/%s\n", bucket, key)
- 
- 	// Create an S3EC Go v3 client
- 	// using the KMS client from AWS SDK for Go v2
- 	ctx := context.Background()
- 	cfg, err := config.LoadDefaultConfig(ctx,
- 		config.WithRegion(region),
- 	)
- 
- 	kmsV2 := kms.NewFromConfig(cfg)
- 	cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsV2, kmsKeyAlias))
- 	if err != nil {
- 		t.Fatalf("error while creating new CMM")
- 	}
- 
- 	s3V2 := s3.NewFromConfig(cfg)
- 	s3ecV3, err := client.New(s3V2, cmm)
- 
- 	result, err := s3ecV3.GetObject(ctx, s3.GetObjectInput{
- 		Bucket: aws.String(bucket),
- 		Key:    aws.String(objectKey),
- 	})
- 	if err != nil {
- 		t.Fatalf("error while decrypting: %v", err)
- 	}
-```
-
-#### Enable legacy decryption modes
-The `enableLegacyUnauthenticatedModes` flag enables the S3 Encryption Client to decrypt
-encrypted objects with a fully supported or legacy encryption algorithm.
-Version V3 of the S3 Encryption Client uses one of the fully supported wrapping algorithms and the
-wrapping key you specify to encrypt and decrypt the data keys. The
-`enableLegacyWrappingAlgorithms` flag enables the S3 Encryption Client to decrypt
-encrypted data keys with a fully supported or legacy wrapping algorithm.
-
-```go
-cmm, err := materials.NewCryptographicMaterialsManager(materials.NewKmsKeyring(kmsClient, kmsKeyArn, func(options *materials.KeyringOptions) {
-     options.EnableLegacyWrappingAlgorithms = true
- })
- 
- if err != nil {
- 	t.Fatalf("error while creating new CMM")
- }
- 
- client, err := client.New(s3Client, cmm, func(clientOptions *client.EncryptionClientOptions) {
- 		clientOptions.EnableLegacyUnauthenticatedModes = true
- })
- 
- if err != nil {
- 	// handle error
- }
-```
-
-### Legacy Algorithms and Modes
-#### Content Encryption
-* AES/CBC
-#### Key Wrap Encryption
-* KMS (without context)
+* [3.x to 4.x Migration Guide](https://docs.aws.amazon.com/amazon-s3-encryption-client/latest/developerguide/go-v4-migration.html)
+* [2.x to 3.x Migration Guide](https://docs.aws.amazon.com/amazon-s3-encryption-client/latest/developerguide/go-v3-migration.html)
 
 ## Security
 

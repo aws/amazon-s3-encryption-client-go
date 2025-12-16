@@ -15,6 +15,7 @@ type DecryptionMaterials struct {
 	MaterialDescription MaterialDescription
 	ContentAlgorithm    string
 	TagLength           string
+	KeyCommitment       []byte
 }
 
 func NewDecryptionMaterials(req DecryptMaterialsRequest) (*DecryptionMaterials, error) {
@@ -71,4 +72,5 @@ type CryptographicMaterials struct {
 	MaterialDescription MaterialDescription
 	// EncryptedKey should be populated when calling GenerateCipherData
 	EncryptedKey []byte
+	KeyCommitment []byte
 }

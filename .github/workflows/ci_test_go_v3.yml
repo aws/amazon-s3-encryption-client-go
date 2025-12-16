@@ -1,0 +1,56 @@
+name: Go Tests
+
+on:
+  workflow_call:
+    secrets:
+      CI_AWS_ACCOUNT_ID:
+        required: true
+
+jobs:
+  unix-tests:
+    name: Unix Tests
+    runs-on: ${{ matrix.os }}
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        go-version: ['1.24', '1.25']
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::${{ secrets.CI_AWS_ACCOUNT_ID }}:role/${{ vars.CI_AWS_ROLE }}
+        role-session-name: S3EC-Github-Go-CI-Tests
+        aws-region: ${{ vars.CI_AWS_REGION }}
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Install golint
+      run: go install golang.org/x/lint/golint@latest
+
+    - name: Go Test
+      run: |
+        # CDK example tests make go test ./... fail
+        # so go package by package
+        cd v3/client
+        go test *.go -v
+        cd ../internal
+        go test *.go -v
+        cd ../materials
+        go test *.go -v
+
+    - name: Test Vectors
+      run: |
+        cd v3/testvectors
+        export AWS_REGION=${{ vars.CI_AWS_REGION }}
+        export BUCKET=${{ vars.CI_S3_BUCKET }}
+        export AWS_KMS_ALIAS=${{ vars.CI_KMS_KEY_ALIAS }}
+        export AWS_ACCOUNT_ID=${{ secrets.CI_AWS_ACCOUNT_ID }}
+        go test *.go -v

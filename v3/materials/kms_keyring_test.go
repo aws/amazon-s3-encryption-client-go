@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/aws/amazon-s3-encryption-client-go/v3/internal/awstesting"
+	"github.com/aws/amazon-s3-encryption-client-go/v3/algorithms"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 )
@@ -36,6 +37,8 @@ func TestKMSKeyring_OnEncrypt_CorrectKMSRequest(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), "GrantTokens", grantTokens)
 
+	algorithmSuite := algorithms.AlgAES256GCMIV12Tag16NoKDF
+
 	encryptionMaterials := NewEncryptionMaterials()
 
 	_, err := keyring.OnEncrypt(ctx, encryptionMaterials)
@@ -55,7 +58,7 @@ func TestKMSKeyring_OnEncrypt_CorrectKMSRequest(t *testing.T) {
 		GrantTokens: grantTokens,
 		KeySpec:     types.DataKeySpecAes256,
 		EncryptionContext: map[string]string{
-			kmsAWSCEKContextKey: kmsDefaultEncryptionContextKey,
+			kmsAWSCEKContextKey: algorithmSuite.CipherName(),
 		},
 	}
 
@@ -87,12 +90,14 @@ func TestKMSKeyring_OnDecrypt_CorrectKMSRequest(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), "GrantTokens", grantTokens)
 
+	algorithmSuite := algorithms.AlgAES256GCMIV12Tag16NoKDF
+
 	decryptionMaterials, err := NewDecryptionMaterials(DecryptMaterialsRequest{
 		CipherKey:  []byte("test-cipher-key"),
 		Iv:         []byte("test-iv"),
 		MatDesc:    `{"aws:x-amz-cek-alg":"AES/GCM/NoPadding"}`,
 		KeyringAlg: "kms+context",
-		CekAlg:     kmsDefaultEncryptionContextKey,
+		CekAlg:     algorithmSuite.CipherName(),
 	})
 	if err != nil {
 		t.Errorf("expected no error, but received %v", err)
@@ -115,7 +120,7 @@ func TestKMSKeyring_OnDecrypt_CorrectKMSRequest(t *testing.T) {
 		GrantTokens:    grantTokens,
 		CiphertextBlob: dataKey.EncryptedDataKey,
 		EncryptionContext: map[string]string{
-			kmsAWSCEKContextKey: kmsDefaultEncryptionContextKey,
+			kmsAWSCEKContextKey: algorithmSuite.CipherName(),
 		},
 	}
 

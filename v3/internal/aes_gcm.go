@@ -5,9 +5,11 @@ package internal
 
 import (
 	"bytes"
+	"fmt"
 	"crypto/aes"
 	"crypto/cipher"
 	"github.com/aws/amazon-s3-encryption-client-go/v3/materials"
+	"github.com/aws/amazon-s3-encryption-client-go/v3/algorithms"
 	"io"
 )
 
@@ -17,6 +19,7 @@ import (
 type aesGCM struct {
 	aead  cipher.AEAD
 	nonce []byte
+	aad  []byte
 }
 
 // newAESGCM creates a new AES GCM cipher. Expects keys to be of
@@ -40,7 +43,19 @@ func newAESGCM(materials materials.CryptographicMaterials) (Cipher, error) {
 		return nil, err
 	}
 
-	return &aesGCM{aesgcm, materials.IV}, nil
+	if materials.CEKAlgorithm == algorithms.AESGCMCommitKey {
+		//= ../specification/s3-encryption/key-derivation.md#hkdf-operation
+		//# The client MUST set the AAD to the Algorithm Suite ID represented as bytes.
+		aad := algorithms.AlgAES256GCMHkdfSha512CommitKey.IDAsBytes()
+		return &aesGCM{aesgcm, materials.IV, aad}, nil
+	} else if materials.CEKAlgorithm == algorithms.AESGCMNoPadding {
+		//= ../specification/s3-encryption/encryption.md#alg-aes-256-gcm-iv12-tag16-no-kdf
+		//# The client MUST NOT provide any AAD when encrypting with ALG_AES_256_GCM_IV12_TAG16_NO_KDF.
+		return &aesGCM{aesgcm, materials.IV, nil}, nil
+	} else {
+		return nil, fmt.Errorf("unsupported CEK algorithm for AES GCM: %s", materials.CEKAlgorithm)
+	}
+	
 }
 
 // Encrypt will encrypt the data using AES GCM
@@ -50,6 +65,7 @@ func (c *aesGCM) Encrypt(src io.Reader) io.Reader {
 		encrypter: c.aead,
 		nonce:     c.nonce,
 		src:       src,
+		aad:	   c.aad,
 	}
 	return reader
 }
@@ -59,6 +75,7 @@ type gcmEncryptReader struct {
 	nonce     []byte
 	src       io.Reader
 	buf       *bytes.Buffer
+	aad	      []byte
 }
 
 func (reader *gcmEncryptReader) Read(data []byte) (int, error) {
@@ -67,7 +84,27 @@ func (reader *gcmEncryptReader) Read(data []byte) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		b = reader.encrypter.Seal(b[:0], reader.nonce, b, nil)
+		var aad []byte
+		if reader.aad != nil {
+			aad = reader.aad
+		} else {
+			aad = nil
+		}
+		// The GCM auth tag is appended to the ciphertext by the Seal function.
+		// Docs: https://pkg.go.dev/crypto/cipher#GCM
+		//= ../specification/s3-encryption/encryption.md#alg-aes-256-gcm-iv12-tag16-no-kdf
+		//= type=exception
+		//# The client MUST append the GCM auth tag to the ciphertext if the underlying crypto provider does not do so automatically.
+		//= ../specification/s3-encryption/encryption.md#alg-aes-256-gcm-hkdf-sha512-commit-key
+		//= type=exception
+		//# The client MUST append the GCM auth tag to the ciphertext if the underlying crypto provider does not do so automatically.
+
+		//= ../specification/s3-encryption/encryption.md#alg-aes-256-gcm-iv12-tag16-no-kdf
+		//= type=implication
+		//# The client MUST initialize the cipher, or call an AES-GCM encryption API,
+		//# with the plaintext data key, the generated IV, and the tag length defined in the Algorithm Suite
+		//# when encrypting with ALG_AES_256_GCM_IV12_TAG16_NO_KDF.
+		b = reader.encrypter.Seal(b[:0], reader.nonce, b, aad)
 		reader.buf = bytes.NewBuffer(b)
 	}
 
@@ -80,6 +117,7 @@ func (c *aesGCM) Decrypt(src io.Reader) io.Reader {
 		decrypter: c.aead,
 		nonce:     c.nonce,
 		src:       src,
+		aad:	   c.aad,
 	}
 }
 
@@ -88,15 +126,22 @@ type gcmDecryptReader struct {
 	nonce     []byte
 	src       io.Reader
 	buf       *bytes.Buffer
+	aad 	  []byte
 }
 
 func (reader *gcmDecryptReader) Read(data []byte) (int, error) {
+	var aad []byte
+	if reader.aad != nil {
+		aad = reader.aad
+	} else {
+		aad = nil
+	}
 	if reader.buf == nil {
 		b, err := io.ReadAll(reader.src)
 		if err != nil {
 			return 0, err
 		}
-		b, err = reader.decrypter.Open(b[:0], reader.nonce, b, nil)
+		b, err = reader.decrypter.Open(b[:0], reader.nonce, b, aad)
 		if err != nil {
 			return 0, err
 		}

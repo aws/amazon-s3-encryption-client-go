@@ -1,13 +1,12 @@
 module amazon-s3-encryption-client-go/testvectors
 
-go 1.20
+go 1.24.0
 
 // uncomment this to make local testing easier.
-replace (
-     github.com/aws/amazon-s3-encryption-client-go/v3 v3.0.1 => ../../v3
-)
+replace github.com/aws/amazon-s3-encryption-client-go/v3 v3.0.0 => ../../v3
 
 require (
+	github.com/aws/amazon-s3-encryption-client-go/v3 v3.0.0
 	github.com/aws/aws-sdk-go v1.44.327
 	github.com/aws/aws-sdk-go-v2 v1.18.0
 	github.com/aws/aws-sdk-go-v2/config v1.18.25
@@ -16,7 +15,6 @@ require (
 )
 
 require (
-	github.com/aws/amazon-s3-encryption-client-go/v3 v3.0.1 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.4.10 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.24 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.13.3 // indirect
@@ -33,4 +31,5 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.19.0 // indirect
 	github.com/aws/smithy-go v1.13.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	golang.org/x/crypto v0.42.0 // indirect
 )

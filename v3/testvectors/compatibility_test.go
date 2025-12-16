@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/aws/amazon-s3-encryption-client-go/v3/client"
 	"github.com/aws/amazon-s3-encryption-client-go/v3/materials"
+	"github.com/aws/amazon-s3-encryption-client-go/v3/commitment"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
@@ -68,52 +69,52 @@ func LoadAwsAccountId() string {
 // This is meant to be a utility function, not a test function,
 // but for simplicity and easy invocation it is a test function.
 // To avoid running it each test run, it is left commented out.
-//func TestGenerateCBCIntegTests(t *testing.T) {
-//	arn := "arn:aws:kms:us-west-2:370957321024:alias/S3EC-Go-Github-KMS-Key"
-//	bucket := "s3ec-go-github-test-bucket"
-//	region := "us-west-2"
-//	ctx := context.Background()
-//	cfg, _ := config.LoadDefaultConfig(ctx,
-//		config.WithRegion(region),
-//	)
-//
-//	s3Client := s3.NewFromConfig(cfg)
-//	fixtures := getFixtures(t, s3Client, "aes_cbc", bucket)
-//	// V2 client
-//	var handler s3cryptoV2.CipherDataGenerator
-//	sessKms, _ := sessionV1.NewSession(&awsV1.Config{
-//		Region: aws.String(region),
-//	})
-//
-//	// KMS v1
-//	kmsSvc := kmsV1.New(sessKms)
-//	handler = s3cryptoV2.NewKMSKeyGenerator(kmsSvc, arn)
-//	// AES-CBC content cipher
-//	builder := s3cryptoV2.AESCBCContentCipherBuilder(handler, s3cryptoV2.AESCBCPadder)
-//	encClient := s3cryptoV2.NewEncryptionClient(sessKms, builder)
-//
-//	for caseKey, plaintext := range fixtures.Plaintexts {
-//		_, err := encClient.PutObject(&s3V1.PutObjectInput{
-//			Bucket: aws.String(bucket),
-//			Key: aws.String(
-//				fmt.Sprintf("%s/%s/language_Go/ciphertext_test_case_%s",
-//					fixtures.BaseFolder, version, caseKey),
-//			),
-//			Body: bytes.NewReader(plaintext),
-//		})
-//		if err != nil {
-//			t.Fatalf("failed to upload encrypted fixture, %v", err)
-//		}
-//	}
-//
-//}
+// func TestGenerateCBCIntegTests(t *testing.T) {
+// 	arn := "arn:aws:kms:us-west-2:370957321024:alias/S3EC-Go-Github-KMS-Key"
+// 	bucket := "s3ec-go-github-test-bucket"
+// 	region := "us-west-2"
+// 	ctx := context.Background()
+// 	cfg, _ := config.LoadDefaultConfig(ctx,
+// 		config.WithRegion(region),
+// 	)
 
-func TestKmsV1toV3_CBC(t *testing.T) {
+// 	s3Client := s3.NewFromConfig(cfg)
+// 	fixtures := getFixtures(t, s3Client, "aes_cbc", bucket)
+// 	// V2 client
+// 	var handler s3cryptoV2.CipherDataGenerator
+// 	sessKms, _ := sessionV1.NewSession(&awsV1.Config{
+// 		Region: aws.String(region),
+// 	})
+
+// 	// KMS v1
+// 	kmsSvc := kmsV1.New(sessKms)
+// 	handler = s3cryptoV2.NewKMSKeyGenerator(kmsSvc, arn)
+// 	// AES-CBC content cipher
+// 	builder := s3cryptoV2.AESCBCContentCipherBuilder(handler, s3cryptoV2.AESCBCPadder)
+// 	encClient := s3cryptoV2.NewEncryptionClient(sessKms, builder)
+
+// 	for caseKey, plaintext := range fixtures.Plaintexts {
+// 		_, err := encClient.PutObject(&s3V1.PutObjectInput{
+// 			Bucket: aws.String(bucket),
+// 			Key: aws.String(
+// 				fmt.Sprintf("%s/%s/language_Go/ciphertext_test_case_%s",
+// 					fixtures.BaseFolder, version, caseKey),
+// 			),
+// 			Body: bytes.NewReader(plaintext),
+// 		})
+// 		if err != nil {
+// 			t.Fatalf("failed to upload encrypted fixture, %v", err)
+// 		}
+// 	}
+
+// }
+
+func TestKmsV1toV4_CBC(t *testing.T) {
 	bucket := LoadBucket()
 	kmsKeyAlias := LoadAwsKmsAlias()
 
 	cekAlg := "aes_cbc"
-	key := "crypto_tests/" + cekAlg + "/v3/language_Go/V1toV3_CBC.txt"
+	key := "crypto_tests/" + cekAlg + "/v4/language_Go/V1toV4_CBC.txt"
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
@@ -154,11 +155,12 @@ func TestKmsV1toV3_CBC(t *testing.T) {
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
+	s3ecV4, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
+		clientOptions.CommitmentPolicy = commitment.FORBID_ENCRYPT_ALLOW_DECRYPT
 	})
 
-	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
+	result, err := s3ecV4.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
@@ -176,12 +178,12 @@ func TestKmsV1toV3_CBC(t *testing.T) {
 	}
 }
 
-func TestKmsV1toV3_GCM(t *testing.T) {
+func TestKmsV1toV4_GCM(t *testing.T) {
 	bucket := LoadBucket()
 	kmsKeyAlias := LoadAwsKmsAlias()
 
 	cekAlg := "aes_gcm"
-	key := "crypto_tests/" + cekAlg + "/v3/language_Go/V1toV3_GCM.txt"
+	key := "crypto_tests/" + cekAlg + "/v4/language_Go/V1toV4_GCM.txt"
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
@@ -222,11 +224,12 @@ func TestKmsV1toV3_GCM(t *testing.T) {
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
+	s3ecV4, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
+		clientOptions.CommitmentPolicy = commitment.FORBID_ENCRYPT_ALLOW_DECRYPT
 	})
 
-	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
+	result, err := s3ecV4.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
@@ -244,12 +247,12 @@ func TestKmsV1toV3_GCM(t *testing.T) {
 	}
 }
 
-func TestKmsContextV2toV3_GCM(t *testing.T) {
+func TestKmsContextV2toV4_GCM(t *testing.T) {
 	bucket := LoadBucket()
 	kmsKeyAlias := LoadAwsKmsAlias()
 
 	cekAlg := "aes_gcm"
-	key := "crypto_tests/" + cekAlg + "/v3/language_Go/V2toV3_GCM.txt"
+	key := "crypto_tests/" + cekAlg + "/v4/language_Go/V2toV4_GCM.txt"
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
@@ -290,9 +293,11 @@ func TestKmsContextV2toV3_GCM(t *testing.T) {
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := client.New(s3V2, cmm)
+	s3ecV4, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
+		clientOptions.CommitmentPolicy = commitment.FORBID_ENCRYPT_ALLOW_DECRYPT
+	})
 
-	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
+	result, err := s3ecV4.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
@@ -310,12 +315,12 @@ func TestKmsContextV2toV3_GCM(t *testing.T) {
 	}
 }
 
-func TestKmsContextV3toV2_GCM(t *testing.T) {
+func TestKmsContextV4toV2_GCM(t *testing.T) {
 	bucket := LoadBucket()
 	kmsKeyAlias := LoadAwsKmsAlias()
 
 	cekAlg := "aes_gcm"
-	key := "crypto_tests/" + cekAlg + "/v3/language_Go/V3toV2_GCM.txt"
+	key := "crypto_tests/" + cekAlg + "/v4/language_Go/V4toV2_GCM.txt"
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
@@ -331,9 +336,11 @@ func TestKmsContextV3toV2_GCM(t *testing.T) {
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := client.New(s3V2, cmm)
+	s3ecV4, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
+		clientOptions.CommitmentPolicy = commitment.FORBID_ENCRYPT_ALLOW_DECRYPT
+	})
 
-	_, err = s3ecV3.PutObject(ctx, &s3.PutObjectInput{
+	_, err = s3ecV4.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 		Body:   bytes.NewReader([]byte(plaintext)),
@@ -376,12 +383,12 @@ func TestKmsContextV3toV2_GCM(t *testing.T) {
 	}
 }
 
-func TestInstructionFileV2toV3(t *testing.T) {
+func TestInstructionFileV2toV4(t *testing.T) {
 	bucket := LoadBucket()
 	kmsKeyAlias := LoadAwsKmsAlias()
 
 	cekAlg := "aes_cbc"
-	key := "crypto_tests/" + cekAlg + "/v3/language_Go/inst_file_test.txt"
+	key := "crypto_tests/" + cekAlg + "/v4/language_Go/inst_file_test.txt"
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
@@ -426,11 +433,12 @@ func TestInstructionFileV2toV3(t *testing.T) {
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
+	s3ecV4, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
+		clientOptions.CommitmentPolicy = commitment.FORBID_ENCRYPT_ALLOW_DECRYPT
 	})
 
-	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
+	result, err := s3ecV4.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
@@ -453,7 +461,7 @@ func TestNegativeKeyringOption(t *testing.T) {
 	kmsKeyAlias := LoadAwsKmsAlias()
 
 	cekAlg := "aes_cbc"
-	key := "crypto_tests/" + cekAlg + "/v3/language_Go/NegativeV1toV3_CBC.txt"
+	key := "crypto_tests/" + cekAlg + "/v4/language_Go/NegativeV1toV4_CBC.txt"
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
@@ -494,11 +502,11 @@ func TestNegativeKeyringOption(t *testing.T) {
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
+	s3ecV4, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
 	})
 
-	_, err = s3ecV3.GetObject(ctx, &s3.GetObjectInput{
+	_, err = s3ecV4.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
@@ -512,9 +520,9 @@ func TestEnableLegacyDecryptBothFormats(t *testing.T) {
 	kmsKeyAlias := LoadAwsKmsAlias()
 
 	cekAlgCbc := "aes_cbc"
-	keyCbc := "crypto_tests/" + cekAlgCbc + "/v3/language_Go/BothFormats_CBC.txt"
+	keyCbc := "crypto_tests/" + cekAlgCbc + "/v4/language_Go/BothFormats_CBC.txt"
 	cekAlgGcm := "aes_gcm"
-	keyGcm := "crypto_tests/" + cekAlgGcm + "/v3/language_Go/BothFormats_GCM.txt"
+	keyGcm := "crypto_tests/" + cekAlgGcm + "/v4/language_Go/BothFormats_GCM.txt"
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
@@ -555,11 +563,12 @@ func TestEnableLegacyDecryptBothFormats(t *testing.T) {
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
+	s3ecV4, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
+		clientOptions.CommitmentPolicy = commitment.FORBID_ENCRYPT_ALLOW_DECRYPT
 	})
 
-	_, err = s3ecV3.PutObject(ctx, &s3.PutObjectInput{
+	_, err = s3ecV4.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(keyGcm),
 		Body:   bytes.NewReader([]byte(plaintext)),
@@ -568,7 +577,7 @@ func TestEnableLegacyDecryptBothFormats(t *testing.T) {
 		t.Fatalf("error while calling PutObject: %v", err)
 	}
 
-	getResponseCbc, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
+	getResponseCbc, err := s3ecV4.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(keyCbc),
 	})
@@ -584,7 +593,7 @@ func TestEnableLegacyDecryptBothFormats(t *testing.T) {
 		t.Errorf("expect %v text, got %v", e, a)
 	}
 
-	getResponseGcm, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
+	getResponseGcm, err := s3ecV4.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(keyGcm),
 	})
@@ -601,7 +610,13 @@ func TestEnableLegacyDecryptBothFormats(t *testing.T) {
 	}
 }
 
-func TestUnicodeEncryptionContextV3(t *testing.T) {
+func TestUnicodeEncryptionContextV4ClientV2MessageFormat(t *testing.T) {
+	//= ../specification/s3-encryption/data-format/content-metadata.md#v1-v2-shared
+	//= type=test
+	//# - This string MAY be encoded by the esoteric double-encoding scheme used by the S3 web server.
+	//= ../specification/s3-encryption/data-format/metadata-strategy.md#object-metadata
+	//= type=test
+	//# - The S3EC SHOULD support decoding the S3 Server's "double encoding".
 	rune128 := string(rune(128))
 	rune200 := string(rune(200))
 	rune256 := string(rune(256))
@@ -614,11 +629,11 @@ func TestUnicodeEncryptionContextV3(t *testing.T) {
 
 	unicodeStrings := []string{rune128, rune200, rune256, runeMaxInt, shorter, medium, longer, mix, mixTwo}
 	for _, s := range unicodeStrings {
-		UnicodeEncryptionContextV3(t, s)
+		UnicodeEncryptionContextV4ClientV2MessageFormat(t, s)
 	}
 }
 
-func UnicodeEncryptionContextV3(t *testing.T, metadataString string) {
+func UnicodeEncryptionContextV4ClientV2MessageFormat(t *testing.T, metadataString string) {
 	bucket := LoadBucket()
 	kmsKeyAlias := LoadAwsKmsAlias()
 
@@ -640,12 +655,13 @@ func UnicodeEncryptionContextV3(t *testing.T, metadataString string) {
 	}
 
 	s3V2 := s3.NewFromConfig(cfg)
-	s3ecV3, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
+	s3ecV4, err := client.New(s3V2, cmm, func(clientOptions *client.EncryptionClientOptions) {
 		clientOptions.EnableLegacyUnauthenticatedModes = true
+		clientOptions.CommitmentPolicy = commitment.FORBID_ENCRYPT_ALLOW_DECRYPT
 	})
 
 	encryptionContext := context.WithValue(ctx, "EncryptionContext", map[string]string{"ec-key": metadataString})
-	_, err = s3ecV3.PutObject(encryptionContext, &s3.PutObjectInput{
+	_, err = s3ecV4.PutObject(encryptionContext, &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 		Body:   bytes.NewReader([]byte(plaintext)),
@@ -656,7 +672,7 @@ func UnicodeEncryptionContextV3(t *testing.T, metadataString string) {
 
 	time.Sleep(1 * time.Second)
 
-	result, err := s3ecV3.GetObject(ctx, &s3.GetObjectInput{
+	result, err := s3ecV4.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
@@ -673,7 +689,7 @@ func UnicodeEncryptionContextV3(t *testing.T, metadataString string) {
 		t.Errorf("expect %v text, got %v", e, a)
 	}
 
-	s3ecV3.DeleteObject(ctx, &s3.DeleteObjectInput{
+	s3ecV4.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: &bucket,
 		Key:    &key,
 	})
