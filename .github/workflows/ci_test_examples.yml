@@ -1,0 +1,45 @@
+name: Test Migration Examples
+
+on:
+  workflow_call:
+    secrets:
+      CI_AWS_ACCOUNT_ID:
+        required: true
+
+jobs:
+  test-migration-examples:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+    
+    env:
+      TEST_BUCKET: s3ec-go-github-test-bucket
+      TEST_KEY: migration-test-ci
+      TEST_KMS_KEY: arn:aws:kms:us-west-2:370957321024:alias/S3EC-Go-Github-KMS-Key
+      TEST_REGION: us-west-2
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+    
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::${{ secrets.CI_AWS_ACCOUNT_ID }}:role/${{ vars.CI_AWS_ROLE }}
+        role-session-name: S3EC-Github-Go-CI-Tests
+        aws-region: ${{ vars.CI_AWS_REGION }}
+    
+    - name: Test Migration Examples
+      run: |
+        # Test comprehensive migration examples
+        cd examples/migration/v3-to-v4
+        go mod tidy
+        go test -v

@@ -4,13 +4,13 @@
 package internal
 
 import (
+	"github.com/aws/amazon-s3-encryption-client-go/v3/algorithms"
 	"github.com/aws/amazon-s3-encryption-client-go/v3/materials"
 	"io"
 )
 
 const (
 	GcmTagSizeBits  = "128"
-	AESGCMNoPadding = "AES/GCM/NoPadding"
 )
 
 // NewAESGCMContentCipher returns a new encryption only AES/GCM mode structure with a specific cipher data generator
@@ -20,7 +20,7 @@ const (
 // will be fully loaded into memory before encryption or decryption can occur. Caution must be taken to avoid memory
 // allocation failures.
 func NewAESGCMContentCipher(materials materials.CryptographicMaterials) (ContentCipher, error) {
-	materials.CEKAlgorithm = AESGCMNoPadding
+	materials.CEKAlgorithm = algorithms.AESGCMNoPadding
 	materials.TagLength = GcmTagSizeBits
 
 	cipher, err := newAESGCM(materials)

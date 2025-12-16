@@ -7,7 +7,15 @@ on:
       - main
 
 jobs:
-  push-ci-go-test:
-    uses: ./.github/workflows/ci_test_go.yml
+  push-ci-go-v3-test:
+    uses: ./.github/workflows/ci_test_go_v3.yml
+    secrets:
+      CI_AWS_ACCOUNT_ID: ${{ secrets.CI_AWS_ACCOUNT_ID }}
+  push-ci-go-v4-test:
+    uses: ./.github/workflows/ci_test_go_v4.yml
+    secrets:
+      CI_AWS_ACCOUNT_ID: ${{ secrets.CI_AWS_ACCOUNT_ID }}
+  push-ci-go-migration-examples-test:
+    uses: ./.github/workflows/ci_test_examples.yml
     secrets:
       CI_AWS_ACCOUNT_ID: ${{ secrets.CI_AWS_ACCOUNT_ID }}

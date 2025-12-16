@@ -37,6 +37,10 @@ type KmsAPIClient interface {
 // When EnableLegacyWrappingAlgorithms is set to true, the Keyring MAY decrypt objects encrypted
 // using legacy wrapping algorithms such as KMS v1.
 type KeyringOptions struct {
+	//= ../specification/s3-encryption/client.md#enable-legacy-wrapping-algorithms
+	//= type=implication
+	//# The S3EC MUST support the option to enable or disable legacy wrapping algorithms.
+
 	EnableLegacyWrappingAlgorithms bool
 }
 
@@ -58,6 +62,9 @@ type KmsAnyKeyKeyring struct {
 // object. The KmsKeyring will always use the kmsKeyId provided to encrypt and decrypt messages.
 func NewKmsKeyring(apiClient KmsAPIClient, kmsKeyId string, optFns ...func(options *KeyringOptions)) *KmsKeyring {
 	options := KeyringOptions{
+		//= ../specification/s3-encryption/client.md#enable-legacy-wrapping-algorithms
+		//= type=implication
+		//# The option to enable legacy wrapping algorithms MUST be set to false by default.
 		EnableLegacyWrappingAlgorithms: false,
 	}
 	for _, fn := range optFns {
@@ -137,10 +144,14 @@ func (k *KmsKeyring) OnEncrypt(ctx context.Context, materials *EncryptionMateria
 // for use with content decryption, or an error if the object cannot be decrypted
 // by the Keyring as its configured.
 func (k *KmsKeyring) OnDecrypt(ctx context.Context, materials *DecryptionMaterials, encryptedDataKey DataKey) (*CryptographicMaterials, error) {
+	//= ../specification/s3-encryption/client.md#enable-legacy-wrapping-algorithms
+	//# When disabled, the S3EC MUST NOT decrypt objects encrypted using legacy wrapping algorithms; it MUST throw an exception when attempting to decrypt an object encrypted with a legacy wrapping algorithm.	
 	if materials.DataKey.DataKeyAlgorithm == KMSKeyring && !k.legacyWrappingAlgorithms {
 		return nil, fmt.Errorf("to decrypt x-amz-cek-alg value `%s` you must enable legacyWrappingAlgorithms on the keyring", materials.DataKey.DataKeyAlgorithm)
 	}
 
+	//= ../specification/s3-encryption/client.md#enable-legacy-wrapping-algorithms
+	//# When enabled, the S3EC MUST be able to decrypt objects encrypted with all supported wrapping algorithms (both legacy and fully supported).
 	if materials.DataKey.DataKeyAlgorithm == KMSKeyring && k.legacyWrappingAlgorithms {
 		return commonDecrypt(ctx, materials, encryptedDataKey, &k.KmsKeyId, nil, k.kmsClient)
 	} else if materials.DataKey.DataKeyAlgorithm == KMSContextKeyring {

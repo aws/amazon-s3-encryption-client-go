@@ -6,7 +6,15 @@ on:
     - cron: "00 15 * * 1-5"
 
 jobs:
-  daily-ci-go-test:
-      uses: ./.github/workflows/ci_test_go.yml
+  daily-ci-go-v3-test:
+      uses: ./.github/workflows/ci_test_go_v3.yml
+      secrets:
+        CI_AWS_ACCOUNT_ID: ${{ secrets.CI_AWS_ACCOUNT_ID }}
+  daily-ci-go-v4-test:
+      uses: ./.github/workflows/ci_test_go_v4.yml
+      secrets:
+        CI_AWS_ACCOUNT_ID: ${{ secrets.CI_AWS_ACCOUNT_ID }}
+  daily-ci-go-migration-examples-test:
+      uses: ./.github/workflows/ci_test_examples.yml
       secrets:
         CI_AWS_ACCOUNT_ID: ${{ secrets.CI_AWS_ACCOUNT_ID }}

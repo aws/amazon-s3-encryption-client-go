@@ -5,7 +5,15 @@ on:
   pull_request:
 
 jobs:
-  pr-ci-go-test:
-    uses: ./.github/workflows/ci_test_go.yml
+  pr-ci-go-v3-test:
+    uses: ./.github/workflows/ci_test_go_v3.yml
+    secrets:
+      CI_AWS_ACCOUNT_ID: ${{ secrets.CI_AWS_ACCOUNT_ID }}
+  pr-ci-go-v4-test:
+    uses: ./.github/workflows/ci_test_go_v4.yml
+    secrets:
+      CI_AWS_ACCOUNT_ID: ${{ secrets.CI_AWS_ACCOUNT_ID }}
+  pr-ci-go-migration-examples-test:
+    uses: ./.github/workflows/ci_test_examples.yml
     secrets:
       CI_AWS_ACCOUNT_ID: ${{ secrets.CI_AWS_ACCOUNT_ID }}
