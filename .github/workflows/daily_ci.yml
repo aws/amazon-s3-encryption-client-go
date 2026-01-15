@@ -1,12 +1,15 @@
 # This workflow runs every weekday at 15:00 UTC (8AM PDT)
 name: Daily CI
 permissions:
+  id-token: write
   contents: read
 
 on:
   schedule:
     - cron: "00 15 * * 1-5"
-
+  pull_request:
+    paths:
+      .github/workflows/daily_ci.yml
 jobs:
   daily-ci-go-v3-test:
       uses: ./.github/workflows/ci_test_go_v3.yml
@@ -27,7 +30,7 @@ jobs:
         daily-ci-go-v4-test,
         daily-ci-go-migration-examples-test,
       ]
-    if: ${{ failure() }}
+    if: ${{ failure() && github.event_name == 'schedule' }}
     uses: aws/aws-cryptographic-material-providers-library/.github/workflows/slack-notification.yml@main
     with:
       message: "Daily CI failed on `${{ github.repository }}`. View run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
