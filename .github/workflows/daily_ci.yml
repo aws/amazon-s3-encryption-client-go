@@ -4,7 +4,9 @@ name: Daily CI
 on:
   schedule:
     - cron: "00 15 * * 1-5"
-
+  pull_request:
+    paths:
+      .github/workflows/daily_ci.yml
 jobs:
   daily-ci-go-v3-test:
       uses: ./.github/workflows/ci_test_go_v3.yml
