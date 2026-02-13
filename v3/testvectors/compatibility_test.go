@@ -114,7 +114,7 @@ func TestKmsV1toV4_CBC(t *testing.T) {
 	kmsKeyAlias := LoadAwsKmsAlias()
 
 	cekAlg := "aes_cbc"
-	key := "crypto_tests/" + cekAlg + "/v4/language_Go/V1toV4_CBC.txt"
+	key := "crypto_tests/" + cekAlg + "/v4/language_Go/V1toV4_CBC_" + uniqueSuffix() + ".txt"
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
@@ -183,7 +183,7 @@ func TestKmsV1toV4_GCM(t *testing.T) {
 	kmsKeyAlias := LoadAwsKmsAlias()
 
 	cekAlg := "aes_gcm"
-	key := "crypto_tests/" + cekAlg + "/v4/language_Go/V1toV4_GCM.txt"
+	key := "crypto_tests/" + cekAlg + "/v4/language_Go/V1toV4_GCM_" + uniqueSuffix() + ".txt"
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
@@ -252,7 +252,7 @@ func TestKmsContextV2toV4_GCM(t *testing.T) {
 	kmsKeyAlias := LoadAwsKmsAlias()
 
 	cekAlg := "aes_gcm"
-	key := "crypto_tests/" + cekAlg + "/v4/language_Go/V2toV4_GCM.txt"
+	key := "crypto_tests/" + cekAlg + "/v4/language_Go/V2toV4_GCM_" + uniqueSuffix() + ".txt"
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
@@ -320,7 +320,7 @@ func TestKmsContextV4toV2_GCM(t *testing.T) {
 	kmsKeyAlias := LoadAwsKmsAlias()
 
 	cekAlg := "aes_gcm"
-	key := "crypto_tests/" + cekAlg + "/v4/language_Go/V4toV2_GCM.txt"
+	key := "crypto_tests/" + cekAlg + "/v4/language_Go/V4toV2_GCM_" + uniqueSuffix() + ".txt"
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
@@ -388,7 +388,7 @@ func TestInstructionFileV2toV4(t *testing.T) {
 	kmsKeyAlias := LoadAwsKmsAlias()
 
 	cekAlg := "aes_cbc"
-	key := "crypto_tests/" + cekAlg + "/v4/language_Go/inst_file_test.txt"
+	key := "crypto_tests/" + cekAlg + "/v4/language_Go/inst_file_test_" + uniqueSuffix() + ".txt"
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
@@ -461,7 +461,7 @@ func TestNegativeKeyringOption(t *testing.T) {
 	kmsKeyAlias := LoadAwsKmsAlias()
 
 	cekAlg := "aes_cbc"
-	key := "crypto_tests/" + cekAlg + "/v4/language_Go/NegativeV1toV4_CBC.txt"
+	key := "crypto_tests/" + cekAlg + "/v4/language_Go/NegativeV1toV4_CBC_" + uniqueSuffix() + ".txt"
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 
@@ -520,9 +520,10 @@ func TestEnableLegacyDecryptBothFormats(t *testing.T) {
 	kmsKeyAlias := LoadAwsKmsAlias()
 
 	cekAlgCbc := "aes_cbc"
-	keyCbc := "crypto_tests/" + cekAlgCbc + "/v4/language_Go/BothFormats_CBC.txt"
+	suffix := uniqueSuffix()
+	keyCbc := "crypto_tests/" + cekAlgCbc + "/v4/language_Go/BothFormats_CBC_" + suffix + ".txt"
 	cekAlgGcm := "aes_gcm"
-	keyGcm := "crypto_tests/" + cekAlgGcm + "/v4/language_Go/BothFormats_GCM.txt"
+	keyGcm := "crypto_tests/" + cekAlgGcm + "/v4/language_Go/BothFormats_GCM_" + suffix + ".txt"
 	region := "us-west-2"
 	plaintext := "This is a test.\n"
 

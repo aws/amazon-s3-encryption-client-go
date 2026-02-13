@@ -6,6 +6,8 @@ package testvectors
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"github.com/aws/amazon-s3-encryption-client-go/v4/algorithms"
 	"github.com/aws/amazon-s3-encryption-client-go/v4/client"
@@ -21,6 +23,12 @@ import (
 	"testing"
 	"time"
 )
+
+func uniqueSuffix() string {
+	b := make([]byte, 8)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
 
 const version = "v4"
 
@@ -509,7 +517,7 @@ func TestInteg_DeleteObjects_DeletesObjects(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
 	var accountId = LoadAwsAccountId()
-	var baseKey = "delete-objects-test-" + time.Now().Format("20060102-150405")
+	var baseKey = "delete-objects-test-" + uniqueSuffix()
 	var key1 = baseKey + "-object1"
 	var key2 = baseKey + "-object2"
 	var key3 = baseKey + "-object3"
@@ -659,7 +667,7 @@ func TestInteg_DeleteObject_DeletesObjectAndInstructionFile(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
 	var accountId = LoadAwsAccountId()
-	var key = "delete-object-test-" + time.Now().Format("20060102-150405")
+	var key = "delete-object-test-" + uniqueSuffix()
 	var plaintext = "Hello, S3 Encryption Client DeleteObject test!"
 
 	ctx := context.Background()
@@ -1348,7 +1356,7 @@ func TestInteg_GetObject_BasicDecryption(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
 	var accountId = LoadAwsAccountId()
-	var key = "basic-getobject-test-" + time.Now().Format("20060102-150405")
+	var key = "basic-getobject-test-" + uniqueSuffix()
 	var plaintext = "Hello, S3 Encryption Client GetObject test!"
 
 	ctx := context.Background()
@@ -1444,7 +1452,7 @@ func TestInteg_PutObject_BasicEncryption(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
 	var accountId = LoadAwsAccountId()
-	var key = "basic-putobject-test-" + time.Now().Format("20060102-150405")
+	var key = "basic-putobject-test-" + uniqueSuffix()
 	var plaintext = "Hello, S3 Encryption Client PutObject test!"
 
 	ctx := context.Background()
@@ -1667,7 +1675,7 @@ func TestInteg_AlgorithmSuiteMessageFormatCompatibility(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
 	var accountId = LoadAwsAccountId()
-	var baseKey = "algorithm-suite-message-format-test-" + time.Now().Format("20060102-150405")
+	var baseKey = "algorithm-suite-message-format-test-" + uniqueSuffix()
 	var plaintext = "Hello, S3 Encryption Client Algorithm Suite Message Format test!"
 
 	ctx := context.Background()
@@ -1858,7 +1866,7 @@ func TestInteg_CommitmentPolicyBehavior(t *testing.T) {
 	var bucket = LoadBucket()
 	var region = LoadRegion()
 	var accountId = LoadAwsAccountId()
-	var baseKey = "commitment-policy-test-" + time.Now().Format("20060102-150405")
+	var baseKey = "commitment-policy-test-" + uniqueSuffix()
 	var plaintext = "Hello, S3 Encryption Client Commitment Policy test!"
 
 	ctx := context.Background()
