@@ -4,6 +4,10 @@ name: PR CI
 on:
   pull_request:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   pr-ci-go-v3-test:
     uses: ./.github/workflows/ci_test_go_v3.yml
