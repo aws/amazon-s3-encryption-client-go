@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// A malformed material description must return a decode error.
+// Assert customS3Decoder doesn't panic if reading a tampered, invalid material description.
 func TestCustomS3Decoder_TruncatedMultiByteReturnsError(t *testing.T) {
 	cases := map[string]string{
 		"mime 0x80":         "=?utf-8?B?gA==?=",
