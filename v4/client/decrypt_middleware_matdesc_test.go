@@ -11,10 +11,10 @@ import (
 // a tampered material description must return a decode error instead.
 func TestCustomS3Decoder_TruncatedMultiByteReturnsError(t *testing.T) {
 	cases := map[string]string{
-		"trailing high byte":      "abc\xff",
-		"single high byte":        "\xff",
-		"valid UTF-8 3-byte rune": "€",
-		"mime-encoded high byte":  "=?utf-8?B?gA==?=", // base64 "gA==" -> 0x80
+		"mime 0x80":         "=?utf-8?B?gA==?=",
+		"mime 0xff":         "=?utf-8?B?/w==?=",
+		"mime abc+0xff":     "=?utf-8?B?YWJj/w==?=",
+		"raw trailing 0xff": "abc\xff",
 	}
 	for name, in := range cases {
 		t.Run(name, func(t *testing.T) {
