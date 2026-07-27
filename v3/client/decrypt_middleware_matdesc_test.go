@@ -14,6 +14,7 @@ func TestCustomS3Decoder_TruncatedMultiByteReturnsError(t *testing.T) {
 		"trailing high byte":     "abc\xff",
 		"single high byte":       "\xff",
 		"single 0x80 byte":       "\x80",
+		"valid UTF-8 3-byte rune": "€",
 		"mime-encoded high byte": "=?utf-8?B?gA==?=",     // base64 "gA==" -> 0x80
 		"mime-encoded abc+ff":    "=?utf-8?B?YWJj/w==?=", // base64 of "abc\xff"
 	}
