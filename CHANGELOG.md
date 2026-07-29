@@ -4,6 +4,12 @@
 
     * return a decode error for malformed material description (#85 (https://github.com/aws/amazon-s3-encryption-client-go/issues/85)) (2b02356 (https://github.com/aws/amazon-s3-encryption-client-go/commit/2b02356101e84cfd83992dd715ac18ebd058b817))
 
+### 3.2.1 (<https://github.com/aws/amazon-s3-encryption-client-go/compare/v3.2.0...v3.2.1>) (2026-07-29)
+
+### Fixes
+
+    * return a decode error for malformed material description (#85 (https://github.com/aws/amazon-s3-encryption-client-go/issues/85)) (2b02356 (https://github.com/aws/amazon-s3-encryption-client-go/commit/2b02356101e84cfd83992dd715ac18ebd058b817))
+
 ## 4.0.0 (2025-12-16)
 
 ### Features
@@ -31,12 +37,6 @@ See migration guide from 3.x to 4.x: [link](https://docs.aws.amazon.com/amazon-s
 ### Fixes
 
 * Fixed an issue where nonces of invalid lengths could cause a panic during decryption.
-
-### 3.2.1 (<https://github.com/aws/amazon-s3-encryption-client-go/compare/v4.0.0...v4.0.1>) (2026-07-29)
-
-### Fixes
-
-    * return a decode error for malformed material description (#85 (https://github.com/aws/amazon-s3-encryption-client-go/issues/85)) (2b02356 (https://github.com/aws/amazon-s3-encryption-client-go/commit/2b02356101e84cfd83992dd715ac18ebd058b817))
 
 ## 3.2.0 (2025-12-16)
 
