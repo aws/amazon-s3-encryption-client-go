@@ -1,10 +1,5 @@
 ### 4.0.1 (<https://github.com/aws/amazon-s3-encryption-client-go/compare/v4.0.0...v4.0.1>) (2026-07-29)
 
-### Maintenance
-
-    * CI: add slack notifications  (#73 (https://github.com/aws/amazon-s3-encryption-client-go/issues/73)) (0785178 (https://github.com/aws/amazon-s3-encryption-client-go/commit/078517854d568ad8e97a7d990daffb8763222af8))
-    * ci: fix daily CI (#75 (https://github.com/aws/amazon-s3-encryption-client-go/issues/75)) (bf8a12f (https://github.com/aws/amazon-s3-encryption-client-go/commit/bf8a12f61694d750a13a44f0a691dd7ced0ff904))
-    * CI: fix flaky CI (#76 (https://github.com/aws/amazon-s3-encryption-client-go/issues/76)) (cb84cb0 (https://github.com/aws/amazon-s3-encryption-client-go/commit/cb84cb0077593d8159a32b533f6aff27993d4598))
 
 ### Fixes
 
