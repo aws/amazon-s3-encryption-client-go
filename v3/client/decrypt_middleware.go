@@ -43,6 +43,11 @@ func customS3Decoder(matDesc string) (decoded string, e error) {
 			// We are dealing with UTF-16 encoded codepoints
 			// of the original UTF-8 characters.
 			// So, take two bytes at a time...
+			// The high-bit byte is consumed as a pair with the next byte;
+			// reject a material description that ends mid-pair.
+			if i+1 >= len(s) {
+				return "", fmt.Errorf("error while decoding material description: incomplete multi-byte sequence")
+			}
 			buf := []byte{s[i], s[i+1]}
 			// Get the rune (code point)
 			wrongRune := string(buf)
