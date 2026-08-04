@@ -12,12 +12,12 @@
                 "types": [
                     {"type": "feat", "section": "Features"},
                     {"type": "fix", "section": "Fixes"},
-                    {"type": "chore", "section": "Maintenance"},
                     {"type": "docs", "section": "Maintenance"},
                     {"type": "revert", "section": "Fixes"},
                     {"type": "style", "hidden": true},
                     {"type": "refactor", "hidden": true},
                     {"type": "perf", "hidden": true},
+                    {"type": "chore", "hidden": true},
                     {"type": "test", "hidden": true}
                 ]
             },
