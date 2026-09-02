@@ -27,7 +27,7 @@ This table describes the current support status of each major version of the Ama
       -
     * - 3.x
       - Maintenance
-      - 
+      - End-of-Support
       - 2027-09-01
 
 .. _AWS SDKs and Tools Maintenance Policy: https://docs.aws.amazon.com/sdkref/latest/guide/maint-policy.html#version-life-cycle
