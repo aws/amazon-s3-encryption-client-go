@@ -5,7 +5,7 @@ on: ["pull_request"]
 
 jobs:
   not-grep:
-    runs-on: ubuntu-latest
+    runs-on: codebuild-CryptoToolsCI-linux-amazon-s3-encryption-client-go-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v2
       - name: not-grep

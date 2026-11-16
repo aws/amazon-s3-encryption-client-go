@@ -9,7 +9,7 @@ on:
 jobs:
   unix-tests:
     name: Unix Tests
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     permissions:
       id-token: write
       contents: read
@@ -17,6 +17,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         go-version: ['1.24', '1.25']
+        include:
+          - os: ubuntu-latest
+            runner: codebuild-CryptoToolsCI-linux-amazon-s3-encryption-client-go-${{ github.run_id }}-${{ github.run_attempt }}
+          - os: macos-latest
+            runner: macos-latest
     steps:
     - uses: actions/checkout@v3
 
