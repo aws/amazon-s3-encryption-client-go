@@ -15,12 +15,12 @@ jobs:
       contents: read
     strategy:
       matrix:
-        os: [linux, macos]
+        os: [ubuntu-latest, macos-latest]
         go-version: ['1.24', '1.25']
         include:
-          - os: linux
+          - os: ubuntu-latest
             runner: codebuild-CryptoToolsCI-linux-amazon-s3-encryption-client-go-${{ github.run_id }}-${{ github.run_attempt }}
-          - os: macos
+          - os: macos-latest
             runner: macos-latest
     steps:
     - uses: actions/checkout@v3
